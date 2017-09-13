@@ -1,0 +1,6 @@
+/OldFATDriver/
+.DS_Store
+/Debug/
+/Release/
+/.settings/
+/.cproject.bak
