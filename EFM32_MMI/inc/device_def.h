@@ -78,6 +78,8 @@ typedef enum {
 	RUN_ATTACH,
 	RUN_ATTACH_USE_OTTA,
 	RUN_ATTACH_USE_ABP,
+	REQ_REAL_APP_KEY_ALLOC,
+	REQ_REAL_APP_KEY_RX_REPORT,
 	UNKNOWN_EVENT	= 255	//!< Undefined event @hideinitializer
 } EVENT_TYPE;
 

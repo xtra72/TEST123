@@ -412,6 +412,25 @@ int	SHELL_CMD_Join(char *ppArgv[], int nArgc)
 	return	0;
 }
 
+
+int	SHELL_CMD_Req(char *ppArgv[], int nArgc)
+{
+	if (nArgc == 2)
+	{
+		if (strcasecmp(ppArgv[1], "1") == 0)
+		{
+			DevicePostEvent(REQ_REAL_APP_KEY_ALLOC);
+		}
+		else if (strcasecmp(ppArgv[1], "2") == 0)
+		{
+			DevicePostEvent(REQ_REAL_APP_KEY_RX_REPORT);
+		}
+	}
+
+
+	return	0;
+}
+
 extern	TaskHandle_t	hSuperTask;
 extern	TaskHandle_t	hShellTask;
 
@@ -469,6 +488,7 @@ int	SHELL_CMD_Help(char *ppArgv[], int nArgc)
 SHELL_CMD	pShellCmds[] =
 {
 		{	"join", "join",	SHELL_CMD_Join},
+		{	"req", "req",	SHELL_CMD_Req},
 		{	"task", "task", SHELL_CMD_Task},
 		{   "trace", "trace", SHELL_CMD_Trace},
 		{	"?", "Help", SHELL_CMD_Help},

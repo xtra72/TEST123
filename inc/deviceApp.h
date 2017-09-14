@@ -54,4 +54,8 @@ void SKTAPP_ParseMessage(McpsIndication_t* McpsIndication);
 void DEVICEAPP_ParseMlme(MlmeConfirm_t *MlmeConfirm);
 void SKTAPP_ParseMlme(MlmeConfirm_t *MlmeConfirm);
 
+void SKTAPP_SendRealAppKeyAllocReq(void);
+void SKTAPP_SendRealAppKeyRxReportReq(void);
+
+
 #endif /* INC_DEVICEAPP_H_ */

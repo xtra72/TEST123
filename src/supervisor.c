@@ -332,7 +332,7 @@ __attribute__((noreturn)) void SUPERVISOR_Task(void* pvParameters) {
 		  DeviceFlashLed(5);
 		  CLEAR_FLAG(DEVICE_UNINSTALLED);
 		  DeviceUserDataSetFlag(FLAG_INSTALLED,FLAG_INSTALLED);
-		  DevicePostEvent(PERIODIC_EVENT);		// Force immediate communication
+//		  DevicePostEvent(PERIODIC_EVENT);		// Force immediate communication
 		}
 		else
 		{
@@ -364,6 +364,14 @@ __attribute__((noreturn)) void SUPERVISOR_Task(void* pvParameters) {
 
 	case	RUN_ATTACH:
 		SUPERVISORRunAttach();
+		break;
+
+	case	REQ_REAL_APP_KEY_ALLOC:
+		SKTAPP_SendRealAppKeyAllocReq();
+		break;
+
+	case	REQ_REAL_APP_KEY_RX_REPORT:
+		SKTAPP_SendRealAppKeyRxReportReq();
 		break;
 
 	case RF_ERROR_EVENT:

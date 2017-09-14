@@ -959,6 +959,12 @@ typedef enum eMlme
      * LoRaWAN end-device certification
      */
     MLME_TXCW_1,
+    /*!
+     * Initiates the Over-the-Air activation
+     *
+     * SKT LoRaWAN Specification
+     */
+    MLME_REAL_JOIN,
 }Mlme_t;
 
 /*!
@@ -1010,6 +1016,35 @@ typedef struct sMlmeReqTxCw
 }MlmeReqTxCw_t;
 
 /*!
+ * LoRaMAC MLME-Request for the join service
+ */
+typedef struct sMlmeReqRealJoin
+{
+    /*!
+     * Globally unique end-device identifier
+     *
+     * LoRaWAN Specification V1.0.1, chapter 6.2.1
+     */
+    uint8_t *DevEui;
+    /*!
+     * Application identifier
+     *
+     * LoRaWAN Specification V1.0.1, chapter 6.1.2
+     */
+    uint8_t *AppEui;
+    /*!
+     * AES-128 application key
+     *
+     * LoRaWAN Specification V1.0.1, chapter 6.2.2
+     */
+    uint8_t *AppKey;
+    /*!
+     * Number of trials for the join request.
+     */
+    uint8_t NbTrials;
+}MlmeReqRealJoin_t;
+
+/*!
  * LoRaMAC MLME-Request structure
  */
 typedef struct sMlmeReq
@@ -1025,10 +1060,14 @@ typedef struct sMlmeReq
     union uMlmeParam
     {
         /*!
-         * MLME-Request parameters for a join request
-         */
-        MlmeReqJoin_t Join;
-        /*!
+             * MLME-Request parameters for a join request
+             */
+            MlmeReqJoin_t Join;
+            /*!
+			 * MLME-Request parameters for a join request
+			 */
+			MlmeReqRealJoin_t RealJoin;
+			/*!
          * MLME-Request parameters for Tx continuous mode request
          */
         MlmeReqTxCw_t TxCw;

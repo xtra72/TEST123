@@ -53,6 +53,10 @@
  * @brief Device/Network interworking application message requirements (SKT requirement)
  */
 #define SKT_NETWORK_SERVICE_PORT					0xDF
+
+#define	MSG_REAL_APP_KEY_ALLOC_REQ					0x00
+#define	MSG_REAL_APP_KEY_RX_REPORT_REQ				0x02
+
 /*!
  * @brief Device management application message requirement (SKT requirement)
  */

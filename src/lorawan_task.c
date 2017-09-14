@@ -261,6 +261,7 @@ bool LORAWAN_JoinNetworkUseOTTA(void) {
 	mibReq.Param.IsNetworkJoined = true;
 	LoRaMacMibGetRequestConfirm( &mibReq );
 
+
 	return ( mibReq.Param.IsNetworkJoined );
 }
 
@@ -297,6 +298,37 @@ bool LORAWAN_JoinNetworkUseABP(void) {
 	LoRaMacMibSetRequestConfirm( &mibReq );
 
 	return true;	// Consider that we succeeded
+}
+
+
+
+bool LORAWAN_RealJoinNetwork(void) {
+	MlmeReq_t mlmeReq;
+	TRACE("Real Join Network\n");
+
+	mlmeReq.Type = MLME_REAL_JOIN;
+
+	mlmeReq.Req.RealJoin.DevEui = (uint8_t*)UNIT_DEVEUID;
+	mlmeReq.Req.RealJoin.AppEui = (uint8_t*)UNIT_APPEUID;
+	mlmeReq.Req.RealJoin.AppKey = (uint8_t*)UNIT_APPKEY;
+	mlmeReq.Req.RealJoin.NbTrials = 3;
+	TRACE("%16s - ", "Dev EUI");
+	TRACE_DUMP(UNIT_DEVEUID, sizeof(UNIT_DEVEUID));
+	TRACE("%16s - ", "App EUI");
+	TRACE_DUMP(UNIT_APPEUID, sizeof(UNIT_APPEUID));
+	TRACE("%16s - ", "App Key");
+	TRACE_DUMP(UNIT_APPKEY, sizeof(UNIT_APPKEY));
+
+	if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, 0 );
+	LoRaMacMlmeRequest( &mlmeReq );
+	if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, LORAWAN_TIMEOUT );
+
+	// Did we join the network ?
+	mibReq.Type = MIB_NETWORK_JOINED;
+	mibReq.Param.IsNetworkJoined = true;
+	LoRaMacMibGetRequestConfirm( &mibReq );
+
+	return ( mibReq.Param.IsNetworkJoined );
 }
 
 
@@ -339,7 +371,7 @@ LoRaMacStatus_t LORAWAN_SendMessage( LORA_PACKET* message )
             mcpsReq.Req.Unconfirmed.fBufferSize = message->Size;
             message->NbTrials = 0;
             mcpsReq.Req.Unconfirmed.Datarate = LORAWAN_DEFAULT_DATARATE;
-         	TRACE("Request unconfirmed : PORT = %d, DR = %d, Size = %d\n",
+         	TRACE("Request unconfirmed : PORT = %02x, DR = %d, Size = %d\n",
          			mcpsReq.Req.Unconfirmed.fPort,
 					mcpsReq.Req.Unconfirmed.Datarate,
 					mcpsReq.Req.Unconfirmed.fBufferSize);
@@ -352,7 +384,7 @@ LoRaMacStatus_t LORAWAN_SendMessage( LORA_PACKET* message )
             mcpsReq.Req.Confirmed.fBufferSize = message->Size;
             mcpsReq.Req.Confirmed.NbTrials = LoRaWAN_Retries;
             mcpsReq.Req.Confirmed.Datarate = LORAWAN_DEFAULT_DATARATE;
-         	TRACE("Request confirmed : PORTR  = %d, DR = %d, RETRIES = %d, Size = %d\n",
+         	TRACE("Request confirmed : PORTR  = %02x, DR = %d, RETRIES = %d, Size = %d\n",
          			mcpsReq.Req.Confirmed.fPort,
 					mcpsReq.Req.Confirmed.Datarate,
 					mcpsReq.Req.Confirmed.NbTrials,

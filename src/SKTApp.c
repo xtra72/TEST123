@@ -47,6 +47,7 @@ bool rc = false;
 static bool DEVICEAPP_ExecSKTDevice(LORA_MESSAGE* msg) {
 bool rc = false;
 	if (msg->Version > LORA_MESSAGE_VERSION) return rc; 	// Ignore malformed message
+	TRACE("Exec STK : %02x\n", msg->MessageType);
 	switch(msg->MessageType) {
 	case 0x00:
 		// Add your code here
@@ -76,11 +77,13 @@ bool rc = false;
 static bool DEVICEAPP_ExecDaliworks(LORA_MESSAGE* msg) {
 bool rc = false;
 	if (msg->Version > LORA_MESSAGE_VERSION) return rc; 	// Ignore malformed message
+	TRACE("Exec Daliworks : %02x\n", msg->MessageType);
 	switch(msg->MessageType) {
-/* This is an uplink message only
 	case 01:
+
+		TRACE("%16s : %02x %02x %02x\n", "App Nonce", msg->Payload[0], msg->Payload[1], msg->Payload[2]);
 		break;
-*/
+
 	case 0x81:
 		// WARNING: Upon factory reset the unit will not communicated with the LoRaWAN anymore
 		// until it is re-installed using the magnet.
@@ -159,6 +162,65 @@ bool rc = false;
 /*
  * @brief Send standard data using a specific messageType
  */
+ void SKTAPP_SendRealAppKeyAllocReq(void)
+{
+	LocalMessage.Buffer = LocalBuffer;
+	LocalMessage.Port = SKT_NETWORK_SERVICE_PORT;
+	LocalMessage.Request = MCPS_UNCONFIRMED;
+	LocalMessage.Message->MessageType = MSG_REAL_APP_KEY_ALLOC_REQ;
+	LocalMessage.Message->Version = LORA_MESSAGE_VERSION;
+	LocalMessage.Message->PayloadLen = 0;
+	LocalMessage.Size = LORA_MESSAGE_HEADER_SIZE + LocalMessage.Message->PayloadLen;
+	if (LORAWAN_SendMessage(&LocalMessage)  != LORAMAC_STATUS_OK) {
+		switch(LocalMessage.Status) {
+			case LORAMAC_EVENT_INFO_STATUS_ERROR:
+				ERROR("LORAMAC_EVENT_INFO_STATUS_ERROR");
+				DeviceFlashLed(10);
+				break;
+			case LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT:
+				ERROR("LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT");
+				DeviceFlashLed(3);
+				break;
+			default:
+				DeviceFlashLed(5);
+				break;
+		}
+	}
+}
+
+ /*
+  * @brief Send standard data using a specific messageType
+  */
+  void SKTAPP_SendRealAppKeyRxReportReq(void)
+ {
+ 	LocalMessage.Buffer = LocalBuffer;
+ 	LocalMessage.Port = SKT_NETWORK_SERVICE_PORT;
+ 	LocalMessage.Request = MCPS_UNCONFIRMED;
+ 	LocalMessage.Message->MessageType = MSG_REAL_APP_KEY_RX_REPORT_REQ;
+ 	LocalMessage.Message->Version = LORA_MESSAGE_VERSION;
+ 	LocalMessage.Message->PayloadLen = 0;
+ 	LocalMessage.Size = LORA_MESSAGE_HEADER_SIZE + LocalMessage.Message->PayloadLen;
+ 	if (LORAWAN_SendMessage(&LocalMessage)  != LORAMAC_STATUS_OK) {
+ 		switch(LocalMessage.Status) {
+ 			case LORAMAC_EVENT_INFO_STATUS_ERROR:
+ 				ERROR("LORAMAC_EVENT_INFO_STATUS_ERROR");
+ 				DeviceFlashLed(10);
+ 				break;
+ 			case LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT:
+ 				ERROR("LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT");
+ 				DeviceFlashLed(3);
+ 				break;
+ 			default:
+ 				DeviceFlashLed(5);
+ 				break;
+ 		}
+ 	}
+ }
+
+
+/*
+ * @brief Send standard data using a specific messageType
+ */
 static uint32_t PeriodicCount = 0;
 static void SKTAPP_SendPeriodicDataExt(uint8_t messageType, bool retry) {
 #if (INCLUDE_COMPLIANCE_TEST > 0)
@@ -209,16 +271,19 @@ bool rc = false;
 				if (msg) {
 					switch(msg->Port) {
 					case LORAWAN_APP_PORT:
+						TRACE("SKT APP LoRaWAN App Port received.\n");
 						if (msg->Size > 0) {
 							rc = DEVICEAPP_ExecSKTNetwork(msg->Message);
 						}
 						break;
 					case SKT_DEVICE_SERVICE_PORT:
+						TRACE("SKT Device Service Port received.\n");
 						if (msg->Size > 0) {
 							rc = DEVICEAPP_ExecSKTDevice(msg->Message);
 						}
 						break;
 					case SKT_NETWORK_SERVICE_PORT:
+						TRACE("SKT Network Service Port received.\n");
 						if (msg->Size > 0) {
 							rc = DEVICEAPP_ExecDaliworks(msg->Message);
 						}
