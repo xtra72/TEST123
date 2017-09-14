@@ -234,58 +234,79 @@ void LORAWAN_Init(void) {
     memset(&LocalMcps,0,sizeof(McpsIndication_t));
 }
 
-bool LORAWAN_JoinNetwork(void) {
-	TRACE("Join Network start\n");
-	if( UNIT_USE_OTAA) {
-		MlmeReq_t mlmeReq;
-		TRACE("Use OTTA\n");
 
-		mlmeReq.Type = MLME_JOIN;
+bool LORAWAN_JoinNetworkUseOTTA(void) {
+	MlmeReq_t mlmeReq;
+	TRACE("Use OTTA\n");
 
-		mlmeReq.Req.Join.DevEui = (uint8_t*)UNIT_DEVEUID;
-		mlmeReq.Req.Join.AppEui = (uint8_t*)UNIT_APPEUID;
-		mlmeReq.Req.Join.AppKey = (uint8_t*)UNIT_APPKEY;
-		mlmeReq.Req.Join.NbTrials = 3;
-		if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, 0 );
-		LoRaMacMlmeRequest( &mlmeReq );
-		if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, LORAWAN_TIMEOUT );
-	} else {
-		// Choose a random device address if not already defined in Commissioning.h
-		if( UNIT_SERIALNUMBER == 0 )
-		{
-			// Random seed initialization
-			srand1( BoardGetRandomSeed( ) );
-			// Choose a random device address
-			DeviceUserDateSetSerialNumber(randr( 0, 0x01FFFFFF ));
-		}
+	mlmeReq.Type = MLME_JOIN;
 
-		mibReq.Type = MIB_NET_ID;
-		mibReq.Param.NetID = UNIT_NETWORKID;
-		LoRaMacMibSetRequestConfirm( &mibReq );
+	mlmeReq.Req.Join.DevEui = (uint8_t*)UNIT_DEVEUID;
+	mlmeReq.Req.Join.AppEui = (uint8_t*)UNIT_APPEUID;
+	mlmeReq.Req.Join.AppKey = (uint8_t*)UNIT_APPKEY;
+	mlmeReq.Req.Join.NbTrials = 3;
+	TRACE("%16s - ", "Dev EUI");
+	TRACE_DUMP(UNIT_DEVEUID, sizeof(UNIT_DEVEUID));
+	TRACE("%16s - ", "App EUI");
+	TRACE_DUMP(UNIT_APPEUID, sizeof(UNIT_APPEUID));
+	TRACE("%16s - ", "App Key");
+	TRACE_DUMP(UNIT_APPKEY, sizeof(UNIT_APPKEY));
 
-		mibReq.Type = MIB_DEV_ADDR;
-		mibReq.Param.DevAddr = UNIT_SERIALNUMBER;
-		LoRaMacMibSetRequestConfirm( &mibReq );
+	if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, 0 );
+	LoRaMacMlmeRequest( &mlmeReq );
+	if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, LORAWAN_TIMEOUT );
 
-		mibReq.Type = MIB_NWK_SKEY;
-		mibReq.Param.NwkSKey = (uint8_t*)UNIT_NETSKEY;
-		LoRaMacMibSetRequestConfirm( &mibReq );
-
-		mibReq.Type = MIB_APP_SKEY;
-		mibReq.Param.AppSKey = (uint8_t*)UNIT_APPSKEY;
-		LoRaMacMibSetRequestConfirm( &mibReq );
-
-		mibReq.Type = MIB_NETWORK_JOINED;
-		mibReq.Param.IsNetworkJoined = true;
-		LoRaMacMibSetRequestConfirm( &mibReq );
-		return true;	// Consider that we succeeded
-	}
 	// Did we join the network ?
 	mibReq.Type = MIB_NETWORK_JOINED;
 	mibReq.Param.IsNetworkJoined = true;
 	LoRaMacMibGetRequestConfirm( &mibReq );
 
 	return ( mibReq.Param.IsNetworkJoined );
+}
+
+
+bool LORAWAN_JoinNetworkUseABP(void) {
+	TRACE("Use ABP\n");
+	// Choose a random device address if not already defined in Commissioning.h
+	if( UNIT_SERIALNUMBER == 0 )
+	{
+		// Random seed initialization
+		srand1( BoardGetRandomSeed( ) );
+		// Choose a random device address
+		DeviceUserDateSetSerialNumber(randr( 0, 0x01FFFFFF ));
+	}
+
+	mibReq.Type = MIB_NET_ID;
+	mibReq.Param.NetID = UNIT_NETWORKID;
+	LoRaMacMibSetRequestConfirm( &mibReq );
+
+	mibReq.Type = MIB_DEV_ADDR;
+	mibReq.Param.DevAddr = UNIT_SERIALNUMBER;
+	LoRaMacMibSetRequestConfirm( &mibReq );
+
+	mibReq.Type = MIB_NWK_SKEY;
+	mibReq.Param.NwkSKey = (uint8_t*)UNIT_NETSKEY;
+	LoRaMacMibSetRequestConfirm( &mibReq );
+
+	mibReq.Type = MIB_APP_SKEY;
+	mibReq.Param.AppSKey = (uint8_t*)UNIT_APPSKEY;
+	LoRaMacMibSetRequestConfirm( &mibReq );
+
+	mibReq.Type = MIB_NETWORK_JOINED;
+	mibReq.Param.IsNetworkJoined = true;
+	LoRaMacMibSetRequestConfirm( &mibReq );
+
+	return true;	// Consider that we succeeded
+}
+
+
+bool LORAWAN_JoinNetwork(void) {
+	TRACE("Start Join Network.\n");
+	if( UNIT_USE_OTAA) {
+		return	LORAWAN_JoinNetworkUseOTTA();
+	} else {
+		return	LORAWAN_JoinNetworkUseABP();
+	}
 }
 
 /*!

@@ -59,15 +59,17 @@ __attribute__((noreturn)) void vApplicationStackOverflowHook( xTaskHandle pxTask
 /** @endcond */
 static StackType_t SuperStack[SUPER_STACK];
 static StaticTask_t SuperTask;
+TaskHandle_t hSuperTask = NULL;
 
 /*!
  * Tasks static allocation
  */
 /** @cond */
-#define SHELL_STACK		1024
+#define SHELL_STACK		500
 /** @endcond */
-static StackType_t TraceStack[SHELL_STACK];
-static StaticTask_t TraceTask;
+static StackType_t ShellStack[SHELL_STACK];
+static StaticTask_t ShellTask;
+TaskHandle_t hShellTask = NULL;
 
 /*!
  * @brief S40 Application starting point
@@ -81,11 +83,13 @@ __attribute__((noreturn)) int main()
 	LORAWAN_Init();
 	SHELL_Init();
 
+	TRACE_SetEnable(true);
+
 	TRACE("Start S47\n");
 	/* Create the various tasks */
 	/* Create the task that Monitors the system */
-	xTaskCreateStatic( SUPERVISOR_Task, (const char*)"SUPER", SUPER_STACK, NULL, tskIDLE_PRIORITY + 1, SuperStack, &SuperTask );
-	xTaskCreateStatic( SHELL_Task, (const char*)"TRACE", SHELL_STACK, NULL, tskIDLE_PRIORITY + 1, TraceStack, &TraceTask );
+	hSuperTask = xTaskCreateStatic( SUPERVISOR_Task, (const char*)"SUPER", SUPER_STACK, NULL, tskIDLE_PRIORITY + 1, SuperStack, &SuperTask );
+	hShellTask = xTaskCreateStatic( SHELL_Task, (const char*)"TRACE", SHELL_STACK, NULL, tskIDLE_PRIORITY + 1, ShellStack, &ShellTask );
 
 	/* Start the scheduler. */
 	vEFMEnergyEnableLowPowerMode(false);	// Make sure FreeRTOS can go in deep sleep mode
@@ -100,4 +104,14 @@ __attribute__((noreturn)) int main()
 	}
 	__builtin_unreachable();
 }
+
+void	TaskGetInfo()
+{
+	TaskStatus_t	xStatus;
+
+	vTaskGetInfo( hShellTask, &xStatus, true, eInvalid);
+
+	SHELL_Printf("%16s : %d\n", "Water Mark", xStatus.usStackHighWaterMark);
+}
+
 /** @}*/

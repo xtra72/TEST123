@@ -123,6 +123,8 @@ void LORAWAN_Init(void);
  * @return true if successful
  */
 bool LORAWAN_JoinNetwork(void);
+bool LORAWAN_JoinNetworkUseOTTA(void);
+bool LORAWAN_JoinNetworkUseABP(void);
 
 /*!
  * @brief Sends a LORA_MESSAGE to the network

@@ -741,6 +741,7 @@ static void OnRadioRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t
     TimerStop( &RxWindowTimer2 );
 
     TRACE("OnRadioRxDone : RSSI = %d, SNR = %d, Size = %d\n", rssi, snr, size);;
+    TRACE("Rx Frame[%d] - ", size);
     TRACE_DUMP(payload, size);
 
     macHdr.Value = payload[pktHeaderLen++];
@@ -1871,9 +1872,7 @@ LoRaMacStatus_t Send( LoRaMacHeader_t *macHdr, uint8_t fPort, void *fBuffer, uin
     LoRaMacFrameCtrl_t fCtrl;
     LoRaMacStatus_t status = LORAMAC_STATUS_PARAMETER_INVALID;
 
-    TRACE("Send\n");
-
-    fCtrl.Value = 0;
+     fCtrl.Value = 0;
     fCtrl.Bits.FOptsLen      = 0;
     fCtrl.Bits.FPending      = 0;
     fCtrl.Bits.Ack           = false;
@@ -1886,7 +1885,7 @@ LoRaMacStatus_t Send( LoRaMacHeader_t *macHdr, uint8_t fPort, void *fBuffer, uin
     // Validate status
     if( status != LORAMAC_STATUS_OK )
     {
-    	ERROR("Invalid frame!");
+    	ERROR("Send failed : Invalid frame!");
         return status;
     }
 
@@ -2241,14 +2240,17 @@ LoRaMacStatus_t SendFrameOnChannel( uint8_t channel )
         JoinRequestTrials++;
     }
 
+    // Send now
+    Radio.Send( LoRaMacBuffer, LoRaMacBufferPktLen );
+
     if( IsLoRaMacNetworkJoined == false )
     {
-		TRACE("Send Join[%d] : %d\n", JoinRequestTrials, LoRaMacBufferPktLen);
+		TRACE("Send Join[%d][%d] - ", JoinRequestTrials, LoRaMacBufferPktLen);
 		TRACE_DUMP(LoRaMacBuffer, LoRaMacBufferPktLen);
     }
     else
     {
-		TRACE("Send Frame : %d\n", LoRaMacBufferPktLen);
+		TRACE("Send Frame[%d] - ", LoRaMacBufferPktLen);
 		TRACE_DUMP(LoRaMacBuffer, LoRaMacBufferPktLen);
     }
     TRACE("Tx Config : CH = %d, DR = %d, PWR = %d, EIRP = %d.%02d, GAIN = %d.%02d\n",
@@ -2260,8 +2262,6 @@ LoRaMacStatus_t SendFrameOnChannel( uint8_t channel )
     TRACE("MCPS Confirm : DR = %d, PWR = %d\n",
     		McpsConfirm.Datarate, McpsConfirm.TxPower);
 
-    // Send now
-    Radio.Send( LoRaMacBuffer, LoRaMacBufferPktLen );
 
     LoRaMacState |= LORAMAC_TX_RUNNING;
 
@@ -3359,8 +3359,7 @@ LoRaMacStatus_t LoRaMacMcpsRequest( McpsReq_t *mcpsRequest )
             }
         }
 
-        TRACE("Send\n");
-        status = Send( &macHdr, fPort, fBuffer, fBufferSize );
+         status = Send( &macHdr, fPort, fBuffer, fBufferSize );
         if( status == LORAMAC_STATUS_OK )
         {
             McpsConfirm.McpsRequest = mcpsRequest->Type;

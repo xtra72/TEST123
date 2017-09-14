@@ -33,11 +33,11 @@
  */
 static bool	_bEnable = false;
 
-uint32_t	TRACE_Dump(char *pTitle, uint8_t *pData, uint32_t ulDataLen)
+uint32_t	TRACE_Dump(char *pModule, uint8_t *pData, uint32_t ulDataLen)
 {
 	if (_bEnable)
 	{
-		return	SHELL_Dump(pTitle, pData, ulDataLen);
+		return	SHELL_Dump(pData, ulDataLen);
 	}
 
 	return	0;

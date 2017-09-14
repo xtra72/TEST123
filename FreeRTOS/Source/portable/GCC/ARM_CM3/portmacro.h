@@ -233,7 +233,7 @@ BaseType_t xReturn;
 portFORCE_INLINE static void vPortRaiseBASEPRI( void )
 {
 uint32_t ulNewBASEPRI;
-
+#if 0
 	__asm volatile
 	(
 		"	mov %0, %1												\n"	\
@@ -242,6 +242,7 @@ uint32_t ulNewBASEPRI;
 		"	dsb														\n" \
 		:"=r" (ulNewBASEPRI) : "i" ( configMAX_SYSCALL_INTERRUPT_PRIORITY )
 	);
+#endif
 }
 
 /*-----------------------------------------------------------*/

@@ -76,6 +76,8 @@ typedef enum {
 	RELOAD_EVENT,			//!< Unit reload parameters - Manually set @hideinitializer
 	USER_EVENT,				//!< User defined event @hideinitializer
 	RUN_ATTACH,
+	RUN_ATTACH_USE_OTTA,
+	RUN_ATTACH_USE_ABP,
 	UNKNOWN_EVENT	= 255	//!< Undefined event @hideinitializer
 } EVENT_TYPE;
 

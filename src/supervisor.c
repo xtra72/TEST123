@@ -322,6 +322,46 @@ __attribute__((noreturn)) void SUPERVISOR_Task(void* pvParameters) {
 		 * An error occurred during last RF transaction
 		 */
 
+	case	RUN_ATTACH_USE_OTTA:
+		TRACE("Join network use OTTA.\n");
+
+		DeviceFlashLed(1);
+		SUPERVISORUpdatePulseValue();
+		if (LORAWAN_JoinNetworkUseOTTA()) {
+			TRACE("Join success.\n");
+		  DeviceFlashLed(5);
+		  CLEAR_FLAG(DEVICE_UNINSTALLED);
+		  DeviceUserDataSetFlag(FLAG_INSTALLED,FLAG_INSTALLED);
+		  DevicePostEvent(PERIODIC_EVENT);		// Force immediate communication
+		}
+		else
+		{
+			TRACE("Join failed.\n");
+		}
+		CLEAR_FLAG(DEVICE_COMM_ERROR | DEVICE_TEMPORARY_ERROR | DEVICE_LOW_BATTERY);	/* Reset Communication Status and Low battery indicator */
+		DeviceFlashLed(LED_FLASH_OFF);
+		break;
+
+	case	RUN_ATTACH_USE_ABP:
+		TRACE("Join network use APB.\n");
+
+		DeviceFlashLed(1);
+		SUPERVISORUpdatePulseValue();
+		if (LORAWAN_JoinNetworkUseABP()) {
+			TRACE("Join success.\n");
+		  DeviceFlashLed(5);
+		  CLEAR_FLAG(DEVICE_UNINSTALLED);
+		  DeviceUserDataSetFlag(FLAG_INSTALLED,FLAG_INSTALLED);
+		  DevicePostEvent(PERIODIC_EVENT);		// Force immediate communication
+		}
+		else
+		{
+			TRACE("Join failed.\n");
+		}
+		CLEAR_FLAG(DEVICE_COMM_ERROR | DEVICE_TEMPORARY_ERROR | DEVICE_LOW_BATTERY);	/* Reset Communication Status and Low battery indicator */
+		DeviceFlashLed(LED_FLASH_OFF);
+		break;
+
 	case	RUN_ATTACH:
 		SUPERVISORRunAttach();
 		break;

@@ -12,7 +12,7 @@
 #include "stdbool.h"
 #define	__MODULE__	"global"
 
-uint32_t	TRACE_Dump(char *pTitle, uint8_t *pData, uint32_t ulDataLen);
+uint32_t	TRACE_Dump(char *pModule, uint8_t *pData, uint32_t ulDataLen);
 uint32_t	TRACE_Printf(const char* pModule, const char *pFormat, ...);
 void		TRACE_SetEnable(bool bEnable);
 bool		TRACE_GetEnable(void);

@@ -26,7 +26,10 @@
 #define	__MODULE__ "TRACE"
 
 static char pBuffer[256];
+xSemaphoreHandle	SHELLSemaphore;
+//static StaticSemaphore_t xSHELLSemaphoreBuffer;
 
+#define	SHELL_TIMEOUT	0 //(5 * configTICK_RATE_HZ)
 /***************************************************************************//**
  * @brief  Setting up LEUART
  ******************************************************************************/
@@ -78,6 +81,8 @@ void SHELL_Init(void)
   /* Finally enable it */
   LEUART_Enable(LEUART0, leuartEnable);
 
+//SHELLSemaphore = xSemaphoreCreateBinaryStatic( &xSHELLSemaphoreBuffer );
+
 #if 0
   /* LDMA transfer configuration for LEUART */
   const LDMA_TransferCfg_t periTransferRx =
@@ -102,10 +107,20 @@ uint32_t	SHELL_PrintString(const char *pString)
 {
 	uint32_t	nOutputLength = 0;
 
+	if (SHELLSemaphore)
+	{
+		if (!xSemaphoreTake( SHELLSemaphore, SHELL_TIMEOUT ))
+		{
+			return	nOutputLength;
+		}
+	}
+
 	for(uint32_t i = 0 ; i < strlen(pString) ; i++)
 	{
 		LEUART_Tx(LEUART0, pString[i]);
 	}
+
+	if (SHELLSemaphore) xSemaphoreGive( SHELLSemaphore);
 
 	return	nOutputLength;
 }
@@ -113,16 +128,10 @@ uint32_t	SHELL_PrintString(const char *pString)
 /*!
  * @brief Console output
  */
-uint32_t	SHELL_Dump(char *pTitle, uint8_t *pData, uint32_t ulDataLen)
+uint32_t	SHELL_Dump(uint8_t *pData, uint32_t ulDataLen)
 {
 	uint32_t	nOutputLength = 0;
-	char pBuff[4];
-	int bBinary = 0;
-
-	memset(pBuff, 0, sizeof(pBuff));
-	pBuff[2] = ' ';
-
-	nOutputLength += SHELL_PrintString(pTitle);
+	int 		bBinary = 0;
 
 	for(uint32_t i = 0 ; i < ulDataLen ; i++)
 	{
@@ -132,6 +141,10 @@ uint32_t	SHELL_Dump(char *pTitle, uint8_t *pData, uint32_t ulDataLen)
 			break;
 		}
 	}
+
+	char	pBuff[4];
+	memset(pBuff, 0, sizeof(pBuff));
+	pBuff[2] = ' ';
 
 	if (bBinary)
 	{
@@ -165,11 +178,21 @@ uint32_t	SHELL_Dump(char *pTitle, uint8_t *pData, uint32_t ulDataLen)
 	}
 	else
 	{
+		if (SHELLSemaphore)
+		{
+			if (!xSemaphoreTake( SHELLSemaphore, SHELL_TIMEOUT ))
+			{
+				return	nOutputLength;
+			}
+		}
+
 		for(uint32_t i = 0 ; i < ulDataLen ; i++)
 		{
 			LEUART_Tx(LEUART0, pData[i]);
 		}
 		LEUART_Tx(LEUART0, '\n');
+
+		if (SHELLSemaphore) xSemaphoreGive( SHELLSemaphore);
 	}
 	return	nOutputLength;
 }
@@ -189,10 +212,20 @@ uint32_t	SHELL_Printf(const char *pFormat, ...)
 
 	va_end(xArgs);
 
+	if (SHELLSemaphore)
+	{
+		if (!xSemaphoreTake( SHELLSemaphore, SHELL_TIMEOUT ))
+		{
+			return	nOutputLength;
+		}
+	}
+
 	for(uint32_t i = 0 ; i < nOutputLength ; i++)
 	{
 		LEUART_Tx(LEUART0, pBuffer[i]);
 	}
+
+	if (SHELLSemaphore) xSemaphoreGive( SHELLSemaphore);
 
 	return	nOutputLength;
 }
@@ -216,10 +249,20 @@ uint32_t	SHELL_VPrintf(const char* pModule, const char *pFormat, va_list xArgs)
 
 	nOutputLength += vsnprintf(&pBuffer[nOutputLength], sizeof(pBuffer) - nOutputLength - 1, pFormat, xArgs);
 
+	if (SHELLSemaphore)
+	{
+		if (!xSemaphoreTake( SHELLSemaphore, SHELL_TIMEOUT ))
+		{
+			return	nOutputLength;
+		}
+	}
+
 	for(uint32_t i = 0 ; i < nOutputLength ; i++)
 	{
 		LEUART_Tx(LEUART0, pBuffer[i]);
 	}
+
+	if (SHELLSemaphore) xSemaphoreGive( SHELLSemaphore);
 
 	return	nOutputLength;
 }
@@ -320,7 +363,6 @@ __attribute__((noreturn)) void SHELL_Task(void* pvParameters)
 		uint32_t ulLineLen = SHELL_GetLine((uint8_t*)pLine, sizeof(pLine) - 1);
 		if (ulLineLen != 0)
 		{
-			SHELL_Printf("%s\n", pLine);
 			nArgc = SHELL_ParseLine(pLine, ppArgv, 16);
 			if (nArgc != 0)
 			{
@@ -347,16 +389,45 @@ __attribute__((noreturn)) void SHELL_Task(void* pvParameters)
 
 }
 
-int	SHELL_CMD_Run(char *ppArgv[], int nArgc)
+int	SHELL_CMD_Join(char *ppArgv[], int nArgc)
 {
 	if (nArgc == 1)
 	{
 		DevicePostEvent(RUN_ATTACH);
 	}
+	else if (nArgc == 2)
+	{
+		if (strcasecmp(ppArgv[1], "otta") == 0)
+		{
+			DevicePostEvent(RUN_ATTACH_USE_OTTA);
+		}
+		else if (strcasecmp(ppArgv[1], "abp") == 0)
+		{
+			DevicePostEvent(RUN_ATTACH_USE_ABP);
+		}
+
+	}
+
 
 	return	0;
 }
 
+extern	TaskHandle_t	hSuperTask;
+extern	TaskHandle_t	hShellTask;
+
+int	SHELL_CMD_Task(char *ppArgv[], int nArgc)
+{
+	if (nArgc == 1)
+	{
+		TaskStatus_t	xStatus;
+
+		vTaskGetInfo( hShellTask, &xStatus, true, eInvalid);
+
+		SHELL_Printf("%16s : %d\n", "Water Mark", xStatus.usStackHighWaterMark);
+	}
+
+	return	0;
+}
 
 int	SHELL_CMD_Trace(char *ppArgv[], int nArgc)
 {
@@ -397,8 +468,9 @@ int	SHELL_CMD_Help(char *ppArgv[], int nArgc)
 
 SHELL_CMD	pShellCmds[] =
 {
-		{	"join", "join",	SHELL_CMD_Run},
-		{   "trace", "trae", SHELL_CMD_Trace},
+		{	"join", "join",	SHELL_CMD_Join},
+		{	"task", "task", SHELL_CMD_Task},
+		{   "trace", "trace", SHELL_CMD_Trace},
 		{	"?", "Help", SHELL_CMD_Help},
 		{	NULL, NULL, NULL}
 };

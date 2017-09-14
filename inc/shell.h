@@ -19,7 +19,7 @@ typedef	struct
 
 void		SHELL_Init(void);
 uint32_t	SHELL_Printf(const char* pFormat, ...);
-uint32_t	SHELL_Dump(char *pTitle, uint8_t *pData, uint32_t ulDataLen);
+uint32_t	SHELL_Dump(uint8_t *pData, uint32_t ulDataLen);
 uint32_t	SHELL_VPrintf(const char* pModule, const char* pFormat, va_list	xArgs);
 uint32_t	SHELL_GetLine(uint8_t* pBuffer, uint32_t ulBufferLen);
 
