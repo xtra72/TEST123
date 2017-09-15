@@ -78,6 +78,8 @@ typedef enum {
 	RUN_ATTACH,
 	RUN_ATTACH_USE_OTTA,
 	RUN_ATTACH_USE_ABP,
+	PSEUDO_JOIN_NETWORK,
+	REAL_JOIN_NETWORK,
 	REQ_REAL_APP_KEY_ALLOC,
 	REQ_REAL_APP_KEY_RX_REPORT,
 	UNKNOWN_EVENT	= 255	//!< Undefined event @hideinitializer
@@ -97,6 +99,11 @@ unsigned char AppKey[16];			//!< LoRaWAN Encryption Key
 unsigned char NwkSKey[16];			//!< LoRaWAN Network Shared Encryption Key
 unsigned char AppSKey[16];			//!< LoRaWAN Application Shared Encryption Key
 }LORAWAN_INFO;
+
+typedef	struct __packed__ {
+unsigned char RealAppKey[16];			//!< LoRaWAN SKT Real Encryption Key
+}SKT_INFO;
+
 /*!
  * @brief User data information block format stored in user page FLASH memory
  * @remark This information will be moved from the USER Page Flash region to the internal Flash for security
@@ -114,6 +121,7 @@ unsigned char DefaultRFPeriod;		//!< Default RF periodic transmission (in min.)
 unsigned long DeviceSerialNumber;	//!< Device Serial Number
 unsigned short DeviceFlags;			//!< Device permanent stored status flag
 LORAWAN_INFO LoRaWAN;				//!< LoRaWAN information
+SKT_INFO	SKT;
 } USERDATA;
 
 /** @cond */
@@ -154,6 +162,8 @@ extern const FLASH_PAGE _USERPAGE_;
 #define UNIT_NETSKEY		((const unsigned char*)(USERDATAPTR)->LoRaWAN.NwkSKey) 	//! @hideinitializer
 //! @brief Macro replacement to access permanent data Application session encryption key
 #define UNIT_APPSKEY		((const unsigned char*)(USERDATAPTR)->LoRaWAN.AppSKey) 	//! @hideinitializer
+//! @brief Macro replacement to access permanent data Application real encryption key
+#define UNIT_REALAPPKEY		((const unsigned char*)(USERDATAPTR)->SKT.RealAppKey) 	//! @hideinitializer
 
 /**
  * Permanently stored status flags

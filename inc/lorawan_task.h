@@ -45,6 +45,20 @@
 
 #endif
 
+typedef	enum
+{
+	LORAWAN_STATUS_IDLE,
+	LORAWAN_STATUS_JOIN,
+	LORAWAN_STATUS_PSEUDO_JOIN,
+	LORAWAN_STATUS_PSEUDO_JOIN_CONFIRMED,
+	LORAWAN_STATUS_REQ_REAL_APP_KEY_ALLOC,
+	LORAWAN_STATUS_REQ_REAL_APP_KEY_ALLOC_CONFIRMED,
+	LORAWAN_STATUS_REQ_REAL_APP_KEY_RX_REPORT,
+	LORAWAN_STATUS_REQ_REAL_APP_KEY_RX_REPORT_CONFIRMED,
+	LORAWAN_STATUS_REAL_JOIN,
+	LORAWAN_STATUS_REAL_JOIN_CONFIRMED
+} LoRaWANStatus_t;
+
 /*!
  * @brief LoRaWAN default application port (Daliworks requirement)
  */
@@ -61,6 +75,11 @@
  * @brief Device management application message requirement (SKT requirement)
  */
 #define SKT_DEVICE_SERVICE_PORT						0xDE
+
+/*!
+ * @brief Service management application message requirement (Daliworks requirement)
+ */
+#define DALIWORKS_SERVICE_PORT						0xDD
 
 /*!
  * @brief Default number of retries when confirmed message is sent out LoRaWAN network
@@ -122,13 +141,20 @@ LORA_MESSAGE *Message;
  */
 void LORAWAN_Init(void);
 
+LoRaWANStatus_t LORAWAN_GetStatus(void);
+char*			LORAWAN_GetStatusString(void);
 /*!
  * @brief Tries to join the LoRaWAN network if not already done
  * @return true if successful
  */
-bool LORAWAN_JoinNetwork(void);
-bool LORAWAN_JoinNetworkUseOTTA(void);
-bool LORAWAN_JoinNetworkUseABP(void);
+bool LORAWAN_JoinNetwork(bool bWaitForConfirmed);
+bool LORAWAN_JoinNetworkUseOTTA(bool bWaitForConfirmed);
+bool LORAWAN_JoinNetworkUseABP(bool bWaitForConfirmed);
+bool LORAWAN_PseudoJoinNetwork(bool bWaitForConfirmed);
+bool LORAWAN_RealJoinNetwork(bool bWaitForConfirmed);
+bool LORAWAN_RequestRealAppKeyAlloc(bool bWaitForConfirmed);
+bool LORAWAN_RequestRealAppKeyRxReport(bool bWaitForConfirmed);
+bool LORAWAN_CancelJoinNetwork(void);
 
 /*!
  * @brief Sends a LORA_MESSAGE to the network

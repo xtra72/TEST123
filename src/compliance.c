@@ -123,7 +123,7 @@ void DEVICEAPP_RunComplianceTest(McpsIndication_t* mcpsIndication) {
 					LoRaMacTestSetDutyCycleOn( LORAWAN_DUTYCYCLE_ON );
 	#endif
 					SUPERVISORStartCyclicTask(0,oldPeriod);
-					LORAWAN_JoinNetwork();
+					LORAWAN_JoinNetwork(true);
 				}
 				break;
 			case 7: // (x)

@@ -106,6 +106,16 @@ void LoRaMacJoinDecrypt( const uint8_t *buffer, uint16_t size, const uint8_t *ke
  */
 void LoRaMacJoinComputeSKeys( const uint8_t *key, const uint8_t *appNonce, uint16_t devNonce, uint8_t *nwkSKey, uint8_t *appSKey );
 
+/*!
+ * Computes the SKT real app key
+ *
+ * \param [IN]  key             - AES key to be used
+ * \param [IN]  appNonce        - Application nonce
+ * \param [IN]  netId	        - Device nonce
+ * \param [OUT] appKey          - Real application key
+ */
+void LoRaMacJoinComputeRealAppKey( const uint8_t *key, const uint8_t *appNonce, uint32_t netId, uint8_t *appKey );
+
 /*! \} defgroup LORAMAC */
 
 #endif // __LORAMAC_CRYPTO_H__

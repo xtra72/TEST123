@@ -405,9 +405,16 @@ int	SHELL_CMD_Join(char *ppArgv[], int nArgc)
 		{
 			DevicePostEvent(RUN_ATTACH_USE_ABP);
 		}
+		else if (strcasecmp(ppArgv[1], "pseudo") == 0)
+		{
+			DevicePostEvent(PSEUDO_JOIN_NETWORK);
+		}
+		else if (strcasecmp(ppArgv[1], "real") == 0)
+		{
+			DevicePostEvent(REAL_JOIN_NETWORK);
+		}
 
 	}
-
 
 	return	0;
 }
@@ -417,7 +424,7 @@ int	SHELL_CMD_Req(char *ppArgv[], int nArgc)
 {
 	if (nArgc == 2)
 	{
-		if (strcasecmp(ppArgv[1], "1") == 0)
+		if (strcasecmp(ppArgv[1], "0") == 0)
 		{
 			DevicePostEvent(REQ_REAL_APP_KEY_ALLOC);
 		}
@@ -431,6 +438,39 @@ int	SHELL_CMD_Req(char *ppArgv[], int nArgc)
 	return	0;
 }
 
+int	SHELL_CMD_Set(char *ppArgv[], int nArgc)
+{
+	if (nArgc == 3)
+	{
+		if (strcasecmp(ppArgv[1], "async") == 0)
+		{
+			if (strcasecmp(ppArgv[2], "on") == 0)
+			{
+				SUPERVISOR_SetAsyncCall(true);
+			}
+			else if (strcasecmp(ppArgv[2], "off") == 0)
+			{
+				SUPERVISOR_SetAsyncCall(false);
+			}
+		}
+	}
+
+	return	0;
+}
+
+int	SHELL_CMD_Get(char *ppArgv[], int nArgc)
+{
+	if (nArgc == 2)
+	{
+		if (strcasecmp(ppArgv[1], "async") == 0)
+		{
+			SHELL_Printf("%16s : %s\n", "Async", (SUPERVISOR_IsAsyncCall()?"on":"off"));
+		}
+	}
+
+	return	0;
+}
+
 extern	TaskHandle_t	hSuperTask;
 extern	TaskHandle_t	hShellTask;
 
@@ -440,9 +480,21 @@ int	SHELL_CMD_Task(char *ppArgv[], int nArgc)
 	{
 		TaskStatus_t	xStatus;
 
-		vTaskGetInfo( hShellTask, &xStatus, true, eInvalid);
+		vTaskGetInfo( hSuperTask, &xStatus, true, eInvalid);
+		SHELL_Printf("%16s : %d\n", xStatus.pcTaskName, xStatus.usStackHighWaterMark);
 
-		SHELL_Printf("%16s : %d\n", "Water Mark", xStatus.usStackHighWaterMark);
+		vTaskGetInfo( hShellTask, &xStatus, true, eInvalid);
+		SHELL_Printf("%16s : %d\n", xStatus.pcTaskName, xStatus.usStackHighWaterMark);
+	}
+
+	return	0;
+}
+
+int	SHELL_CMD_LoRaWAN(char *ppArgv[], int nArgc)
+{
+	if (nArgc == 1)
+	{
+		SHELL_Printf("%16s : %s\n", "Status", LORAWAN_GetStatusString());
 	}
 
 	return	0;
@@ -490,6 +542,9 @@ SHELL_CMD	pShellCmds[] =
 		{	"join", "join",	SHELL_CMD_Join},
 		{	"req", "req",	SHELL_CMD_Req},
 		{	"task", "task", SHELL_CMD_Task},
+		{	"set", "set environment variables", SHELL_CMD_Set},
+		{	"get", "get environment variables", SHELL_CMD_Get},
+		{	"lorawan", "lorawan",	SHELL_CMD_LoRaWAN},
 		{   "trace", "trace", SHELL_CMD_Trace},
 		{	"?", "Help", SHELL_CMD_Help},
 		{	NULL, NULL, NULL}

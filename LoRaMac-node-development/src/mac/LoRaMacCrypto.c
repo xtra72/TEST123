@@ -200,3 +200,17 @@ void LoRaMacJoinComputeSKeys( const uint8_t *key, const uint8_t *appNonce, uint1
     memcpy1( nonce + 7, pDevNonce, 2 );
     aes_encrypt( nonce, appSKey, &AesContext );
 }
+
+void LoRaMacJoinComputeRealAppKey( const uint8_t *key, const uint8_t *appNonce, uint32_t netId, uint8_t *appKey )
+{
+    uint8_t nonce[16];
+
+    memset1( AesContext.ksch, '\0', 240 );
+    aes_set_key( key, 16, &AesContext );
+
+    memset1( nonce, 0, sizeof( nonce ) );
+    memcpy1( nonce + 0, appNonce, 3 );
+    memcpy1( nonce + 3, (uint8_t *)&netId, 3 );
+    aes_encrypt( nonce, appKey, &AesContext );
+
+}

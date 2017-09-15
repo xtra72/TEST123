@@ -959,12 +959,7 @@ typedef enum eMlme
      * LoRaWAN end-device certification
      */
     MLME_TXCW_1,
-    /*!
-     * Initiates the Over-the-Air activation
-     *
-     * SKT LoRaWAN Specification
-     */
-    MLME_REAL_JOIN,
+    MLME_CANCEL
 }Mlme_t;
 
 /*!
@@ -1364,7 +1359,8 @@ typedef enum eMib
      * The formula is:
      * radioTxPower = ( int8_t )floor( maxEirp - antennaGain )
      */
-    MIB_ANTENNA_GAIN
+    MIB_ANTENNA_GAIN,
+	MIB_JOIN_REQUEST_TRIALS
 }Mib_t;
 
 /*!
@@ -1552,6 +1548,8 @@ typedef union uMibParam
      * Related MIB type: \ref MIB_ANTENNA_GAIN
      */
     float AntennaGain;
+
+    uint32_t	MaxJoinRequestTrials;
 }MibParam_t;
 
 /*!

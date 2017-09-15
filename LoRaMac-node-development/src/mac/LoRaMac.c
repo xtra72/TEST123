@@ -1268,6 +1268,7 @@ static void OnMacStateCheckTimerEvent( void )
                         {
                             LoRaMacFlags.Bits.MacDone = 0;
                             // Sends the same frame again
+                            TRACE("OnTxDelayedTimerEvent called in OnMacStateCheckTimerEvent\n");
                             OnTxDelayedTimerEvent( );
                         }
                     }
@@ -1422,6 +1423,8 @@ static void OnTxDelayedTimerEvent( void )
     LoRaMacFrameCtrl_t fCtrl;
     AlternateDrParams_t altDr;
 
+    TRACE("OnTxDelayedTimerEvent\n");
+
     TimerStop( &TxDelayedTimer );
     LoRaMacState &= ~LORAMAC_TX_DELAYED;
 
@@ -1444,7 +1447,6 @@ static void OnTxDelayedTimerEvent( void )
         PrepareFrame( &macHdr, &fCtrl, 0, NULL, 0 );
     }
 
-    TRACE("OnTxDelayedTimerEvent\n");
     ScheduleTx( );
 }
 
@@ -2701,6 +2703,13 @@ LoRaMacStatus_t LoRaMacMibGetRequestConfirm( MibRequestConfirm_t *mibGet )
             mibGet->Param.AntennaGain = LoRaMacParams.AntennaGain;
             break;
         }
+
+        case MIB_JOIN_REQUEST_TRIALS:
+        {
+        	mibGet->Param.MaxJoinRequestTrials = MaxJoinRequestTrials;
+        	break;
+        }
+
         default:
             status = LORAMAC_STATUS_SERVICE_UNKNOWN;
             break;
@@ -3264,6 +3273,11 @@ LoRaMacStatus_t LoRaMacMlmeRequest( MlmeReq_t *mlmeRequest )
             LoRaMacFlags.Bits.MlmeReq = 1;
             status = SetTxContinuousWave1( mlmeRequest->Req.TxCw.Timeout, mlmeRequest->Req.TxCw.Frequency, mlmeRequest->Req.TxCw.Power );
             break;
+        }
+
+        case MLME_CANCEL:
+        {
+        	break;
         }
         default:
             break;

@@ -918,6 +918,21 @@ void DeviceUserDataSetRFPeriod(unsigned short Period) {
 	}
 }
 
+void DeviceUserDateSetSKTRealAppKey(uint8_t *RealAppKey) {
+	if (memcmp(USERDATAPTR->SKT.RealAppKey, RealAppKey, 16) != 0) {
+		USERDATA UData;
+		memcpy((unsigned char*)&UData,(unsigned char*)USERDATAPTR,sizeof(USERDATA));
+		memcpy(UData.SKT.RealAppKey, RealAppKey, 16);
+		DeviceUserDataSave(&UData);
+		// Reset sensitive data
+		memset(&UData.LoRaWAN, 0xFF, sizeof(LORAWAN_INFO));
+		UData.DeviceFlags &= ~FLAG_INSTALLED;
+		FLASHOpen();
+		FLASHWriteUserData(0,(unsigned char*)&UData,sizeof(USERDATA));
+		FLASHClose();
+	}
+}
+
 /*
  *
  * Module Hardware Initialisation

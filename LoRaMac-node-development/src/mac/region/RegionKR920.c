@@ -31,6 +31,7 @@ Maintainer: Miguel Luis ( Semtech ), Gregory Cristian ( Semtech ) and Daniel Jae
 #include "RegionCommon.h"
 #include "RegionKR920.h"
 
+#define	DEFAULT_JOIN_TRIALS 		8
 // Definitions
 #define CHANNELS_MASK_SIZE              1
 
@@ -312,7 +313,7 @@ PhyParam_t RegionKR920GetPhyParam( GetPhyParams_t* getPhy )
         case PHY_NB_JOIN_TRIALS:
         case PHY_DEF_NB_JOIN_TRIALS:
         {
-            phyParam.Value = 48;
+            phyParam.Value = DEFAULT_JOIN_TRIALS;
             break;
         }
         default:
@@ -387,7 +388,7 @@ bool RegionKR920Verify( VerifyParams_t* verify, PhyAttribute_t phyAttribute )
         }
         case PHY_NB_JOIN_TRIALS:
         {
-            if( verify->NbJoinTrials < 48 )
+            if( verify->NbJoinTrials < DEFAULT_JOIN_TRIALS )
             {
                 return false;
             }

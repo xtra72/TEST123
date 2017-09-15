@@ -10,6 +10,7 @@
 #include "supervisor.h"
 #include "lorawan_task.h"
 #include "deviceApp.h"
+#include "SKTApp.h"
 #include "system.h"
 #include "trace.h"
 
@@ -19,6 +20,18 @@
 static xTaskHandle xCyclicHandle = 0;
 static unsigned char RFPeriod = 5;
 static portTickType CycleStart = 0;
+static bool			bWaitForConfirmed = true;
+static bool			bStepByStep = false;
+
+void	SUPERVISOR_SetAsyncCall(bool bAsync)
+{
+	bWaitForConfirmed = !bAsync;
+}
+
+bool	SUPERVISOR_IsAsyncCall()
+{
+	return	!bWaitForConfirmed;
+}
 
 /**************************** Private functions ********************/
 /** @cond */
@@ -83,24 +96,9 @@ static void SUPERVISORUpdatePulseValue(void) {
 #endif
 }
 
-static void SUPERVISORRunAttach() {
-	TRACE("Run Attach\n");
-
-	DeviceFlashLed(1);
-	SUPERVISORUpdatePulseValue();
-	if (LORAWAN_JoinNetwork()) {
-		TRACE("Join success.\n");
-	  DeviceFlashLed(5);
-	  CLEAR_FLAG(DEVICE_UNINSTALLED);
-	  DeviceUserDataSetFlag(FLAG_INSTALLED,FLAG_INSTALLED);
-	  DevicePostEvent(PERIODIC_EVENT);		// Force immediate communication
-	}
-	else
-	{
-		TRACE("Join failed.\n");
-	}
-	CLEAR_FLAG(DEVICE_COMM_ERROR | DEVICE_TEMPORARY_ERROR | DEVICE_LOW_BATTERY);	/* Reset Communication Status and Low battery indicator */
-	DeviceFlashLed(LED_FLASH_OFF);
+static void SUPERVISORRunAttach()
+{
+	DevicePostEvent(RUN_ATTACH);
 }
 
 static void SUPERVISORResetUnit(void) {
@@ -205,26 +203,36 @@ static const BUTTON_TASKLIST buttonTasks[] = {
 };
 
 static unsigned long lastButton = 0;
-__attribute__((noreturn)) void SUPERVISOR_Task(void* pvParameters) {
+__attribute__((noreturn)) void SUPERVISOR_Task(void* pvParameters)
+{
 	// Wait 1 sec. for Radio Task to start
 	vTaskDelay(configTICK_RATE_HZ);
-	if (UNIT_FACTORY_TEST) {
+	if (UNIT_FACTORY_TEST)
+	{
 		CLEAR_USERFLAG(FLAG_FACTORY_TEST);
 		GetPhyParams_t PhyParam;
 		PhyParam.Attribute = PHY_CHANNELS;
 		SX1276SetTxContinuousWave(RegionGetPhyParam(UNIT_REGION,&PhyParam).Channels[0].Frequency,10,3);
 		SystemReboot();
 	}
-  // Mark device temporary error upon unknown device reset
-  DeviceStatus |= (UNIT_INSTALLED) ? DEVICE_COMM_ERROR:  (DEVICE_COMM_ERROR | DEVICE_UNINSTALLED);
-  SUPERVISORStartCyclicTask(0,SUPERVISORReadRFPeriod());
-  if (UNIT_INSTALLED) {
-	CLEAR_FLAG(DEVICE_UNINSTALLED);
-	DeviceFlashLed(LED_FLASH_ON);
-	if (LORAWAN_JoinNetwork())
-		DeviceFlashLed(5);
-	DeviceFlashLed(LED_FLASH_OFF);
+
+	// Mark device temporary error upon unknown device reset
+	DeviceStatus |= (UNIT_INSTALLED) ? DEVICE_COMM_ERROR:  (DEVICE_COMM_ERROR | DEVICE_UNINSTALLED);
+	SUPERVISORStartCyclicTask(0,SUPERVISORReadRFPeriod());
+
+  if (UNIT_INSTALLED)
+  {
+	  CLEAR_FLAG(DEVICE_UNINSTALLED);
+	  DeviceFlashLed(LED_FLASH_ON);
+
+	  if (LORAWAN_JoinNetwork(bWaitForConfirmed))
+	  {
+		  DeviceFlashLed(5);
+	  }
+
+	  DeviceFlashLed(LED_FLASH_OFF);
   }
+
 #if (NODE_TEMP > 0)
   DeviceFlashLed(LED_FLASH_ON);
   SUPERVISORUpdatePulseValue();
@@ -322,17 +330,35 @@ __attribute__((noreturn)) void SUPERVISOR_Task(void* pvParameters) {
 		 * An error occurred during last RF transaction
 		 */
 
+	case	RUN_ATTACH:
+		TRACE("Run attach.\n");
+
+		if (UNIT_INSTALLED)
+		{
+			DevicePostEvent(REAL_JOIN_NETWORK);
+		}
+		else
+		{
+			DevicePostEvent(PSEUDO_JOIN_NETWORK);
+		}
+
+		CLEAR_FLAG(DEVICE_COMM_ERROR | DEVICE_TEMPORARY_ERROR | DEVICE_LOW_BATTERY);	/* Reset Communication Status and Low battery indicator */
+		break;
+
 	case	RUN_ATTACH_USE_OTTA:
 		TRACE("Join network use OTTA.\n");
 
 		DeviceFlashLed(1);
 		SUPERVISORUpdatePulseValue();
-		if (LORAWAN_JoinNetworkUseOTTA()) {
+		if (LORAWAN_JoinNetworkUseOTTA(bWaitForConfirmed))
+		{
 			TRACE("Join success.\n");
-		  DeviceFlashLed(5);
-		  CLEAR_FLAG(DEVICE_UNINSTALLED);
-		  DeviceUserDataSetFlag(FLAG_INSTALLED,FLAG_INSTALLED);
-//		  DevicePostEvent(PERIODIC_EVENT);		// Force immediate communication
+			DeviceFlashLed(5);
+			if (bWaitForConfirmed)
+			{
+				CLEAR_FLAG(DEVICE_UNINSTALLED);
+				DeviceUserDataSetFlag(FLAG_INSTALLED,FLAG_INSTALLED);
+			}
 		}
 		else
 		{
@@ -347,12 +373,16 @@ __attribute__((noreturn)) void SUPERVISOR_Task(void* pvParameters) {
 
 		DeviceFlashLed(1);
 		SUPERVISORUpdatePulseValue();
-		if (LORAWAN_JoinNetworkUseABP()) {
+		if (LORAWAN_JoinNetworkUseABP(bWaitForConfirmed))
+		{
 			TRACE("Join success.\n");
 		  DeviceFlashLed(5);
-		  CLEAR_FLAG(DEVICE_UNINSTALLED);
-		  DeviceUserDataSetFlag(FLAG_INSTALLED,FLAG_INSTALLED);
-		  DevicePostEvent(PERIODIC_EVENT);		// Force immediate communication
+		  if (bWaitForConfirmed)
+		  {
+			  CLEAR_FLAG(DEVICE_UNINSTALLED);
+			  DeviceUserDataSetFlag(FLAG_INSTALLED,FLAG_INSTALLED);
+			  DevicePostEvent(PERIODIC_EVENT);		// Force immediate communication
+		  }
 		}
 		else
 		{
@@ -362,16 +392,97 @@ __attribute__((noreturn)) void SUPERVISOR_Task(void* pvParameters) {
 		DeviceFlashLed(LED_FLASH_OFF);
 		break;
 
-	case	RUN_ATTACH:
-		SUPERVISORRunAttach();
+	case	PSEUDO_JOIN_NETWORK:
+		TRACE("Pseudo join\n");
+		DeviceFlashLed(1);
+
+		if (LORAWAN_PseudoJoinNetwork(bWaitForConfirmed))
+		{
+			TRACE("A pseudo join success.\n");
+			DeviceFlashLed(5);
+			if (bStepByStep)
+			{
+				DevicePostEvent(REQ_REAL_APP_KEY_ALLOC);
+			}
+		}
+		else
+		{
+			TRACE("A pseudo join failed.\n");
+		}
+
+		CLEAR_FLAG(DEVICE_COMM_ERROR | DEVICE_TEMPORARY_ERROR | DEVICE_LOW_BATTERY);	/* Reset Communication Status and Low battery indicator */
+		DeviceFlashLed(LED_FLASH_OFF);
 		break;
 
 	case	REQ_REAL_APP_KEY_ALLOC:
-		SKTAPP_SendRealAppKeyAllocReq();
+		TRACE("Real app key alloc\n");
+
+		DeviceFlashLed(1);
+
+		if (LORAWAN_RequestRealAppKeyAlloc(bWaitForConfirmed))
+		{
+			TRACE("A real app key alloc requested.\n");
+			DeviceFlashLed(5);
+			if (bStepByStep)
+			{
+				DevicePostEvent(REQ_REAL_APP_KEY_RX_REPORT);
+			}
+		}
+		else
+		{
+			TRACE("Request to real app key alloc failed.\n");
+			DevicePostEvent(REQ_REAL_APP_KEY_ALLOC);
+		}
+
+		CLEAR_FLAG(DEVICE_COMM_ERROR | DEVICE_TEMPORARY_ERROR | DEVICE_LOW_BATTERY);	/* Reset Communication Status and Low battery indicator */
+		DeviceFlashLed(LED_FLASH_OFF);
 		break;
 
 	case	REQ_REAL_APP_KEY_RX_REPORT:
-		SKTAPP_SendRealAppKeyRxReportReq();
+		TRACE("Real app key rx report\n");
+
+		DeviceFlashLed(1);
+
+		if (LORAWAN_RequestRealAppKeyRxReport(bWaitForConfirmed))
+		{
+			TRACE("A real app key rx report requested.\n");
+			DeviceFlashLed(5);
+			if (bStepByStep)
+			{
+				DevicePostEvent(REAL_JOIN_NETWORK);
+			}
+		}
+		else
+		{
+			TRACE("Request to real app key rx report failed.\n");
+			DevicePostEvent(REQ_REAL_APP_KEY_RX_REPORT);
+		}
+
+		CLEAR_FLAG(DEVICE_COMM_ERROR | DEVICE_TEMPORARY_ERROR | DEVICE_LOW_BATTERY);	/* Reset Communication Status and Low battery indicator */
+		DeviceFlashLed(LED_FLASH_OFF);
+		break;
+
+	case	REAL_JOIN_NETWORK:
+		TRACE("Real join\n");
+
+		DeviceFlashLed(1);
+		if (!LORAWAN_RealJoinNetwork(bWaitForConfirmed))
+		{
+			TRACE("A real join requested.\n");
+			DeviceFlashLed(5);
+			if (bWaitForConfirmed)
+			{
+				CLEAR_FLAG(DEVICE_UNINSTALLED);
+				DeviceUserDataSetFlag(FLAG_INSTALLED,FLAG_INSTALLED);
+			}
+		}
+		else
+		{
+			TRACE("Request to real join failed.\n");
+		}
+
+		CLEAR_FLAG(DEVICE_COMM_ERROR | DEVICE_TEMPORARY_ERROR | DEVICE_LOW_BATTERY);	/* Reset Communication Status and Low battery indicator */
+		DeviceFlashLed(LED_FLASH_OFF);
 		break;
 
 	case RF_ERROR_EVENT:

@@ -21,6 +21,6 @@ bool		TRACE_GetModule(const char * pModule);
 
 #define	TRACE(format, ...)				TRACE_Printf(__MODULE__, format, ## __VA_ARGS__)
 #define	ERROR(format, ...)				TRACE_Printf(__MODULE__, format, ## __VA_ARGS__)
-#define	TRACE_DUMP(pData, ulDataLen)	TRACE_Dump(__MODULE__, pData, ulDataLen)
+#define	TRACE_DUMP(pData, ulDataLen)	TRACE_Dump(__MODULE__, (uint8_t *)pData, ulDataLen)
 
 #endif /* INC_TRACE_H_ */

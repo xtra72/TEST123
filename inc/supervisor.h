@@ -38,6 +38,10 @@ void SUPERVISORStartCyclicTask(int StartTicks, unsigned char period);
  * @brief Supervisor task entry point
  * @param[in] pvParameters Unused
  */
+
+void	SUPERVISOR_SetAsyncCall(bool bAsync);
+bool	SUPERVISOR_IsAsyncCall();
+
 void SUPERVISOR_Task(void* pvParameters);
 
 /** }@ */

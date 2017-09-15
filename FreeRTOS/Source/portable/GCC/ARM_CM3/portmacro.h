@@ -232,8 +232,8 @@ BaseType_t xReturn;
 
 portFORCE_INLINE static void vPortRaiseBASEPRI( void )
 {
-uint32_t ulNewBASEPRI;
 #if 0
+uint32_t ulNewBASEPRI;
 	__asm volatile
 	(
 		"	mov %0, %1												\n"	\

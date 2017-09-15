@@ -38,24 +38,20 @@ bool Compliance_ParseMlme(MlmeConfirm_t *m);
  * @param retry Set if last historical value shall be sent
  */
 void DEVICEAPP_SendPeriodic(bool retry);
-void SKTAPP_SendPeriodic(bool retry);
+
 /*!
  * @brief Decode a down link message received from the LoRaWAN network
  * @param[in] McpsIndication pointer to a McpsIndication_t structure containing the last indication
  * event information
  */
 void DEVICEAPP_ParseMessage(McpsIndication_t* McpsIndication);
-void SKTAPP_ParseMessage(McpsIndication_t* McpsIndication);
+
 /*!
  * @brief Decode a Mlme link confirm message received from the LoRaWAN network or LoRa MAC
  * @param[in] MlmeConfirm pointer to a MlmeConfirm_t structure containing the last Mlme confirm
  * event information
  */
 void DEVICEAPP_ParseMlme(MlmeConfirm_t *MlmeConfirm);
-void SKTAPP_ParseMlme(MlmeConfirm_t *MlmeConfirm);
-
-void SKTAPP_SendRealAppKeyAllocReq(void);
-void SKTAPP_SendRealAppKeyRxReportReq(void);
 
 
 #endif /* INC_DEVICEAPP_H_ */
