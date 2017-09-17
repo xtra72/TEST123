@@ -96,4 +96,12 @@ void memset1( uint8_t *dst, uint8_t value, uint16_t size );
  */
 int8_t Nibble2HexChar( uint8_t a );
 
+/*!
+ * \brief Converts a nibble to an hexadecimal character
+ *
+ * \param [IN] a   Nibble to be converted
+ * \retval hexChar Converted hexadecimal character
+ */
+int8_t HexString2Array( const char* pString, uint8_t* pArray, uint32_t ulMaxLength );
+
 #endif // __UTILITIES_H__

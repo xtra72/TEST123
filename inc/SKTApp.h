@@ -8,6 +8,16 @@
 #ifndef INC_SKTAPP_H_
 #define INC_SKTAPP_H_
 
+#define	MSG_SKT_NET_REAL_APP_KEY_ALLOC_REQ		0x00
+#define	MSG_SKT_NET_REAL_APP_KEY_ALLOC_ANS		0x01
+#define	MSG_SKT_NET_REAL_APP_KEY_RX_REPORT_REQ	0x02
+#define	MSG_SKT_NET_REAL_APP_KEY_RX_REPORT_ANS	0x03
+#define MSG_SKT_NET_CONFIRMED_UP_NB_RETRANS		0x04
+
+#define MSG_SKT_DEV_RESET						0x80
+#define MSG_SKT_DEV_SET_UPLINK_DATA_INTERVAL	0x81
+#define MSG_SKT_DEV_UPLINK_DATA_REQ				0x82
+
 /*!
  * @brief Send an up link message to the LoRaWAN network at every RF period
  * @param retry Set if last historical value shall be sent

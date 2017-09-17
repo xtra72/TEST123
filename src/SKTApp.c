@@ -32,11 +32,7 @@ static bool DEVICEAPP_ExecSKTNetwork(LORA_MESSAGE* msg)
 
 	switch(msg->MessageType)
 	{
-/* This is an uplink message only
-	case 0:
-		break;
-*/
-	case 1:
+	case MSG_SKT_NET_REAL_APP_KEY_ALLOC_ANS:
 		if (LORAWAN_GetStatus() == LORAWAN_STATUS_REQ_REAL_APP_KEY_ALLOC_CONFIRMED)
 		{
 			if (msg->PayloadLen == sizeof(AppNonce))
@@ -45,7 +41,7 @@ static bool DEVICEAPP_ExecSKTNetwork(LORA_MESSAGE* msg)
 				rc = true;
 				TRACE("%16s - ", "App Nonce"); TRACE_DUMP(AppNonce, sizeof(AppNonce));
 
-				DevicePostEvent(REQ_REAL_APP_KEY_RX_REPORT);
+				DevicePostEvent(REAL_APP_KEY_ALLOC_COMPLETED);
 			}
 		}
 		else
@@ -53,11 +49,8 @@ static bool DEVICEAPP_ExecSKTNetwork(LORA_MESSAGE* msg)
 			ERROR("LoRaWAN status invalid.\n");
 		}
 		break;
-/* This is an uplink message only
-	case 2:
-		break;
-*/
-	case 3:
+
+	case MSG_SKT_NET_REAL_APP_KEY_RX_REPORT_ANS:
 		{
 			if (LORAWAN_GetStatus() == LORAWAN_STATUS_REQ_REAL_APP_KEY_RX_REPORT_CONFIRMED)
 			{
@@ -69,7 +62,9 @@ static bool DEVICEAPP_ExecSKTNetwork(LORA_MESSAGE* msg)
 				TRACE("%16s : ", "Net ID", UNIT_NETWORKID);
 				TRACE("%16s : ", "Real App Key"); TRACE_DUMP(RealAppKey, sizeof(RealAppKey));
 
-				DevicePostEvent(REAL_JOIN_NETWORK);
+				DeviceUserDateSetSKTRealAppKey(RealAppKey);
+
+				DevicePostEvent(REAL_APP_KEY_RX_REPORT_COMPLETED);
 			}
 			else
 			{
@@ -78,7 +73,7 @@ static bool DEVICEAPP_ExecSKTNetwork(LORA_MESSAGE* msg)
 		}
 		break;
 
-	case 4:
+	case MSG_SKT_NET_CONFIRMED_UP_NB_RETRANS:
 		{
 			if (msg->PayloadLen > 0)
 			{
@@ -101,7 +96,8 @@ static bool DEVICEAPP_ExecSKTDevice(LORA_MESSAGE* msg)
 	case 0x00:
 		// Add your code here
 		break;
-	case 0x80:
+
+	case MSG_SKT_DEV_RESET:
 		// WARNING: Upon factory reset the unit will not communicated with the LoRaWAN anymore
 		// until it is re-installed using the magnet.
 		// If a factory reset is requested, uncomment next line
@@ -109,13 +105,15 @@ static bool DEVICEAPP_ExecSKTDevice(LORA_MESSAGE* msg)
 		SystemReboot();
 		// This code will never return
 		break;
-	case 0x81:
+
+	case MSG_SKT_DEV_SET_UPLINK_DATA_INTERVAL:
 		// I don't know the expected size of this information nor the endian type
 		// As an example I assume it's a long as the data is transfered in seconds
 		if (msg->PayloadLen >= sizeof(unsigned long))
 			SUPERVISORStartCyclicTask(0, *((unsigned long*)(msg->Payload)) / 60);
 		break;
-	case 0x82:
+
+	case MSG_SKT_DEV_UPLINK_DATA_REQ:
 		// Just force Supervisor to send standard uplink message
 		DevicePostEvent(PERIODIC_RESEND);
 		break;
@@ -260,12 +258,6 @@ bool rc = false;
 				LORA_PACKET *msg = LORAWAN_GetMessage();
 				if (msg) {
 					switch(msg->Port) {
-					case LORAWAN_APP_PORT:
-						TRACE("LoRaWAN App Port received.\n");
-						if (msg->Size > 0) {
-							rc = DEVICEAPP_ExecSKTNetwork(msg->Message);
-						}
-						break;
 					case SKT_DEVICE_SERVICE_PORT:
 						TRACE("SKT Device Service Port received.\n");
 						if (msg->Size > 0) {

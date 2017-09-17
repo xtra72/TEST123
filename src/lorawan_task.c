@@ -94,6 +94,7 @@ static __attribute__((noreturn)) void LORAWAN_EventTask(void* pvParameter)
 							{
 								TRACE("Node has pseudo joined the network.\n");
 								LoRaWAN_Status = LORAWAN_STATUS_PSEUDO_JOIN_CONFIRMED;
+								DevicePostEvent(PSEUDO_JOIN_NETWORK_COMPLETED);
 							}
 							break;
 
@@ -101,6 +102,8 @@ static __attribute__((noreturn)) void LORAWAN_EventTask(void* pvParameter)
 							{
 								TRACE("Node has real joined the network.\n");
 								LoRaWAN_Status = LORAWAN_STATUS_REAL_JOIN_CONFIRMED;
+								DevicePostEvent(REAL_JOIN_NETWORK_COMPLETED);
+
 						}
 							break;
 
@@ -505,7 +508,7 @@ bool LORAWAN_RealJoinNetwork(bool bWaitForConfirmed)
 	mlmeReq.Req.RealJoin.NbTrials = 3;
 	TRACE("%16s - ", "Dev EUI");	TRACE_DUMP(UNIT_DEVEUID, sizeof(UNIT_DEVEUID));
 	TRACE("%16s - ", "App EUI");	TRACE_DUMP(UNIT_APPEUID, sizeof(UNIT_APPEUID));
-	TRACE("%16s - ", "App Key");	TRACE_DUMP(UNIT_APPKEY, sizeof(UNIT_APPKEY));
+	TRACE("%16s - ", "Real App Key");	TRACE_DUMP(UNIT_REALAPPKEY, sizeof(UNIT_REALAPPKEY));
 
 	if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, 0 );
 

@@ -83,3 +83,40 @@ int8_t Nibble2HexChar( uint8_t a )
         return '?';
     }
 }
+
+uint8_t HexChar2Nibble( char a )
+{
+    if( '0' <= a && a <= '9')
+    {
+        return a - '0';
+    }
+    else if( 'a' <= a && a <= 'f')
+    {
+        return a - 'a' + 10 ;
+    }
+    else if( 'A' <= a && a <= 'F')
+    {
+        return a - 'F' + 10 ;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+int8_t HexString2Array( const char* pString, uint8_t* pArray, uint32_t ulMaxLength )
+{
+	uint32_t	ulLength = strlen(pString);
+
+	if ((ulLength == 0) || (ulLength %2 > ulMaxLength) )
+	{
+		return	0;
+	}
+
+	for(uint32_t i = 0 ; i < ulLength ; i += 2)
+	{
+		pArray[i/2] = (HexChar2Nibble(pString[i]) << 4) | HexChar2Nibble(pString[i+1]);
+	}
+
+	return	ulLength / 2;
+}

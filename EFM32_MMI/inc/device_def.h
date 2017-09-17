@@ -79,9 +79,14 @@ typedef enum {
 	RUN_ATTACH_USE_OTTA,
 	RUN_ATTACH_USE_ABP,
 	PSEUDO_JOIN_NETWORK,
+	PSEUDO_JOIN_NETWORK_COMPLETED,
 	REAL_JOIN_NETWORK,
+	REAL_JOIN_NETWORK_COMPLETED,
 	REQ_REAL_APP_KEY_ALLOC,
+	REAL_APP_KEY_ALLOC_COMPLETED,
 	REQ_REAL_APP_KEY_RX_REPORT,
+	REAL_APP_KEY_RX_REPORT_COMPLETED,
+	JOIN_COMPLETED,
 	UNKNOWN_EVENT	= 255	//!< Undefined event @hideinitializer
 } EVENT_TYPE;
 
@@ -353,6 +358,10 @@ void DeviceUserDataSetFlag(unsigned char Mask, unsigned char Value);
  * @param Period New default period in minutes
  */
 void DeviceUserDataSetRFPeriod(unsigned short Period);
+
+void DeviceUserDateSetAppKey(uint8_t *AppKey) ;
+
+void DeviceUserDateSetSKTRealAppKey(uint8_t *RealAppKey) ;
 
 /* Buttons handling */
 

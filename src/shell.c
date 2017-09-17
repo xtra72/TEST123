@@ -21,6 +21,10 @@
 #include "task.h"
 #include "trace.h"
 #include "device_def.h"
+#include "supervisor.h"
+#include "global.h"
+#include "lorawan_task.h"
+#include "utilities.h"
 
 #undef	__MODULE__
 #define	__MODULE__ "TRACE"
@@ -128,7 +132,7 @@ uint32_t	SHELL_PrintString(const char *pString)
 /*!
  * @brief Console output
  */
-uint32_t	SHELL_Dump(uint8_t *pData, uint32_t ulDataLen)
+uint32_t	SHELL_Dump(const uint8_t *pData, uint32_t ulDataLen)
 {
 	uint32_t	nOutputLength = 0;
 	int 		bBinary = 0;
@@ -537,6 +541,60 @@ int	SHELL_CMD_Help(char *ppArgv[], int nArgc)
 	return	0;
 }
 
+int	SHELL_CMD_AT(char *ppArgv[], int nArgc)
+{
+	if (nArgc == 3)
+	{
+		if (strcasecmp(ppArgv[1], "get") == 0)
+		{
+			if (strcasecmp(ppArgv[2], "deui") == 0)
+			{
+				SHELL_Dump(UNIT_DEVEUID, 8);
+			}
+			else if (strcasecmp(ppArgv[2], "appkey") == 0)
+			{
+				SHELL_Dump(UNIT_APPKEY, 16);
+			}
+			else if (strcasecmp(ppArgv[2], "realappkey") == 0)
+			{
+				SHELL_Dump(UNIT_REALAPPKEY, 16);
+			}
+		}
+	}
+	else if (nArgc == 3)
+	{
+		if (strcasecmp(ppArgv[1], "set") == 0)
+		{
+			if (strcasecmp(ppArgv[2], "appkey") == 0)
+			{
+				uint8_t	pAppKey[16];
+				if (HexString2Array(ppArgv[3], pAppKey, sizeof(pAppKey)) != 16)
+				{
+					SHELL_Printf("Invalid appkey!\n");
+				}
+				else
+				{
+					DeviceUserDateSetAppKey(pAppKey);
+				}
+			}
+			else if (strcasecmp(ppArgv[2], "realappkey") == 0)
+			{
+				uint8_t	pAppKey[16];
+				if (HexString2Array(ppArgv[3], pAppKey, sizeof(pAppKey)) != 16)
+				{
+					SHELL_Printf("Invalid appkey!\n");
+				}
+				else
+				{
+					DeviceUserDateSetSKTRealAppKey(pAppKey);
+				}
+			}
+		}
+	}
+	return	0;
+}
+
+
 SHELL_CMD	pShellCmds[] =
 {
 		{	"join", "join",	SHELL_CMD_Join},
@@ -546,6 +604,7 @@ SHELL_CMD	pShellCmds[] =
 		{	"get", "get environment variables", SHELL_CMD_Get},
 		{	"lorawan", "lorawan",	SHELL_CMD_LoRaWAN},
 		{   "trace", "trace", SHELL_CMD_Trace},
+		{   "at", "at", SHELL_CMD_AT},
 		{	"?", "Help", SHELL_CMD_Help},
 		{	NULL, NULL, NULL}
 };

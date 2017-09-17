@@ -1297,6 +1297,7 @@ static void OnMacStateCheckTimerEvent( void )
                     {
                         LoRaMacFlags.Bits.MacDone = 0;
                         // Sends the same frame again
+                        TRACE("OnTxDelayedTimerEvent called in OnMacStateCheckTimerEvent\n");
                         OnTxDelayedTimerEvent( );
                     }
                 }
@@ -1988,6 +1989,7 @@ static LoRaMacStatus_t ScheduleTx( void )
     {
         // Send later - prepare timer
         LoRaMacState |= LORAMAC_TX_DELAYED;
+        TRACE("TxDelayedTimer start after %d\n", dutyCycleTimeOff);
         TimerSetValue( &TxDelayedTimer, dutyCycleTimeOff );
         TimerStart( &TxDelayedTimer );
 

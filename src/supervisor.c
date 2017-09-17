@@ -352,80 +352,97 @@ __attribute__((noreturn)) void SUPERVISOR_Task(void* pvParameters)
 		SUPERVISORUpdatePulseValue();
 		if (LORAWAN_JoinNetworkUseOTTA(bWaitForConfirmed))
 		{
-			TRACE("Join success.\n");
 			DeviceFlashLed(5);
 			if (bWaitForConfirmed)
 			{
+				TRACE("Request to join with OTTA has been completed.\n");
 				CLEAR_FLAG(DEVICE_UNINSTALLED);
 				DeviceUserDataSetFlag(FLAG_INSTALLED,FLAG_INSTALLED);
+				DevicePostEvent(PERIODIC_EVENT);		// Force immediate communication
+			}
+			else
+			{
+				TRACE("Requested to join with OTTA.\n");
 			}
 		}
 		else
 		{
-			TRACE("Join failed.\n");
+			TRACE("Request to join with OTTA failed.\n");
 		}
 		CLEAR_FLAG(DEVICE_COMM_ERROR | DEVICE_TEMPORARY_ERROR | DEVICE_LOW_BATTERY);	/* Reset Communication Status and Low battery indicator */
 		DeviceFlashLed(LED_FLASH_OFF);
 		break;
 
 	case	RUN_ATTACH_USE_ABP:
-		TRACE("Join network use APB.\n");
-
 		DeviceFlashLed(1);
 		SUPERVISORUpdatePulseValue();
 		if (LORAWAN_JoinNetworkUseABP(bWaitForConfirmed))
 		{
-			TRACE("Join success.\n");
-		  DeviceFlashLed(5);
-		  if (bWaitForConfirmed)
-		  {
-			  CLEAR_FLAG(DEVICE_UNINSTALLED);
-			  DeviceUserDataSetFlag(FLAG_INSTALLED,FLAG_INSTALLED);
-			  DevicePostEvent(PERIODIC_EVENT);		// Force immediate communication
-		  }
+			TRACE("Request to join with ABP has been completed.\n");
+			DeviceFlashLed(5);
+			if (bWaitForConfirmed)
+			{
+				CLEAR_FLAG(DEVICE_UNINSTALLED);
+				DeviceUserDataSetFlag(FLAG_INSTALLED,FLAG_INSTALLED);
+				DevicePostEvent(PERIODIC_EVENT);		// Force immediate communication
+			}
+			else
+			{
+				TRACE("Requested to join with ABP.\n");
+			}
 		}
 		else
 		{
-			TRACE("Join failed.\n");
+			TRACE("Request to join with ABP failed.\n");
 		}
 		CLEAR_FLAG(DEVICE_COMM_ERROR | DEVICE_TEMPORARY_ERROR | DEVICE_LOW_BATTERY);	/* Reset Communication Status and Low battery indicator */
 		DeviceFlashLed(LED_FLASH_OFF);
 		break;
 
 	case	PSEUDO_JOIN_NETWORK:
-		TRACE("Pseudo join\n");
 		DeviceFlashLed(1);
 
 		if (LORAWAN_PseudoJoinNetwork(bWaitForConfirmed))
 		{
-			TRACE("A pseudo join success.\n");
 			DeviceFlashLed(5);
-			if (bStepByStep)
+			if (bWaitForConfirmed)
 			{
-				DevicePostEvent(REQ_REAL_APP_KEY_ALLOC);
+				TRACE("Request to pseudo join has been completed.\n");
+			}
+			else
+			{
+				TRACE("Requested to pseudo join.\n");
 			}
 		}
 		else
 		{
-			TRACE("A pseudo join failed.\n");
+			TRACE("Request to pseudo join failed.\n");
 		}
 
 		CLEAR_FLAG(DEVICE_COMM_ERROR | DEVICE_TEMPORARY_ERROR | DEVICE_LOW_BATTERY);	/* Reset Communication Status and Low battery indicator */
 		DeviceFlashLed(LED_FLASH_OFF);
 		break;
 
-	case	REQ_REAL_APP_KEY_ALLOC:
-		TRACE("Real app key alloc\n");
+	case	PSEUDO_JOIN_NETWORK_COMPLETED:
+		if (!bStepByStep)
+		{
+			DevicePostEvent(REQ_REAL_APP_KEY_ALLOC);
+		}
+		break;
 
+	case	REQ_REAL_APP_KEY_ALLOC:
 		DeviceFlashLed(1);
 
 		if (LORAWAN_RequestRealAppKeyAlloc(bWaitForConfirmed))
 		{
-			TRACE("A real app key alloc requested.\n");
 			DeviceFlashLed(5);
-			if (bStepByStep)
+			if (bWaitForConfirmed)
 			{
-				DevicePostEvent(REQ_REAL_APP_KEY_RX_REPORT);
+				TRACE("Request to real app key alloc has been confirmed.\n");
+			}
+			else
+			{
+				TRACE("Requested to real app key alloc.\n");
 			}
 		}
 		else
@@ -438,18 +455,26 @@ __attribute__((noreturn)) void SUPERVISOR_Task(void* pvParameters)
 		DeviceFlashLed(LED_FLASH_OFF);
 		break;
 
-	case	REQ_REAL_APP_KEY_RX_REPORT:
-		TRACE("Real app key rx report\n");
+	case	REAL_APP_KEY_ALLOC_COMPLETED:
+		if (!bStepByStep)
+		{
+			DevicePostEvent(REQ_REAL_APP_KEY_RX_REPORT);
+		}
+		break;
 
+	case	REQ_REAL_APP_KEY_RX_REPORT:
 		DeviceFlashLed(1);
 
 		if (LORAWAN_RequestRealAppKeyRxReport(bWaitForConfirmed))
 		{
-			TRACE("A real app key rx report requested.\n");
 			DeviceFlashLed(5);
-			if (bStepByStep)
+			if (bWaitForConfirmed)
 			{
-				DevicePostEvent(REAL_JOIN_NETWORK);
+				TRACE("Request to real app key rx report has been comfirmed.\n");
+			}
+			else
+			{
+				TRACE("Requested to real app key rx report.\n");
 			}
 		}
 		else
@@ -462,18 +487,27 @@ __attribute__((noreturn)) void SUPERVISOR_Task(void* pvParameters)
 		DeviceFlashLed(LED_FLASH_OFF);
 		break;
 
+	case	REAL_APP_KEY_RX_REPORT_COMPLETED:
+		if (!bStepByStep)
+		{
+			DevicePostEvent(REAL_JOIN_NETWORK);
+		}
+		break;
+
 	case	REAL_JOIN_NETWORK:
 		TRACE("Real join\n");
 
 		DeviceFlashLed(1);
-		if (!LORAWAN_RealJoinNetwork(bWaitForConfirmed))
+		if (LORAWAN_RealJoinNetwork(bWaitForConfirmed))
 		{
-			TRACE("A real join requested.\n");
 			DeviceFlashLed(5);
 			if (bWaitForConfirmed)
 			{
-				CLEAR_FLAG(DEVICE_UNINSTALLED);
-				DeviceUserDataSetFlag(FLAG_INSTALLED,FLAG_INSTALLED);
+				TRACE("Request to real join has been confirmed.\n");
+			}
+			else
+			{
+				TRACE("Requested to real join.\n");
 			}
 		}
 		else
@@ -483,6 +517,16 @@ __attribute__((noreturn)) void SUPERVISOR_Task(void* pvParameters)
 
 		CLEAR_FLAG(DEVICE_COMM_ERROR | DEVICE_TEMPORARY_ERROR | DEVICE_LOW_BATTERY);	/* Reset Communication Status and Low battery indicator */
 		DeviceFlashLed(LED_FLASH_OFF);
+		break;
+
+	case REAL_JOIN_NETWORK_COMPLETED:
+		CLEAR_FLAG(DEVICE_UNINSTALLED);
+		DeviceUserDataSetFlag(FLAG_INSTALLED,FLAG_INSTALLED);
+
+		if (!bStepByStep)
+		{
+			DevicePostEvent(PERIODIC_EVENT);		// Force immediate communication
+		}
 		break;
 
 	case RF_ERROR_EVENT:
