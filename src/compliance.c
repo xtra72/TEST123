@@ -24,7 +24,7 @@ struct ComplianceTest_s
     uint8_t NbGateways;
 }ComplianceTest;
 
-static uint8_t oldPeriod;
+static uint32_t oldPeriod;
 
 void DEVICEAPP_RunComplianceTest(McpsIndication_t* mcpsIndication) {
 	LocalMessage.Buffer = LocalBuffer;
@@ -40,8 +40,8 @@ void DEVICEAPP_RunComplianceTest(McpsIndication_t* mcpsIndication) {
 		{
 			LocalMessage.Request = MCPS_UNCONFIRMED;
 			LORAWAN_ResetDownLinkCounter();
-			oldPeriod = SUPERVISORGetRFPeriod();
-			SUPERVISORStartCyclicTask(0,0);
+			oldPeriod = SUPERVISOR_GetRFPeriod();
+			SUPERVISOR_StartCyclicTask(0,0);
 			ComplianceTest.LinkCheck = false;
 			ComplianceTest.DemodMargin = 0;
 			ComplianceTest.NbGateways = 0;
@@ -84,7 +84,7 @@ void DEVICEAPP_RunComplianceTest(McpsIndication_t* mcpsIndication) {
 	#if defined( USE_BAND_868 )
 				LoRaMacTestSetDutyCycleOn( LORAWAN_DUTYCYCLE_ON );
 	#endif
-				SUPERVISORStartCyclicTask(0,oldPeriod);
+				SUPERVISOR_StartCyclicTask(0,oldPeriod);
 				break;
 			case 1: // (iii, iv)
 			case 2: // Enable confirmed messages (v)
@@ -122,7 +122,7 @@ void DEVICEAPP_RunComplianceTest(McpsIndication_t* mcpsIndication) {
 	#if defined( USE_BAND_868 )
 					LoRaMacTestSetDutyCycleOn( LORAWAN_DUTYCYCLE_ON );
 	#endif
-					SUPERVISORStartCyclicTask(0,oldPeriod);
+					SUPERVISOR_StartCyclicTask(0,oldPeriod);
 					LORAWAN_JoinNetwork(true);
 				}
 				break;

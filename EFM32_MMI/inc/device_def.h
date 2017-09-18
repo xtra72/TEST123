@@ -122,7 +122,8 @@ unsigned short DataCRC;				//!< Data CRC16 checksum
  * in unsigned short values instead of unsigned long to save transmission time.
  */
 unsigned char DeviceType;
-unsigned char DefaultRFPeriod;		//!< Default RF periodic transmission (in min.)
+unsigned char RunCyclicTask;
+unsigned long DefaultRFPeriod;		//!< Default RF periodic transmission (in sec.)
 unsigned long DeviceSerialNumber;	//!< Device Serial Number
 unsigned short DeviceFlags;			//!< Device permanent stored status flag
 LORAWAN_INFO LoRaWAN;				//!< LoRaWAN information
@@ -151,8 +152,10 @@ extern const FLASH_PAGE _USERPAGE_;
 #define UNIT_DEVICETYPE		((const unsigned short)(USERDATAPTR)->DeviceType) 		//! @hideinitializer
 //! @brief Macro replacement to access permanent data Serial Number
 #define UNIT_SERIALNUMBER	((const unsigned long)(USERDATAPTR)->DeviceSerialNumber) //! @hideinitializer
+//! @brief Macro replacement to access permanent data Run Cyclic Task
+#define UNIT_RUN			((const unsigned char)(USERDATAPTR)->RunCyclicTask) 	//! @hideinitializer
 //! @brief Macro replacement to access permanent data RF Period
-#define UNIT_RFPERIOD		((const unsigned short)(USERDATAPTR)->DefaultRFPeriod) 	//! @hideinitializer
+#define UNIT_RFPERIOD		((const unsigned long)(USERDATAPTR)->DefaultRFPeriod) 	//! @hideinitializer
 //! @brief Macro replacement to access permanent data LoRaWAN Region ID
 #define UNIT_REGION			((const unsigned long)(USERDATAPTR)->LoRaWAN.Region)	//! @hideinitializer
 //! @brief Macro replacement to access permanent data LoRaWAN Network ID
@@ -176,10 +179,11 @@ extern const FLASH_PAGE _USERPAGE_;
 #define FLAG_INSTALLED		0x01	//!< Device is installed @hideinitializer
 #define FLAG_USE_OTAA		0x02	//!< Device uses OTAA to join LoRaWAN network @hideinitializer
 #define FLAG_DISALLOW_RESET	0x04	//!< Device cannot be reset by user using magnet when set @hideinitializer
+#define FLAG_TRANS_ON		0x08	// to be defined
 /** @cond */
-#define FLAG_2				0x08	// to be defined
-#define FLAG_3				0x10	// to be defined
-#define FLAG_4				0x20	// to be defined
+#define FLAG_2				0x10	// to be defined
+#define FLAG_3				0x20	// to be defined
+#define FLAG_4				0x40	// to be defined
 /** @endcond */
 /*!
  * @brief Set this flag to use SKT/Daliworks LoRaWAN types of messages. If this flag is set
@@ -202,6 +206,7 @@ extern const FLASH_PAGE _USERPAGE_;
 #define UNIT_DISALLOW_RESET ((USERDATAPTR)->DeviceFlags & FLAG_DISALLOW_RESET) //!< Device cannot be reset by user @hideinitializer
 #define UNIT_USE_SKT_APP	((USERDATAPTR)->DeviceFlags & FLAG_USE_SKT_APP)	//!< Device is using SKT/Daliworks LoRaWAN Application @hideinitializer
 #define UNIT_FACTORY_TEST	((USERDATAPTR)->DeviceFlags & FLAG_FACTORY_TEST)//!< Device is in factory test mode @hideinitializer
+#define UNIT_TRANS_ON		((USERDATAPTR)->DeviceFlags & FLAG_TRANS_ON)//!< Device is trans on @hideinitializer
 
 /*!
  * @brief Initializes Device Hardware Abstraction Layer
@@ -357,7 +362,7 @@ void DeviceUserDataSetFlag(unsigned char Mask, unsigned char Value);
  * @brief Permanently save default RF period to the flash memory
  * @param Period New default period in minutes
  */
-void DeviceUserDataSetRFPeriod(unsigned short Period);
+void DeviceUserDataSetRFPeriod(unsigned long Period);
 
 void DeviceUserDateSetAppKey(uint8_t *AppKey) ;
 

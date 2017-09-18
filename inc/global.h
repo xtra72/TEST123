@@ -73,6 +73,10 @@
 #define DEVICETYPE_DEFAULT	(19)
 #endif
 
+#define	SUPERVISOR_CYCLIC_TASK_DEFAULT	(1*60)
+#define	SUPERVISOR_CYCLIC_TASK_MIN		(1)
+#define	SUPERVISOR_CYCLIC_TASK_MAX		(30 * 24 * 60)
+
 /* Hardware Init */
 #include "device_def.h"
 #include "board.h"

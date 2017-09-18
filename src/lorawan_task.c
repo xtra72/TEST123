@@ -39,6 +39,9 @@ static StaticTask_t RFEventTask;
 static TaskHandle_t LORAWANEventTask;
 static uint8_t LoRaWAN_Retries = LORAWAN_RETRIES;
 static	LoRaWANStatus_t	LoRaWAN_Status = LORAWAN_STATUS_IDLE;
+static uint8_t		nSNR = 0;
+static int16_t		nRSSI = 0;
+
 /** @endcond */
 
 static __attribute__((noreturn)) void LORAWAN_EventTask(void* pvParameter)
@@ -223,6 +226,8 @@ static __attribute__((noreturn)) void LORAWAN_EventTask(void* pvParameter)
 		    if (LORAWANSemaphore) xSemaphoreGive( LORAWANSemaphore);
 		}
 		if (ulNotificationValue & INDICATION_EVENT) {
+			nRSSI = LocalMcps.indication.Rssi;
+			nSNR  = LocalMcps.indication.Snr;
 	       	TRACE("Indication event.\n");
 			// Indication event
 			// Perform any specific action
@@ -793,6 +798,69 @@ void LORAWAN_SetMaxRetries(uint8_t retries) {
 
 uint8_t LORAWAN_GetMaxRetries(void) {
 	return LoRaWAN_Retries;
+}
+
+
+DeviceClass_t 	LORAWAN_GetClassType(void)
+{
+	// Did we already join the network ?
+	mibReq.Type = MIB_DEVICE_CLASS;
+	LoRaMacMibGetRequestConfirm( &mibReq );
+	// We are already attached
+	return ( mibReq.Param.Class );
+}
+
+void	LORAWAN_SetClassType(DeviceClass_t class)
+{
+	// Did we already join the network ?
+	mibReq.Type = MIB_DEVICE_CLASS;
+	mibReq.Param.Class = class;
+	LoRaMacMibSetRequestConfirm( &mibReq );
+}
+
+uint8_t	LORAWAN_GetSNR(void)
+{
+	return	nSNR;
+}
+
+int16_t	LORAWAN_GetRSSI(void)
+{
+	return	nRSSI;
+}
+
+int8_t 	LORAWAN_GetDatarate(void)
+{
+	// Did we already join the network ?
+	mibReq.Type = MIB_CHANNELS_DATARATE;
+	LoRaMacMibGetRequestConfirm( &mibReq );
+	// We are already attached
+	return ( mibReq.Param.ChannelsDatarate );
+}
+
+void	LORAWAN_SetDatarate(int8_t datarate)
+{
+	// Did we already join the network ?
+	mibReq.Type = MIB_CHANNELS_DATARATE;
+	mibReq.Param.ChannelsDatarate = datarate;
+	LoRaMacMibSetRequestConfirm( &mibReq );
+}
+
+
+int8_t 	LORAWAN_GetTxPower(void)
+{
+	// Did we already join the network ?
+	mibReq.Type = MIB_CHANNELS_TX_POWER;
+	LoRaMacMibGetRequestConfirm( &mibReq );
+	// We are already attached
+	return ( mibReq.Param.ChannelsTxPower );
+}
+
+void	LORAWAN_SetTxPower(int8_t power)
+{
+	// Did we already join the network ?
+	mibReq.Type = MIB_CHANNELS_TX_POWER;
+	mibReq.Param.ChannelsTxPower = power;
+	LoRaMacMibSetRequestConfirm( &mibReq );
 }
 
 

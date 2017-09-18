@@ -909,7 +909,7 @@ void DeviceUserDataSetFlag(unsigned char Mask, unsigned char Value) {
 		DeviceUserDataSave(&UData);
 	}
 }
-void DeviceUserDataSetRFPeriod(unsigned short Period) {
+void DeviceUserDataSetRFPeriod(unsigned long Period) {
 	if ((USERDATAPTR->DefaultRFPeriod) != Period) {
 		USERDATA UData;
 		memcpy((unsigned char*)&UData,(unsigned char*)USERDATAPTR,sizeof(USERDATA));

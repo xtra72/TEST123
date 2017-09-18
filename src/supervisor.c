@@ -18,7 +18,7 @@
 #define	__MODULE__	"Supervisor"
 
 static xTaskHandle xCyclicHandle = 0;
-static unsigned char RFPeriod = 5;
+static uint32_t		RFPeriod = SUPERVISOR_CYCLIC_TASK_DEFAULT;
 static portTickType CycleStart = 0;
 static bool			bWaitForConfirmed = true;
 static bool			bStepByStep = false;
@@ -31,6 +31,19 @@ void	SUPERVISOR_SetAsyncCall(bool bAsync)
 bool	SUPERVISOR_IsAsyncCall()
 {
 	return	!bWaitForConfirmed;
+}
+
+void	SUPERVISOR_startReport(void)
+{
+}
+
+void	SUPERVISOR_stopReport(void)
+{
+}
+
+bool	SUPERVISOR_setReportInterval(uint32_t ulSecs)
+{
+	return	true;
 }
 
 /**************************** Private functions ********************/
@@ -46,7 +59,7 @@ __attribute__((noreturn)) static void SUPERVISORCyclicTask(void* pvParameters) {
 #if (INCLUDE_COMPLIANCE_TEST > 0)
 		if (RFPeriod)
 #endif
-			xDelay = ((portTickType)RFPeriod) * ((60L * configTICK_RATE_HZ) - ((MS_DELAY_MIN * configTICK_RATE_HZ) / 1000L));
+			xDelay = ((portTickType)(RFPeriod*configTICK_RATE_HZ - (RFPeriod / 60 * 3 * configTICK_RATE_HZ / 1000)));
 #if (INCLUDE_COMPLIANCE_TEST > 0)
 		else
 			xDelay = configTICK_RATE_HZ * 15;	// 15 seconds delay for compliance test
@@ -63,7 +76,7 @@ __attribute__((noreturn)) static void SUPERVISORCyclicTask(void* pvParameters) {
 			}
 			CycleStart = 0;	// Reset start value
 		}
-		vTaskDelayUntil(&xNextWakeUp,xDelay);
+		vTaskDelayUntil(&xNextWakeUp, xDelay);
 		// Check if we were woke up by timer or cancelled
 		if (xNextWakeUp <= xTaskGetTickCount())
 		{
@@ -74,7 +87,7 @@ __attribute__((noreturn)) static void SUPERVISORCyclicTask(void* pvParameters) {
 }
 
 /* Get default periodic delay from User Data FLASH memory region */
-#define SUPERVISORReadRFPeriod() (UNIT_RFPERIOD)
+#define SUPERVISOR_ReadRFPeriod() (UNIT_RFPERIOD)
 
 static void SUPERVISORUpdatePulseValue(void) {
     CLEAR_FLAG(DEVICE_COMM_ERROR);	/* Reset Communication Status */
@@ -125,6 +138,7 @@ static bool _historical_overflow = false;
 #else
 static unsigned long _historical[1][HAL_NB_PULSE_IN];
 #endif
+
 static void SUPERVISOR_SaveHistorical(void) {
 #if HISTORICAL_DATA
 	for (int i=0; i < DeviceGetPulseInNumber(); i++)
@@ -163,32 +177,68 @@ unsigned long SUPERVISOR_GetHistoricalValue(int rank, int index) {
 #endif
 }
 
-unsigned char SUPERVISORGetRFPeriod(void) {
+unsigned long SUPERVISOR_GetRFPeriod(void)
+{
 	return RFPeriod;
 }
+
+bool	SUPERVISOR_SetRFPeriod(unsigned long ulRFPeriod)
+{
+	if ((ulRFPeriod < SUPERVISOR_CYCLIC_TASK_MIN) || (SUPERVISOR_CYCLIC_TASK_MAX < ulRFPeriod))
+	{
+		return	false;
+	}
+
+	RFPeriod = ulRFPeriod;
+	// Optionally store permanently in Flash
+	DeviceUserDataSetRFPeriod(ulRFPeriod);
+
+	return	true;
+}
+
 /** @cond */
 #define CYCLE_STACK	40
 static StackType_t CycleStack[CYCLE_STACK];
 static StaticTask_t CycleTask;
 /** @endcond */
-void SUPERVISORStartCyclicTask(int Start, unsigned char period) {
+void SUPERVISOR_StartCyclicTask(int Start, unsigned long period)
+{
 	if (xCyclicHandle) vTaskDelete(xCyclicHandle);
 #if (INCLUDE_COMPLIANCE_TEST > 0)
 	if (period == 0) RFPeriod = 0;	// Used for compliance test
 #endif
-	// By default we lock up period from 1 to 240 min. (4 hours) for security.
+	// By default we lock up period from 1 to 30*24*60*60 sec. (30 days) for security.
 	// if the period is longer that this, it could be long before we can "talk"
 	// to the device...
-	if ((period >= 1) && (period <=240)) {
+	if ((period >= SUPERVISOR_CYCLIC_TASK_MIN) && (period <=SUPERVISOR_CYCLIC_TASK_MAX))
+	{
 			RFPeriod = period;
 			// Optionally store permanently in Flash
 			DeviceUserDataSetRFPeriod(RFPeriod);
 	}
 	CycleStart = xTaskGetTickCount();
-	if (CycleStart < (portTickType)Start) CycleStart = (portTickType)Start;
+	if (CycleStart < (portTickType)Start)
+	{
+		CycleStart = (portTickType)Start;
+	}
+
 	/* Create new task */
 	while ((xCyclicHandle = xTaskCreateStatic( SUPERVISORCyclicTask, (const char*)"PERIODIC", CYCLE_STACK, NULL, tskIDLE_PRIORITY + 3, CycleStack, &CycleTask )) == NULL)
 		vTaskDelay(1);
+}
+
+void SUPERVISOR_StopCyclicTask(void)
+{
+	if (xCyclicHandle)
+	{
+		vTaskDelete(xCyclicHandle);
+		xCyclicHandle = 0;
+	}
+}
+
+bool SUPERVISOR_IsCyclicTaskRun(void)
+{
+	return	xCyclicHandle != 0;
 }
 
 /*
@@ -218,7 +268,7 @@ __attribute__((noreturn)) void SUPERVISOR_Task(void* pvParameters)
 
 	// Mark device temporary error upon unknown device reset
 	DeviceStatus |= (UNIT_INSTALLED) ? DEVICE_COMM_ERROR:  (DEVICE_COMM_ERROR | DEVICE_UNINSTALLED);
-	SUPERVISORStartCyclicTask(0,SUPERVISORReadRFPeriod());
+	SUPERVISOR_StartCyclicTask(0,SUPERVISOR_ReadRFPeriod());
 
   if (UNIT_INSTALLED)
   {
@@ -310,11 +360,13 @@ __attribute__((noreturn)) void SUPERVISOR_Task(void* pvParameters)
 		 * Received an indication event from the network.
 		 */
 	case RF_INDICATION:
-		TRACE("Received an indication event from the network.\n");
-		if (UNIT_USE_SKT_APP)
-			SKTAPP_ParseMessage(LORAWAN_GetIndication());
-		else
-			DEVICEAPP_ParseMessage(LORAWAN_GetIndication());
+		{
+			TRACE("Received an indication event from the network.\n");
+			if (UNIT_USE_SKT_APP)
+				SKTAPP_ParseMessage(LORAWAN_GetIndication());
+			else
+				DEVICEAPP_ParseMessage(LORAWAN_GetIndication());
+		}
 		break;
 		/*
 		 * Received a Mlme confirm event from the network

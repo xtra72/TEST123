@@ -457,6 +457,30 @@ int	SHELL_CMD_Set(char *ppArgv[], int nArgc)
 				SUPERVISOR_SetAsyncCall(false);
 			}
 		}
+		if (strcasecmp(ppArgv[1], "appkey") == 0)
+		{
+			uint8_t pAppKey[16];
+			if (HexString2Array(ppArgv[2], pAppKey, sizeof(pAppKey)) != 16)
+			{
+				SHELL_Printf("Invalid appkey!\n");
+			}
+			else
+			{
+				DeviceUserDateSetAppKey(pAppKey);
+			}
+		}
+		else if (strcasecmp(ppArgv[1], "realappkey") == 0)
+		{
+			uint8_t pAppKey[16];
+			if (HexString2Array(ppArgv[2], pAppKey, sizeof(pAppKey)) != 16)
+			{
+				SHELL_Printf("Invalid realappkey!\n");
+			}
+			else
+			{
+				DeviceUserDateSetSKTRealAppKey(pAppKey);
+			}
+		}
 	}
 
 	return	0;
@@ -464,12 +488,102 @@ int	SHELL_CMD_Set(char *ppArgv[], int nArgc)
 
 int	SHELL_CMD_Get(char *ppArgv[], int nArgc)
 {
-	if (nArgc == 2)
+	if (nArgc == 1)
+	{
+		SHELL_Printf("%16s : %s\n", "Async", (SUPERVISOR_IsAsyncCall()?"on":"off"));
+		SHELL_Printf("%16s : ", "DevEUI");	SHELL_Dump(UNIT_DEVEUID, 8);
+		SHELL_Printf("%16s : ", "AppKey");	SHELL_Dump(UNIT_APPKEY, 16);
+		SHELL_Printf("%16s : ", "RealAppKey");	SHELL_Dump(UNIT_REALAPPKEY, 16);
+	}
+	else if (nArgc == 2)
 	{
 		if (strcasecmp(ppArgv[1], "async") == 0)
 		{
 			SHELL_Printf("%16s : %s\n", "Async", (SUPERVISOR_IsAsyncCall()?"on":"off"));
 		}
+		if (strcasecmp(ppArgv[1], "deui") == 0)
+		{
+			SHELL_Dump(UNIT_DEVEUID, 8);
+		}
+		else if (strcasecmp(ppArgv[1], "appkey") == 0)
+		{
+			SHELL_Dump(UNIT_APPKEY, 16);
+		}
+		else if (strcasecmp(ppArgv[1], "realappkey") == 0)
+		{
+			SHELL_Dump(UNIT_REALAPPKEY, 16);
+		}
+	}
+
+	return	0;
+}
+
+int	SHELL_CMD_Report(char *ppArgv[], int nArgc)
+{
+	if (nArgc == 1)
+	{
+		SHELL_Printf("%16s : %s\n", "Status", (SUPERVISOR_IsCyclicTaskRun())?"run":"stop");
+		SHELL_Printf("%16s : %d\n", "Period", SUPERVISOR_GetRFPeriod());
+	}
+	else if (nArgc == 2)
+	{
+		if (strcasecmp(ppArgv[1], "on") == 0)
+		{
+			SUPERVISOR_StartCyclicTask(0, SUPERVISOR_GetRFPeriod());
+			DeviceUserDataSetFlag(FLAG_TRANS_ON, FLAG_TRANS_ON);
+		}
+		else if (strcasecmp(ppArgv[1], "off") == 0)
+		{
+			SUPERVISOR_StopCyclicTask();
+			DeviceUserDataSetFlag(FLAG_TRANS_ON,0);
+		}
+		else if (strcasecmp(ppArgv[1], "period") == 0)
+		{
+			SHELL_Printf("%d\n", SUPERVISOR_GetRFPeriod());
+		}
+		else if (strcasecmp(ppArgv[1], "now") == 0)
+		{
+			DevicePostEvent(PERIODIC_RESEND);
+		}
+	}
+	else if (nArgc == 3)
+	{
+		if (strcasecmp(ppArgv[1], "period") == 0)
+		{
+			uint32_t ulPeriod = atoi(ppArgv[2]);
+
+			if (!SUPERVISOR_SetRFPeriod(ulPeriod))
+			{
+				SHELL_Printf("Invalid period!\n");
+			}
+		}
+	}
+
+	return	0;
+}
+
+
+int	SHELL_CMD_Mac(char *ppArgv[], int nArgc)
+{
+	if (nArgc == 1)
+	{
+		switch(LORAWAN_GetClassType())
+		{
+		case	CLASS_A:	SHELL_Printf("%16s : Class A\n", "Device Class"); break;
+		case	CLASS_B:	SHELL_Printf("%16s : Class B\n", "Device Class"); break;
+		case	CLASS_C:	SHELL_Printf("%16s : Class C\n", "Device Class"); break;
+		default:			SHELL_Printf("%16s : Unknown\n", "Device Class"); break;
+		}
+
+		SHELL_Printf("%16s : %d\n", "RSSI", LORAWAN_GetRSSI());
+		SHELL_Printf("%16s : %d\n", "SNR", LORAWAN_GetSNR());
+		SHELL_Printf("%16s : %d\n", "DATARATE", LORAWAN_GetDatarate());
+		SHELL_Printf("%16s : %d\n", "Tx Power", LORAWAN_GetTxPower());
+		SHELL_Printf("%16s : %d\n", "Retransmission", LORAWAN_GetMaxRetries());
+	}
+	else if (nArgc == 3)
+	{
+
 	}
 
 	return	0;
@@ -541,60 +655,6 @@ int	SHELL_CMD_Help(char *ppArgv[], int nArgc)
 	return	0;
 }
 
-int	SHELL_CMD_AT(char *ppArgv[], int nArgc)
-{
-	if (nArgc == 3)
-	{
-		if (strcasecmp(ppArgv[1], "get") == 0)
-		{
-			if (strcasecmp(ppArgv[2], "deui") == 0)
-			{
-				SHELL_Dump(UNIT_DEVEUID, 8);
-			}
-			else if (strcasecmp(ppArgv[2], "appkey") == 0)
-			{
-				SHELL_Dump(UNIT_APPKEY, 16);
-			}
-			else if (strcasecmp(ppArgv[2], "realappkey") == 0)
-			{
-				SHELL_Dump(UNIT_REALAPPKEY, 16);
-			}
-		}
-	}
-	else if (nArgc == 3)
-	{
-		if (strcasecmp(ppArgv[1], "set") == 0)
-		{
-			if (strcasecmp(ppArgv[2], "appkey") == 0)
-			{
-				uint8_t	pAppKey[16];
-				if (HexString2Array(ppArgv[3], pAppKey, sizeof(pAppKey)) != 16)
-				{
-					SHELL_Printf("Invalid appkey!\n");
-				}
-				else
-				{
-					DeviceUserDateSetAppKey(pAppKey);
-				}
-			}
-			else if (strcasecmp(ppArgv[2], "realappkey") == 0)
-			{
-				uint8_t	pAppKey[16];
-				if (HexString2Array(ppArgv[3], pAppKey, sizeof(pAppKey)) != 16)
-				{
-					SHELL_Printf("Invalid appkey!\n");
-				}
-				else
-				{
-					DeviceUserDateSetSKTRealAppKey(pAppKey);
-				}
-			}
-		}
-	}
-	return	0;
-}
-
-
 SHELL_CMD	pShellCmds[] =
 {
 		{	"join", "join",	SHELL_CMD_Join},
@@ -602,9 +662,10 @@ SHELL_CMD	pShellCmds[] =
 		{	"task", "task", SHELL_CMD_Task},
 		{	"set", "set environment variables", SHELL_CMD_Set},
 		{	"get", "get environment variables", SHELL_CMD_Get},
+		{	"report", "report", SHELL_CMD_Report},
+		{	"mac", "LoRaMAC", SHELL_CMD_Mac},
 		{	"lorawan", "lorawan",	SHELL_CMD_LoRaWAN},
 		{   "trace", "trace", SHELL_CMD_Trace},
-		{   "at", "at", SHELL_CMD_AT},
 		{	"?", "Help", SHELL_CMD_Help},
 		{	NULL, NULL, NULL}
 };

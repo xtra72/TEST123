@@ -107,10 +107,28 @@ static bool DEVICEAPP_ExecSKTDevice(LORA_MESSAGE* msg)
 		break;
 
 	case MSG_SKT_DEV_SET_UPLINK_DATA_INTERVAL:
-		// I don't know the expected size of this information nor the endian type
-		// As an example I assume it's a long as the data is transfered in seconds
-		if (msg->PayloadLen >= sizeof(unsigned long))
-			SUPERVISORStartCyclicTask(0, *((unsigned long*)(msg->Payload)) / 60);
+		{
+			uint32_t	ulPeriod = 0;
+			// I don't know the expected size of this information nor the endian type
+			// As an example I assume it's a long as the data is transfered in seconds
+			if (msg->PayloadLen == 1)
+			{
+				ulPeriod = *((uint8_t *)(msg->Payload));
+			}
+			else if (msg->PayloadLen == 2)
+			{
+				ulPeriod = *((uint16_t *)(msg->Payload));
+			}
+			if (msg->PayloadLen == 4)
+			{
+				ulPeriod = *((uint32_t *)(msg->Payload));
+			}
+
+			if (ulPeriod != 0)
+			{
+				SUPERVISOR_StartCyclicTask(0, ulPeriod);
+			}
+		}
 		break;
 
 	case MSG_SKT_DEV_UPLINK_DATA_REQ:

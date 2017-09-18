@@ -87,12 +87,25 @@ bool rc = false;
 			rc = true;
 			break;
 		case SetRFPeriod:
-			if (msg->Size > 1)
-				SUPERVISORStartCyclicTask(0,msg->Buffer[1]);
+			if (msg->Size == 1)
+			{
+				uint8_t	period = msg->Buffer[1];
+				SUPERVISOR_StartCyclicTask(0, period);
+			}
+			else if (msg->Size == 2)
+			{
+				uint16_t	period = *(uint16_t *)&msg->Buffer[1];
+				SUPERVISOR_StartCyclicTask(0, period);
+			}
+			else if (msg->Size == 4)
+			{
+				uint32_t	period = *(uint32_t *)&msg->Buffer[1];
+				SUPERVISOR_StartCyclicTask(0, period);
+			}
 			break;
 		case GetRFPeriod:
-			LocalMessage.Size = sizeof(unsigned char);
-			LocalMessage.Buffer[1] = SUPERVISORGetRFPeriod();
+			LocalMessage.Size = sizeof(uint32_t);
+			*(uint32_t *)&LocalMessage.Buffer[1] = SUPERVISOR_GetRFPeriod();
 			rc = true;
 			break;
 		case SetConfirmed:

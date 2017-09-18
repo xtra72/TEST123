@@ -143,6 +143,7 @@ void LORAWAN_Init(void);
 
 LoRaWANStatus_t LORAWAN_GetStatus(void);
 char*			LORAWAN_GetStatusString(void);
+
 /*!
  * @brief Tries to join the LoRaWAN network if not already done
  * @return true if successful
@@ -212,6 +213,18 @@ void LORAWAN_SetMaxRetries(uint8_t retries);
  * @return the number of retries (from 1 to 8)
  */
 uint8_t LORAWAN_GetMaxRetries(void);
+
+DeviceClass_t	LORAWAN_GetClassType(void);
+void	LORAWAN_SetClassType(DeviceClass_t class);
+
+uint8_t	LORAWAN_GetSNR(void);
+int16_t	LORAWAN_GetRSSI(void);
+
+int8_t 	LORAWAN_GetDatarate(void);
+void	LORAWAN_SetDatarate(int8_t datarate);
+
+int8_t 	LORAWAN_GetTxPower(void);
+void	LORAWAN_SetTxPower(int8_t power);
 
 /** }@ */
 

@@ -35,16 +35,35 @@ bool rc = false;
 		// This code will never return
 		break;
 	case 0x83:
-		// I don't know the expected size of this information nor the endian type
-		// As an example I assume it's a long as the data is transfered in seconds
-		if (msg->PayloadLen >= sizeof(unsigned long)) {
-			SUPERVISORStartCyclicTask(0, *((unsigned long*)(msg->Payload)) / 60);
-			LocalMessage.Port = LORAWAN_APP_PORT;
-			LocalMessage.Request = MCPS_UNCONFIRMED;
-			LocalMessage.Message->MessageType = 0x84;
-			LocalMessage.Message->PayloadLen = sizeof(unsigned long);
-			*((unsigned long*)(msg->Payload)) = SUPERVISORGetRFPeriod() * 60;
-			rc = true;
+		{
+			// I don't know the expected size of this information nor the endian type
+			// As an example I assume it's a long as the data is transfered in seconds
+			uint32_t	ulPeriod = 0;
+			// I don't know the expected size of this information nor the endian type
+			// As an example I assume it's a long as the data is transfered in seconds
+			if (msg->PayloadLen == 1)
+			{
+				ulPeriod = *((uint8_t *)(msg->Payload));
+			}
+			else if (msg->PayloadLen == 2)
+			{
+				ulPeriod = *((uint16_t *)(msg->Payload));
+			}
+			if (msg->PayloadLen == 4)
+			{
+				ulPeriod = *((uint32_t *)(msg->Payload));
+			}
+
+			if (ulPeriod != 0)
+			{
+				SUPERVISOR_StartCyclicTask(0, ulPeriod);
+				LocalMessage.Port = LORAWAN_APP_PORT;
+				LocalMessage.Request = MCPS_UNCONFIRMED;
+				LocalMessage.Message->MessageType = 0x84;
+				LocalMessage.Message->PayloadLen = sizeof(unsigned long);
+				*((unsigned long*)(msg->Payload)) = SUPERVISOR_GetRFPeriod();
+				rc = true;
+			}
 		}
 		break;
 /* This is an uplink message only

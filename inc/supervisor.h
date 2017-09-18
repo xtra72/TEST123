@@ -24,16 +24,26 @@ unsigned short SUPERVISOR_GetHistoricalCount(void);
 unsigned long SUPERVISOR_GetHistoricalValue(int rank, int index);
 /*!
  * @brief Get RF transmission period cycle
- * @return The period in minutes (from 1 to 240)
+ * @return The period in seconds (from 1 to 30*24*60*60)
  */
-unsigned char SUPERVISORGetRFPeriod(void);
+unsigned long SUPERVISOR_GetRFPeriod(void);
+
+bool	SUPERVISOR_SetRFPeriod(unsigned long ulPeriod);
 /*!
  * @brief Restart RF transmission cyclic loop
  * @param[in] StartTicks	Starting FreeRTOS tick
- * @param[in] period		Period cycle in minutes (from 1 to 240)
+ * @param[in] period		Period cycle in minutes (from 1 to 30*24*60*60)
  * @remark If period is not in range, the cyclic loop is not restarted
  */
-void SUPERVISORStartCyclicTask(int StartTicks, unsigned char period);
+void SUPERVISOR_StartCyclicTask(int StartTicks, unsigned long period);
+
+/*!
+ * @brief Stop RF transmission cyclic loop
+ */
+void SUPERVISOR_StopCyclicTask(void);
+
+bool SUPERVISOR_IsCyclicTaskRun(void);
+
 /*!
  * @brief Supervisor task entry point
  * @param[in] pvParameters Unused
@@ -41,6 +51,10 @@ void SUPERVISORStartCyclicTask(int StartTicks, unsigned char period);
 
 void	SUPERVISOR_SetAsyncCall(bool bAsync);
 bool	SUPERVISOR_IsAsyncCall();
+
+uint8_t	SUPERVISOR_GetSNR(void);
+int16_t	SUPERVISOR_GetRSSI(void);
+uint8_t	SUPERVISOR_GetSF(void);
 
 void SUPERVISOR_Task(void* pvParameters);
 
