@@ -32,4 +32,6 @@ bool	LORAMAC_SetRetries(uint8_t nRetries);
 uint8_t	LORAMAC_GetPeriodMode(void);
 bool	LORAMAC_SetPeriodMode(bool bEnable);
 
+bool	LORAMAC_AddACK(void);
+
 #endif

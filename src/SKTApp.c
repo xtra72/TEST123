@@ -416,10 +416,10 @@ bool SKTAPP_IsConfirmedMsgType(boid)
 }
 
 
-bool SKTAPP_Send(uint8_t messageType, uint8_t *pFrame, uint32_t ulFrameLen)
+bool SKTAPP_Send(uint8_t messageType, uint8_t port, uint8_t *pFrame, uint32_t ulFrameLen)
 {
 	LocalMessage.Buffer = LocalBuffer;
-	LocalMessage.Port = LORAWAN_APP_PORT;
+	LocalMessage.Port = port;
 	if (SKTApp_ConfirmedMsgType)
 	{
 		LocalMessage.Request = MCPS_CONFIRMED;
@@ -459,32 +459,7 @@ bool SKTAPP_Send(uint8_t messageType, uint8_t *pFrame, uint32_t ulFrameLen)
 
 bool SKTAPP_SendAck(void)
 {
-	LocalMessage.Buffer = LocalBuffer;
-	LocalMessage.Port = 0;
-	LocalMessage.Request = MCPS_UNCONFIRMED;
-	LocalMessage.Message->MessageType = 0;
-	LocalMessage.Message->Version = LORA_MESSAGE_VERSION;
-	LocalMessage.Message->PayloadLen = 1;
-	LocalMessage.Size = LORA_MESSAGE_HEADER_SIZE + LocalMessage.Message->PayloadLen;
-	TRACE("SendAck\n");
-	if (LORAWAN_SendMessage(&LocalMessage)  != LORAMAC_STATUS_OK)
-	{
-		switch(LocalMessage.Status)
-		{
-		case LORAMAC_EVENT_INFO_STATUS_ERROR:
-			ERROR("LORAMAC_EVENT_INFO_STATUS_ERROR");
-			DeviceFlashLed(10);
-			break;
-		case LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT:
-			ERROR("LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT");
-			DeviceFlashLed(3);
-			break;
-		default:
-			DeviceFlashLed(5);
-			break;
-		}
-	}
-
-	return	true;
+	LORAMAC_AddACK();
+	return SKTAPP_Send(0, 0, NULL, 0);
 }
 /** }@ */

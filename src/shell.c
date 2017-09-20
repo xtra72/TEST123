@@ -959,7 +959,11 @@ int SHELL_CMD_AT_Send(char *ppArgv[], int nArgc)
 	static	uint8_t pData[128];
 	uint8_t			nDataLen = 0;
 
-	if (nArgc == 2)
+	if (nArgc == 1)
+	{
+		SKTAPP_Send(0, LORAWAN_APP_PORT, NULL, 0);
+	}
+	else if (nArgc == 2)
 	{
 		uint32_t	ulLen = strlen(ppArgv[1]);
 
@@ -974,7 +978,7 @@ int SHELL_CMD_AT_Send(char *ppArgv[], int nArgc)
 		}
 		else
 		{
-			SKTAPP_Send(0, pData, nDataLen);
+			SKTAPP_Send(0, LORAWAN_APP_PORT, pData, nDataLen);
 		}
 	}
 	else

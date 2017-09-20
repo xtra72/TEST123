@@ -64,7 +64,7 @@ bool SKTAPP_SetPeriodicMode(bool bEnable);
 bool SKTAPP_SetConfirmedMsgType(bool bConfirmed);
 bool SKTAPP_IsConfirmedMsgType(boid);
 
-bool SKTAPP_Send(uint8_t messageType, uint8_t *pFrame, uint32_t ulFrameLen);
+bool SKTAPP_Send(uint8_t messageType, uint8_t port, uint8_t *pFrame, uint32_t ulFrameLen);
 bool SKTAPP_SendAck(void);
 
 #endif /* INC_SKTAPP_H_ */

@@ -400,7 +400,9 @@ typedef enum eLoRaMacMoteCmd
     /*!
      * DlChannelAns
      */
-    MOTE_MAC_DL_CHANNEL_ANS          = 0x0A
+    MOTE_MAC_DL_CHANNEL_ANS          = 0x0A,
+
+	MOTE_MAC_ACK					 = 0x80
 }LoRaMacMoteCmd_t;
 
 /*!
@@ -1362,7 +1364,8 @@ typedef enum eMib
      */
     MIB_ANTENNA_GAIN,
 	MIB_JOIN_REQUEST_TRIALS,
-	MIB_APP_NONCE
+	MIB_APP_NONCE,
+	MIB_ADD_ACK
 }Mib_t;
 
 /*!

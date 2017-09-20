@@ -145,3 +145,12 @@ bool	LORAMAC_SetRetries(uint8_t nRetries)
 
 	return	(LoRaMacMibSetRequestConfirm( &mibReq )  == LORAMAC_STATUS_OK);
 }
+
+bool	LORAMAC_AddACK(void)
+{
+	mibReq.Type = MIB_ADD_ACK;
+	LoRaMacMibSetRequestConfirm( &mibReq );
+
+	return	true;
+}
+

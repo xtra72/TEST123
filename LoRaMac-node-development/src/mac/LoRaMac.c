@@ -1656,6 +1656,14 @@ static LoRaMacStatus_t AddMacCommand( uint8_t cmd, uint8_t p1, uint8_t p2 )
                 status = LORAMAC_STATUS_OK;
             }
             break;
+
+        case MOTE_MAC_ACK:
+            if( MacCommandsBufferIndex < bufLen )
+            {
+                MacCommandsBuffer[MacCommandsBufferIndex++] = 0x80;
+                status = LORAMAC_STATUS_OK;
+            }
+            break;
         default:
             return LORAMAC_STATUS_SERVICE_UNKNOWN;
     }
@@ -3056,11 +3064,20 @@ LoRaMacStatus_t LoRaMacMibSetRequestConfirm( MibRequestConfirm_t *mibSet )
               break;
            }
         case MIB_APP_NONCE:
-           {
-               LoRaMacAppNonce = mibSet->Param.AppNonce;
-             	TRACE("Set AppNonce = %06x\n", LoRaMacAppNonce);
-              break;
-           }
+            {
+                LoRaMacAppNonce = mibSet->Param.AppNonce;
+              	TRACE("Set AppNonce = %06x\n", LoRaMacAppNonce);
+               break;
+            }
+
+        case MIB_ADD_ACK:
+            {
+            	SrvAckRequested = true;
+              	TRACE("Add ACK\n");
+               break;
+            }
+
+
         default:
             status = LORAMAC_STATUS_SERVICE_UNKNOWN;
           	TRACE("Set Unknown service[%d]\n", mibSet->Type);
@@ -3305,6 +3322,16 @@ LoRaMacStatus_t LoRaMacMlmeRequest( MlmeReq_t *mlmeRequest )
         case MLME_CANCEL:
         {
         	break;
+        }
+
+        case MLME_ACK:
+        {
+            LoRaMacFlags.Bits.MlmeReq = 1;
+            // LoRaMac will send this command piggy-pack
+            MlmeConfirm.MlmeRequest = mlmeRequest->Type;
+
+            status = AddMacCommand( 0x80, 0, 0 );
+            break;
         }
         default:
             break;
