@@ -49,9 +49,6 @@ bool SUPERVISOR_IsCyclicTaskRun(void);
  * @param[in] pvParameters Unused
  */
 
-void	SUPERVISOR_SetAsyncCall(bool bAsync);
-bool	SUPERVISOR_IsAsyncCall();
-
 uint8_t	SUPERVISOR_GetSNR(void);
 int16_t	SUPERVISOR_GetRSSI(void);
 uint8_t	SUPERVISOR_GetSF(void);

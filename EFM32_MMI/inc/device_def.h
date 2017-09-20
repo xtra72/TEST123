@@ -364,9 +364,11 @@ void DeviceUserDataSetFlag(unsigned char Mask, unsigned char Value);
  */
 void DeviceUserDataSetRFPeriod(unsigned long Period);
 
-void DeviceUserDateSetAppKey(uint8_t *AppKey) ;
+void DeviceUserDataSetAppKey(uint8_t *AppKey) ;
+void DeviceUserDataSetAppEUI(uint8_t *AppEUI) ;
+void DeviceUserDataSetDevEUI(uint8_t *DevEUI) ;
 
-void DeviceUserDateSetSKTRealAppKey(uint8_t *RealAppKey) ;
+void DeviceUserDataSetSKTRealAppKey(uint8_t *RealAppKey) ;
 
 /* Buttons handling */
 

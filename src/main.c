@@ -81,11 +81,12 @@ __attribute__((noreturn)) int main()
 	// Initialize board GPIO and peripherals
 	DeviceInitHardware();
 	LORAWAN_Init();
-	SHELL_Init();
+	SKTAPP_Init();
+
+ 	SHELL_Init();
 
 	TRACE_SetEnable(true);
 
-	TRACE("Start S47\n");
 	/* Create the various tasks */
 	/* Create the task that Monitors the system */
 	hSuperTask = xTaskCreateStatic( SUPERVISOR_Task, (const char*)"SUPER", SUPER_STACK, NULL, tskIDLE_PRIORITY + 1, SuperStack, &SuperTask );

@@ -33,12 +33,13 @@ static MibRequestConfirm_t mibReq;
 #define CONFIRM_EVENT		(0x01 << 1)
 #define INDICATION_EVENT	(0x01 << 2)
 
-#define RF_EVENT_STACK		( configMINIMAL_STACK_SIZE * 4)
+#define RF_EVENT_STACK		( configMINIMAL_STACK_SIZE * 6)
 static StackType_t RFEventStack[RF_EVENT_STACK];
 static StaticTask_t RFEventTask;
 static TaskHandle_t LORAWANEventTask;
 static uint8_t LoRaWAN_Retries = LORAWAN_RETRIES;
 static	LoRaWANStatus_t	LoRaWAN_Status = LORAWAN_STATUS_IDLE;
+
 static uint8_t		nSNR = 0;
 static int16_t		nRSSI = 0;
 
@@ -67,89 +68,26 @@ static __attribute__((noreturn)) void LORAWAN_EventTask(void* pvParameter)
 		        {
 		            if( LocalMcps.mlme.Status == LORAMAC_EVENT_INFO_STATUS_OK )
 		            {
-		            	switch(LoRaWAN_Status)
-		            	{
-		            	case	LORAWAN_STATUS_JOIN:
-							{
-								/*
-								 * Remove the comment in order to copy OTAA parameters back to Flash memory
-								 *
-														USERDATA UData;
-														memcpy((unsigned char*)&UData,(unsigned char*)USERDATAPTR,sizeof(USERDATA));
-														mibReq.Type = MIB_DEV_ADDR;
-														LoRaMacMibGetRequestConfirm( &mibReq );
-														UData.DeviceSerialNumber = mibReq.Param.DevAddr;
-														mibReq.Type = MIB_NWK_SKEY;
-														mibReq.Param.NwkSKey = (uint8_t*)UNIT_NETSKEY;
-														LoRaMacMibGetRequestConfirm( &mibReq );
-														memcpy(UData.LoRaWAN.NwkSKey,mibReq.Param.NwkSKey,sizeof(UData.LoRaWAN.NwkSKey));
-														mibReq.Type = MIB_APP_SKEY;
-														mibReq.Param.AppSKey = (uint8_t*)UNIT_APPSKEY;
-														LoRaMacMibGetRequestConfirm( &mibReq );
-														memcpy(UData.LoRaWAN.AppSKey,mibReq.Param.AppSKey,sizeof(UData.LoRaWAN.AppSKey));
-														DeviceUserDataSave(&UData);
-								*/
-								TRACE("Node has joined the network.\n");
-							}
-							break;
-
-		            	case	LORAWAN_STATUS_PSEUDO_JOIN:
-							{
-								TRACE("Node has pseudo joined the network.\n");
-								LoRaWAN_Status = LORAWAN_STATUS_PSEUDO_JOIN_CONFIRMED;
-								DevicePostEvent(PSEUDO_JOIN_NETWORK_COMPLETED);
-							}
-							break;
-
-		            	case	LORAWAN_STATUS_REAL_JOIN:
-							{
-								TRACE("Node has real joined the network.\n");
-								LoRaWAN_Status = LORAWAN_STATUS_REAL_JOIN_CONFIRMED;
-								DevicePostEvent(REAL_JOIN_NETWORK_COMPLETED);
-
-						}
-							break;
-
-		            	default:
-		            		{
-		            			ERROR("The status unknown.!\n");
-		            		}
-		            		break;
-
-		            	}
-
+						/*
+						 * Remove the comment in order to copy OTAA parameters back to Flash memory
+						 *
+												USERDATA UData;
+												memcpy((unsigned char*)&UData,(unsigned char*)USERDATAPTR,sizeof(USERDATA));
+												mibReq.Type = MIB_DEV_ADDR;
+												LoRaMacMibGetRequestConfirm( &mibReq );
+												UData.DeviceSerialNumber = mibReq.Param.DevAddr;
+												mibReq.Type = MIB_NWK_SKEY;
+												mibReq.Param.NwkSKey = (uint8_t*)UNIT_NETSKEY;
+												LoRaMacMibGetRequestConfirm( &mibReq );
+												memcpy(UData.LoRaWAN.NwkSKey,mibReq.Param.NwkSKey,sizeof(UData.LoRaWAN.NwkSKey));
+												mibReq.Type = MIB_APP_SKEY;
+												mibReq.Param.AppSKey = (uint8_t*)UNIT_APPSKEY;
+												LoRaMacMibGetRequestConfirm( &mibReq );
+												memcpy(UData.LoRaWAN.AppSKey,mibReq.Param.AppSKey,sizeof(UData.LoRaWAN.AppSKey));
+												DeviceUserDataSave(&UData);
+						*/
+						TRACE("Node has joined the network.\n");
 		                // Status is OK, node has joined the network
-		            }
-		            else
-		            {
-		            	switch(LoRaWAN_Status)
-		            	{
-		            	case	LORAWAN_STATUS_JOIN:
-							{
-								TRACE("Node has join failed.\n");
-							}
-							break;
-
-		            	case	LORAWAN_STATUS_PSEUDO_JOIN:
-							{
-								TRACE("Node has pseudo join failed.\n");
-							}
-							break;
-
-		            	case	LORAWAN_STATUS_REAL_JOIN:
-							{
-								TRACE("Node has real join failed.\n");
-						}
-							break;
-
-		            	default:
-		            		{
-		            			ERROR("The status unknown.!\n");
-		            		}
-		            		break;
-
-		            	}
-		            	LoRaWAN_Status = LORAWAN_STATUS_IDLE;
 		            }
 		            break;
 		        }
@@ -180,27 +118,6 @@ static __attribute__((noreturn)) void LORAWAN_EventTask(void* pvParameter)
 				{
 					case MCPS_UNCONFIRMED:
 					{
-						switch(LoRaWAN_Status)
-						{
-						case	LORAWAN_STATUS_REQ_REAL_APP_KEY_ALLOC:
-							{
-								TRACE("RealAppKeyAllocReq confirmed.\n");
-								LoRaWAN_Status = LORAWAN_STATUS_REQ_REAL_APP_KEY_ALLOC_CONFIRMED;
-							}
-							break;
-
-						case	LORAWAN_STATUS_REQ_REAL_APP_KEY_RX_REPORT:
-							{
-								TRACE("RealAppKeyRxReportReq confirmed.\n");
-								LoRaWAN_Status = LORAWAN_STATUS_REQ_REAL_APP_KEY_ALLOC_CONFIRMED;
-							}
-							break;
-
-						default:
-							{
-								TRACE("Unknow message confirmed.\n");
-							}
-						}
 						// Check Datarate
 						// Check TxPower
 						break;
@@ -223,16 +140,21 @@ static __attribute__((noreturn)) void LORAWAN_EventTask(void* pvParameter)
 						break;
 				}
 		    }
+
 		    if (LORAWANSemaphore) xSemaphoreGive( LORAWANSemaphore);
 		}
-		if (ulNotificationValue & INDICATION_EVENT) {
+		if (ulNotificationValue & INDICATION_EVENT)
+		{
 			nRSSI = LocalMcps.indication.Rssi;
 			nSNR  = LocalMcps.indication.Snr;
 	       	TRACE("Indication event.\n");
 			// Indication event
 			// Perform any specific action
 			// and post event to let other tasks know
-			DevicePostEvent(RF_INDICATION);
+	       	if (SKTAPP_ParseMessage(LORAWAN_GetIndication()) == false)
+	       	{
+				DevicePostEvent(RF_INDICATION);
+	       	}
 		}
 	}
 	__builtin_unreachable();
@@ -325,20 +247,18 @@ void LORAWAN_Init(void) {
 #endif
 
     memset(&LocalMcps,0,sizeof(McpsIndication_t));
-
-	if (UNIT_USE_SKT_APP)
-	{
-		if (UNIT_INSTALLED)
-		{
-			LoRaWAN_Status = LORAWAN_STATUS_REQ_REAL_APP_KEY_RX_REPORT_CONFIRMED;
-		}
-	}
 }
 
 
 LoRaWANStatus_t LORAWAN_GetStatus(void)
 {
 	return	LoRaWAN_Status;
+}
+
+bool LORAWAN_SetStatus(LoRaWANStatus_t xStatus)
+{
+	LoRaWAN_Status = xStatus;
+	return	true;
 }
 
 char*			LORAWAN_GetStatusString(void)
@@ -348,62 +268,58 @@ char*			LORAWAN_GetStatusString(void)
 	case	LORAWAN_STATUS_IDLE:	return	"LORAWAN_STATUS_IDLE";
 	case	LORAWAN_STATUS_JOIN:	return	"LORAWAN_STATUS_JOIN";
 	case	LORAWAN_STATUS_PSEUDO_JOIN:	return	"LORAWAN_STATUS_PSEUDO_JOIN";
-	case	LORAWAN_STATUS_PSEUDO_JOIN_CONFIRMED:	return	"LORAWAN_STATUS_PSEUDO_JOIN_CONFIRMED";
+	case	LORAWAN_STATUS_PSEUDO_JOIN_COMPLETED:	return	"LORAWAN_STATUS_PSEUDO_JOIN_COMPLETED";
 	case	LORAWAN_STATUS_REQ_REAL_APP_KEY_ALLOC:	return	"LORAWAN_STATUS_REQ_REAL_APP_KEY_ALLOC";
 	case	LORAWAN_STATUS_REQ_REAL_APP_KEY_ALLOC_CONFIRMED:	return	"LORAWAN_STATUS_REQ_REAL_APP_KEY_ALLOC_CONFIRMED";
 	case	LORAWAN_STATUS_REQ_REAL_APP_KEY_RX_REPORT:	return	"LORAWAN_STATUS_REQ_REAL_APP_KEY_RX_REPORT";
 	case	LORAWAN_STATUS_REQ_REAL_APP_KEY_RX_REPORT_CONFIRMED:	return	"LORAWAN_STATUS_REQ_REAL_APP_KEY_RX_REPORT_CONFIRMED";
 	case	LORAWAN_STATUS_REAL_JOIN:	return	"LORAWAN_STATUS_REAL_JOIN";
-	case	LORAWAN_STATUS_REAL_JOIN_CONFIRMED:	return	"LORAWAN_STATUS_REAL_JOIN_CONFIRMED";
+	case	LORAWAN_STATUS_REAL_JOIN_COMPLETED:	return	"LORAWAN_STATUS_REAL_JOIN_COMPLETED";
 	}
 
 	return	"LORAWAN_STATUS_UNKNOWN";
 }
 
 
-bool LORAWAN_JoinNetworkUseOTTA(bool bWaitForConfirmed)
+bool LORAWAN_JoinNetworkUseOTTA(uint8_t* pDevEUI, uint8_t* pAppEUI, uint8_t* pAppKey)
 {
 	MlmeReq_t mlmeReq;
 	TRACE("Use OTTA\n");
 
 	mlmeReq.Type = MLME_JOIN;
 
-	mlmeReq.Req.Join.DevEui = (uint8_t*)UNIT_DEVEUID;
-	mlmeReq.Req.Join.AppEui = (uint8_t*)UNIT_APPEUID;
-	mlmeReq.Req.Join.AppKey = (uint8_t*)UNIT_APPKEY;
+	mlmeReq.Req.Join.DevEui = pDevEUI;
+	mlmeReq.Req.Join.AppEui = pAppEUI;
+	mlmeReq.Req.Join.AppKey = pAppKey;
 	mlmeReq.Req.Join.NbTrials = 3;
-	TRACE("%16s - ", "Dev EUI");TRACE_DUMP(UNIT_DEVEUID, sizeof(UNIT_DEVEUID));
-	TRACE("%16s - ", "App EUI");TRACE_DUMP(UNIT_APPEUID, sizeof(UNIT_APPEUID));
-	TRACE("%16s - ", "App Key");TRACE_DUMP(UNIT_APPKEY, sizeof(UNIT_APPKEY));
+	TRACE("%16s - ", "Dev EUI");TRACE_DUMP(pDevEUI, 8);
+	TRACE("%16s - ", "App EUI");TRACE_DUMP(pAppEUI, 8);
+	TRACE("%16s - ", "App Key");TRACE_DUMP(pAppKey, 16);
 
 	if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, 0 );
 
 	if (LoRaMacMlmeRequest( &mlmeReq ) != LORAMAC_STATUS_OK)
 	{
-		if (LORAWANSemaphore) xSemaphoreGive( LORAWANSemaphore );
 		ERROR("LoRaMacMlmeRequest failed.\n");
 		return	false;
 	}
 
-	if (bWaitForConfirmed)
-	{
-		if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, LORAWAN_TIMEOUT );
+	if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, LORAWAN_TIMEOUT );
 
-		// Did we join the network ?
-		mibReq.Type = MIB_NETWORK_JOINED;
-		mibReq.Param.IsNetworkJoined = true;
-		LoRaMacMibGetRequestConfirm( &mibReq );
 
-		return ( mibReq.Param.IsNetworkJoined );
-	}
+	// Did we join the network ?
+	mibReq.Type = MIB_NETWORK_JOINED;
+	mibReq.Param.IsNetworkJoined = true;
+	LoRaMacMibGetRequestConfirm( &mibReq );
 
-	return	true;
+	return ( mibReq.Param.IsNetworkJoined );
 }
 
 
-bool LORAWAN_JoinNetworkUseABP(bool bWaitForConfirmed)
+bool LORAWAN_JoinNetworkUseABP(void)
 {
 	TRACE("Use ABP\n");
+
 	// Choose a random device address if not already defined in Commissioning.h
 	if( UNIT_SERIALNUMBER == 0 )
 	{
@@ -436,138 +352,23 @@ bool LORAWAN_JoinNetworkUseABP(bool bWaitForConfirmed)
 	return true;	// Consider that we succeeded
 }
 
-
-bool LORAWAN_PseudoJoinNetwork(bool bWaitForConfirmed)
-{
-	if (LoRaWAN_Status != LORAWAN_STATUS_IDLE)
-	{
-		return	false;
-	}
-
-	MlmeReq_t mlmeReq;
-
-	TRACE("Start pseudo Join\n");
-
-	mibReq.Type = MIB_APP_SKEY;
-	mibReq.Param.AppSKey = (uint8_t*)UNIT_APPSKEY;
-	LoRaMacMibSetRequestConfirm( &mibReq );
-
-	mlmeReq.Type = MLME_JOIN;
-
-	mlmeReq.Req.Join.DevEui = (uint8_t*)UNIT_DEVEUID;
-	mlmeReq.Req.Join.AppEui = (uint8_t*)UNIT_APPEUID;
-	mlmeReq.Req.Join.AppKey = (uint8_t*)UNIT_APPKEY;
-	mlmeReq.Req.Join.NbTrials = 3;
-	TRACE("%16s - ", "Dev EUI");	TRACE_DUMP(UNIT_DEVEUID, sizeof(UNIT_DEVEUID));
-	TRACE("%16s - ", "App EUI");	TRACE_DUMP(UNIT_APPEUID, sizeof(UNIT_APPEUID));
-	TRACE("%16s - ", "App Key");	TRACE_DUMP(UNIT_APPKEY, sizeof(UNIT_APPKEY));
-
-	if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, 0 );
-
-	if (LoRaMacMlmeRequest( &mlmeReq ) != LORAMAC_STATUS_OK)
-	{
-		if (LORAWANSemaphore) xSemaphoreGive( LORAWANSemaphore );
-		ERROR("LoRaMacMlmeRequest failed.\n");
-		return	false;
-	}
-
-	LoRaWAN_Status = LORAWAN_STATUS_PSEUDO_JOIN;
-
-	if (bWaitForConfirmed)
-	{
-		mibReq.Type = MIB_JOIN_REQUEST_TRIALS;
-		mibReq.Param.MaxJoinRequestTrials = mlmeReq.Req.Join.NbTrials;
-		LoRaMacMibGetRequestConfirm( &mibReq );
-
-		uint32_t	timeout = mibReq.Param.MaxJoinRequestTrials * 7 * configTICK_RATE_HZ + 1;
-		if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, timeout );
-
-		if (LoRaWAN_Status != LORAWAN_STATUS_PSEUDO_JOIN_CONFIRMED)
-		{
-			return false;
-		}
-	}
-
-	return	true;
-}
-
-bool LORAWAN_RealJoinNetwork(bool bWaitForConfirmed)
-{
-	if (LoRaWAN_Status != LORAWAN_STATUS_REQ_REAL_APP_KEY_RX_REPORT_CONFIRMED)
-	{
-		return	false;
-	}
-
-	MlmeReq_t mlmeReq;
-	TRACE("Start real join\n");
-
-	mibReq.Type = MIB_APP_SKEY;
-	mibReq.Param.AppSKey = (uint8_t*)UNIT_REALAPPKEY;
-	LoRaMacMibSetRequestConfirm( &mibReq );
-
-	mlmeReq.Type = MLME_JOIN;
-
-	mlmeReq.Req.RealJoin.DevEui = (uint8_t*)UNIT_DEVEUID;
-	mlmeReq.Req.RealJoin.AppEui = (uint8_t*)UNIT_APPEUID;
-	mlmeReq.Req.RealJoin.AppKey = (uint8_t*)UNIT_APPKEY;
-	mlmeReq.Req.RealJoin.NbTrials = 3;
-	TRACE("%16s - ", "Dev EUI");	TRACE_DUMP(UNIT_DEVEUID, sizeof(UNIT_DEVEUID));
-	TRACE("%16s - ", "App EUI");	TRACE_DUMP(UNIT_APPEUID, sizeof(UNIT_APPEUID));
-	TRACE("%16s - ", "Real App Key");	TRACE_DUMP(UNIT_REALAPPKEY, sizeof(UNIT_REALAPPKEY));
-
-	if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, 0 );
-
-	if (LoRaMacMlmeRequest( &mlmeReq ) != LORAMAC_STATUS_OK)
-	{
-		if (LORAWANSemaphore) xSemaphoreGive( LORAWANSemaphore );
-		ERROR("LoRaMacMlmeRequest failed.\n");
-		return	false;
-	}
-
-	LoRaWAN_Status = LORAWAN_STATUS_REAL_JOIN;
-
-	if (bWaitForConfirmed)
-	{
-		mibReq.Type = MIB_JOIN_REQUEST_TRIALS;
-		mibReq.Param.MaxJoinRequestTrials = mlmeReq.Req.Join.NbTrials;
-		LoRaMacMibGetRequestConfirm( &mibReq );
-
-		uint32_t	timeout = mibReq.Param.MaxJoinRequestTrials * 7 * configTICK_RATE_HZ + 1;
-		if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, timeout );
-
-		if (LoRaWAN_Status != LORAWAN_STATUS_REAL_JOIN_CONFIRMED)
-		{
-			return false;
-		}
-	}
-
-	return	true;
-}
-
-
-bool LORAWAN_JoinNetwork(bool bWaitForConfirmed)
+bool LORAWAN_JoinNetwork(void)
 {
 	TRACE("Start Join Network.\n");
-	if (UNIT_USE_SKT_APP)
+	if( UNIT_USE_OTAA)
 	{
-		if (UNIT_INSTALLED)
+		if (UNIT_USE_SKT_APP && UNIT_INSTALLED)
 		{
-			return	LORAWAN_RealJoinNetwork(bWaitForConfirmed);
+			return	LORAWAN_JoinNetworkUseOTTA((uint8_t*)UNIT_DEVEUID, (uint8_t*)UNIT_APPEUID, (uint8_t*)UNIT_REALAPPKEY);
 		}
+		else
 		{
-			return	LORAWAN_PseudoJoinNetwork(bWaitForConfirmed);
+			return	LORAWAN_JoinNetworkUseOTTA((uint8_t*)UNIT_DEVEUID, (uint8_t*)UNIT_APPEUID, (uint8_t*)UNIT_APPKEY);
 		}
 	}
 	else
 	{
-		if( UNIT_USE_OTAA)
-		{
-			return	LORAWAN_JoinNetworkUseOTTA(bWaitForConfirmed);
-		}
-		else
-		{
-			return	LORAWAN_JoinNetworkUseABP(bWaitForConfirmed);
-		}
+		return	LORAWAN_JoinNetworkUseABP();
 	}
 }
 
@@ -593,85 +394,6 @@ bool LORAWAN_CancelJoinNetwork(void)
 	LoRaWAN_Status = LORAWAN_STATUS_IDLE;
 	return true;
 }
-
-bool LORAWAN_RequestRealAppKeyAlloc(bool bWaitForConfirmed)
-{
-	bool	rc = false;
-
-	if (LoRaWAN_Status != LORAWAN_STATUS_PSEUDO_JOIN_CONFIRMED)
-	{
-		ERROR("LoRaWAN invalid status!\n");
-		return	rc;
-	}
-
-	if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, 0 );
-
-	LoRaWAN_Status = LORAWAN_STATUS_REQ_REAL_APP_KEY_ALLOC;
-
-	if (SKTAPP_SendRealAppKeyAllocReq())
-	{
-		if (bWaitForConfirmed)
-		{
-			uint32_t	timeout = 7 * configTICK_RATE_HZ + 1;
-			if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, timeout );
-
-			if (LoRaWAN_Status == LORAWAN_STATUS_REQ_REAL_APP_KEY_ALLOC_CONFIRMED)
-			{
-				rc = true;
-			}
-		}
-		else
-		{
-			rc = true;
-		}
-	}
-	else
-	{
-		if (LORAWANSemaphore) xSemaphoreGive( LORAWANSemaphore );
-	}
-
-	return	rc;
-}
-
-bool LORAWAN_RequestRealAppKeyRxReport(bool bWaitForConfirmed)
-{
-	bool	rc =false;
-
-	if (LoRaWAN_Status != LORAWAN_STATUS_REQ_REAL_APP_KEY_ALLOC_CONFIRMED)
-	{
-		ERROR("LoRaWAN invalid status!\n");
-		return	rc;
-	}
-
-	if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, 0 );
-
-	LoRaWAN_Status = LORAWAN_STATUS_REQ_REAL_APP_KEY_RX_REPORT;
-
-	if (SKTAPP_SendRealAppKeyRxReportReq())
-	{
-		if (bWaitForConfirmed)
-		{
-			uint32_t	timeout = 7 * configTICK_RATE_HZ + 1;
-			if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, timeout );
-
-			if (LoRaWAN_Status == LORAWAN_STATUS_REQ_REAL_APP_KEY_RX_REPORT_CONFIRMED)
-			{
-				rc = true;
-			}
-		}
-		else
-		{
-			rc = true;
-		}
-	}
-	else
-	{
-		if (LORAWANSemaphore) xSemaphoreGive( LORAWANSemaphore );
-	}
-
-	return	rc;
-}
-
 /*!
  * \brief Sends a message to the network.
  * \note  The function would block
@@ -727,20 +449,31 @@ LoRaMacStatus_t LORAWAN_SendMessage( LORA_PACKET* message )
         	return false;
         }
     }
-    if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, 0 );	// To make next call to block
+
+    if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, 0 );
+
     result = LoRaMacMcpsRequest( &mcpsReq );
-    if (result == LORAMAC_STATUS_OK) {
+    if (result == LORAMAC_STATUS_OK)
+    {
       	TRACE("Request OK\n");
-	    if (LORAWANSemaphore) {
-	    	if (xSemaphoreTake( LORAWANSemaphore, ((message->NbTrials) ? 2 : 1 ) * LORAWAN_TIMEOUT ) == pdFALSE) {
+	    if (LORAWANSemaphore)
+	    {
+	    	if (xSemaphoreTake( LORAWANSemaphore, ((message->NbTrials) ? 2 : 1 ) * LORAWAN_TIMEOUT ) == pdFALSE)
+	    	{
+	    		TRACE("Semaphore take failed[%d]\n", __LINE__);
+	    		TRACE("LoRaMAC Event Info Status Tx Timeout!\n");
 	        	message->Status = LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT;
-	    	} else {
+	    	}
+	    	else
+	    	{
 	    		message->Status = LocalMcps.confirm.Status;
 	    		message->NbTrials = LocalMcps.confirm.NbRetries;
 	    	}
 	    }
-    } else {
-    	if (result == LORAMAC_STATUS_BUSY) {
+    } else
+    {
+    	if (result == LORAMAC_STATUS_BUSY)
+    	{
     	}
     	message->Status = LORAMAC_EVENT_INFO_STATUS_ERROR;
       	ERROR("Request error\n");
@@ -800,24 +533,6 @@ uint8_t LORAWAN_GetMaxRetries(void) {
 	return LoRaWAN_Retries;
 }
 
-
-DeviceClass_t 	LORAWAN_GetClassType(void)
-{
-	// Did we already join the network ?
-	mibReq.Type = MIB_DEVICE_CLASS;
-	LoRaMacMibGetRequestConfirm( &mibReq );
-	// We are already attached
-	return ( mibReq.Param.Class );
-}
-
-void	LORAWAN_SetClassType(DeviceClass_t class)
-{
-	// Did we already join the network ?
-	mibReq.Type = MIB_DEVICE_CLASS;
-	mibReq.Param.Class = class;
-	LoRaMacMibSetRequestConfirm( &mibReq );
-}
-
 uint8_t	LORAWAN_GetSNR(void)
 {
 	return	nSNR;
@@ -828,40 +543,6 @@ int16_t	LORAWAN_GetRSSI(void)
 	return	nRSSI;
 }
 
-int8_t 	LORAWAN_GetDatarate(void)
-{
-	// Did we already join the network ?
-	mibReq.Type = MIB_CHANNELS_DATARATE;
-	LoRaMacMibGetRequestConfirm( &mibReq );
-	// We are already attached
-	return ( mibReq.Param.ChannelsDatarate );
-}
-
-void	LORAWAN_SetDatarate(int8_t datarate)
-{
-	// Did we already join the network ?
-	mibReq.Type = MIB_CHANNELS_DATARATE;
-	mibReq.Param.ChannelsDatarate = datarate;
-	LoRaMacMibSetRequestConfirm( &mibReq );
-}
-
-
-int8_t 	LORAWAN_GetTxPower(void)
-{
-	// Did we already join the network ?
-	mibReq.Type = MIB_CHANNELS_TX_POWER;
-	LoRaMacMibGetRequestConfirm( &mibReq );
-	// We are already attached
-	return ( mibReq.Param.ChannelsTxPower );
-}
-
-void	LORAWAN_SetTxPower(int8_t power)
-{
-	// Did we already join the network ?
-	mibReq.Type = MIB_CHANNELS_TX_POWER;
-	mibReq.Param.ChannelsTxPower = power;
-	LoRaMacMibSetRequestConfirm( &mibReq );
-}
 
 
 /** }@ */

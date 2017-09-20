@@ -1,4 +1,4 @@
-/*
+	/*
  / _____)             _              | |
 ( (____  _____ ____ _| |_ _____  ____| |__
  \____ \| ___ |    (_   _) ___ |/ ___)  _ \
@@ -95,6 +95,8 @@ static uint8_t LoRaMacAppSKey[] =
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
+
+static uint32_t LoRaMacAppNonce;
 
 /*!
  * Device nonce is a random value extracted by issuing a sequence of RSSI
@@ -650,7 +652,7 @@ static void OnRadioTxDone( void )
     }
 
     // Verify if the last uplink was a join request
-    if( ( LoRaMacFlags.Bits.MlmeReq == 1 ) && ( MlmeConfirm.MlmeRequest == MLME_JOIN ) )
+    if( ( LoRaMacFlags.Bits.MlmeReq == 1 ) &&( MlmeConfirm.MlmeRequest == MLME_JOIN ) )
     {
         LastTxIsJoinRequest = true;
     }
@@ -767,9 +769,14 @@ static void OnRadioRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t
             micRx |= ( ( uint32_t )LoRaMacRxPayload[size - LORAMAC_MFR_LEN + 2] << 16 );
             micRx |= ( ( uint32_t )LoRaMacRxPayload[size - LORAMAC_MFR_LEN + 3] << 24 );
 
+            TRACE("%16s : ", "Join Payload"); TRACE_DUMP(LoRaMacRxPayload, size );
             if( micRx == mic )
             {
                 LoRaMacJoinComputeSKeys( LoRaMacAppKey, LoRaMacRxPayload + 1, LoRaMacDevNonce, LoRaMacNwkSKey, LoRaMacAppSKey );
+
+                LoRaMacAppNonce = ( uint32_t )LoRaMacRxPayload[1];
+                LoRaMacAppNonce |= ( ( uint32_t )LoRaMacRxPayload[2] << 8 );
+                LoRaMacAppNonce |= ( ( uint32_t )LoRaMacRxPayload[3] << 16 );
 
                 LoRaMacNetID = ( uint32_t )LoRaMacRxPayload[4];
                 LoRaMacNetID |= ( ( uint32_t )LoRaMacRxPayload[5] << 8 );
@@ -807,8 +814,8 @@ static void OnRadioRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t
                 TRACE("%16s : %d\n", "Rx2 Datarate", LoRaMacParams.Rx2Channel.Datarate);
                 TRACE("%16s : %d\n", "Rx Delay1", LoRaMacParams.ReceiveDelay1);
                 TRACE("%16s : %d\n", "Rx Delay2", LoRaMacParams.ReceiveDelay2);
-                TRACE("%16s : ", "AppSKey");
-                TRACE_DUMP(LoRaMacAppSKey, sizeof(LoRaMacAppSKey));
+                TRACE("%16s : ", "NwkSKey"); TRACE_DUMP(LoRaMacNwkSKey, sizeof(LoRaMacNwkSKey));
+                TRACE("%16s : ", "AppSKey"); TRACE_DUMP(LoRaMacAppSKey, sizeof(LoRaMacAppSKey));
 
                    MlmeConfirm.Status = LORAMAC_EVENT_INFO_STATUS_OK;
                 IsLoRaMacNetworkJoined = true;
@@ -1288,7 +1295,10 @@ static void OnMacStateCheckTimerEvent( void )
 
                         if( IsUpLinkCounterFixed == false )
                         {
+#if  0 // XTRA - Why?
                             UpLinkCounter++;
+                        	TRACE("UpLinkCount1 : %d\n", UpLinkCounter);
+#endif
                         }
 
                         LoRaMacState &= ~LORAMAC_TX_RUNNING;
@@ -1313,6 +1323,7 @@ static void OnMacStateCheckTimerEvent( void )
                 if( IsUpLinkCounterFixed == false )
                 {
                     UpLinkCounter++;
+                	TRACE("UpLinkCount2 : %d\n", UpLinkCounter);
                 }
                 McpsConfirm.NbRetries = AckTimeoutRetriesCounter;
 
@@ -1354,6 +1365,7 @@ static void OnMacStateCheckTimerEvent( void )
                     if( IsUpLinkCounterFixed == false )
                     {
                         UpLinkCounter++;
+                    	TRACE("UpLinkCount3 : %d\n", UpLinkCounter);
                     }
                 }
             }
@@ -1370,6 +1382,7 @@ static void OnMacStateCheckTimerEvent( void )
                 if( IsUpLinkCounterFixed == false )
                 {
                     UpLinkCounter++;
+                	TRACE("UpLinkCount4 : %d\n", UpLinkCounter);
                 }
             }
         }
@@ -2712,6 +2725,12 @@ LoRaMacStatus_t LoRaMacMibGetRequestConfirm( MibRequestConfirm_t *mibGet )
         	break;
         }
 
+        case MIB_APP_NONCE:
+        {
+        	mibGet->Param.AppNonce = LoRaMacAppNonce;
+        	break;
+        }
+
         default:
             status = LORAMAC_STATUS_SERVICE_UNKNOWN;
             break;
@@ -3031,11 +3050,17 @@ LoRaMacStatus_t LoRaMacMibSetRequestConfirm( MibRequestConfirm_t *mibSet )
             break;
         }
         case MIB_ANTENNA_GAIN:
-        {
-            LoRaMacParams.AntennaGain = mibSet->Param.AntennaGain;
-          	TRACE("Set Antenna Gain  = %d\n", LoRaMacParams.AntennaGain);
-           break;
-        }
+           {
+               LoRaMacParams.AntennaGain = mibSet->Param.AntennaGain;
+             	TRACE("Set Antenna Gain  = %d\n", LoRaMacParams.AntennaGain);
+              break;
+           }
+        case MIB_APP_NONCE:
+           {
+               LoRaMacAppNonce = mibSet->Param.AppNonce;
+             	TRACE("Set AppNonce = %06x\n", LoRaMacAppNonce);
+              break;
+           }
         default:
             status = LORAMAC_STATUS_SERVICE_UNKNOWN;
           	TRACE("Set Unknown service[%d]\n", mibSet->Type);

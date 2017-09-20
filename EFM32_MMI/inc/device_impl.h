@@ -918,7 +918,35 @@ void DeviceUserDataSetRFPeriod(unsigned long Period) {
 	}
 }
 
-void DeviceUserDateSetAppKey(uint8_t *AppKey) {
+void DeviceUserDataSetDevEUI(uint8_t *DevEUI) {
+	if (memcmp(DevEUI, (void*)(USERDATAPTR->LoRaWAN.DevEui), 8) != 0) {
+		USERDATA UData;
+		memcpy((unsigned char*)&UData,(unsigned char*)USERDATAPTR,sizeof(USERDATA));
+		memcpy(UData.LoRaWAN.DevEui, DevEUI, 8);
+		DeviceUserDataSave(&UData);
+		// Reset sensitive data
+		UData.DeviceFlags &= ~FLAG_INSTALLED;
+		FLASHOpen();
+		FLASHWriteUserData(0,(unsigned char*)&UData,sizeof(USERDATA));
+		FLASHClose();
+	}
+}
+
+void DeviceUserDataSetAppEUI(uint8_t *AppEUI) {
+	if (memcmp(AppEUI, (void*)(USERDATAPTR->LoRaWAN.AppEui), 8) != 0) {
+		USERDATA UData;
+		memcpy((unsigned char*)&UData,(unsigned char*)USERDATAPTR,sizeof(USERDATA));
+		memcpy(UData.LoRaWAN.AppEui, AppEUI, 8);
+		DeviceUserDataSave(&UData);
+		// Reset sensitive data
+		UData.DeviceFlags &= ~FLAG_INSTALLED;
+		FLASHOpen();
+		FLASHWriteUserData(0,(unsigned char*)&UData,sizeof(USERDATA));
+		FLASHClose();
+	}
+}
+
+void DeviceUserDataSetAppKey(uint8_t *AppKey) {
 	if (memcmp(AppKey, (void*)(USERDATAPTR->LoRaWAN.AppKey), 16) != 0) {
 		USERDATA UData;
 		memcpy((unsigned char*)&UData,(unsigned char*)USERDATAPTR,sizeof(USERDATA));
@@ -932,7 +960,7 @@ void DeviceUserDateSetAppKey(uint8_t *AppKey) {
 	}
 }
 
-void DeviceUserDateSetSKTRealAppKey(uint8_t *RealAppKey) {
+void DeviceUserDataSetSKTRealAppKey(uint8_t *RealAppKey) {
 	if (memcmp(RealAppKey, (void*)(USERDATAPTR->SKT.RealAppKey), 16) != 0) {
 		USERDATA UData;
 		memcpy((unsigned char*)&UData,(unsigned char*)USERDATAPTR,sizeof(USERDATA));

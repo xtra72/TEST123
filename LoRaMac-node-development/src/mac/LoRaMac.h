@@ -959,7 +959,8 @@ typedef enum eMlme
      * LoRaWAN end-device certification
      */
     MLME_TXCW_1,
-    MLME_CANCEL
+    MLME_CANCEL,
+	MLME_ACK
 }Mlme_t;
 
 /*!
@@ -1360,7 +1361,8 @@ typedef enum eMib
      * radioTxPower = ( int8_t )floor( maxEirp - antennaGain )
      */
     MIB_ANTENNA_GAIN,
-	MIB_JOIN_REQUEST_TRIALS
+	MIB_JOIN_REQUEST_TRIALS,
+	MIB_APP_NONCE
 }Mib_t;
 
 /*!
@@ -1550,6 +1552,8 @@ typedef union uMibParam
     float AntennaGain;
 
     uint32_t	MaxJoinRequestTrials;
+
+    uint32_t	AppNonce;
 }MibParam_t;
 
 /*!

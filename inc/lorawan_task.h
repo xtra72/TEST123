@@ -50,13 +50,13 @@ typedef	enum
 	LORAWAN_STATUS_IDLE,
 	LORAWAN_STATUS_JOIN,
 	LORAWAN_STATUS_PSEUDO_JOIN,
-	LORAWAN_STATUS_PSEUDO_JOIN_CONFIRMED,
+	LORAWAN_STATUS_PSEUDO_JOIN_COMPLETED,
 	LORAWAN_STATUS_REQ_REAL_APP_KEY_ALLOC,
 	LORAWAN_STATUS_REQ_REAL_APP_KEY_ALLOC_CONFIRMED,
 	LORAWAN_STATUS_REQ_REAL_APP_KEY_RX_REPORT,
 	LORAWAN_STATUS_REQ_REAL_APP_KEY_RX_REPORT_CONFIRMED,
 	LORAWAN_STATUS_REAL_JOIN,
-	LORAWAN_STATUS_REAL_JOIN_CONFIRMED
+	LORAWAN_STATUS_REAL_JOIN_COMPLETED
 } LoRaWANStatus_t;
 
 /*!
@@ -142,19 +142,16 @@ LORA_MESSAGE *Message;
 void LORAWAN_Init(void);
 
 LoRaWANStatus_t LORAWAN_GetStatus(void);
+bool LORAWAN_SetStatus(LoRaWANStatus_t xStatus );
 char*			LORAWAN_GetStatusString(void);
 
 /*!
  * @brief Tries to join the LoRaWAN network if not already done
  * @return true if successful
  */
-bool LORAWAN_JoinNetwork(bool bWaitForConfirmed);
-bool LORAWAN_JoinNetworkUseOTTA(bool bWaitForConfirmed);
-bool LORAWAN_JoinNetworkUseABP(bool bWaitForConfirmed);
-bool LORAWAN_PseudoJoinNetwork(bool bWaitForConfirmed);
-bool LORAWAN_RealJoinNetwork(bool bWaitForConfirmed);
-bool LORAWAN_RequestRealAppKeyAlloc(bool bWaitForConfirmed);
-bool LORAWAN_RequestRealAppKeyRxReport(bool bWaitForConfirmed);
+bool LORAWAN_JoinNetwork(void);
+bool LORAWAN_JoinNetworkUseOTTA(uint8_t* pDevEUID, uint8_t* pAppEUID, uint8_t* pAppKey);
+bool LORAWAN_JoinNetworkUseABP(void);
 bool LORAWAN_CancelJoinNetwork(void);
 
 /*!
@@ -214,18 +211,11 @@ void LORAWAN_SetMaxRetries(uint8_t retries);
  */
 uint8_t LORAWAN_GetMaxRetries(void);
 
-DeviceClass_t	LORAWAN_GetClassType(void);
-void	LORAWAN_SetClassType(DeviceClass_t class);
-
 uint8_t	LORAWAN_GetSNR(void);
 int16_t	LORAWAN_GetRSSI(void);
 
-int8_t 	LORAWAN_GetDatarate(void);
-void	LORAWAN_SetDatarate(int8_t datarate);
-
-int8_t 	LORAWAN_GetTxPower(void);
-void	LORAWAN_SetTxPower(int8_t power);
-
+bool	LORAWAN_GetPeriodicMode(void);
+bool	LORAWAN_SetPeriodicMode(bool bEnable);
 /** }@ */
 
 #endif /* INC_LORAWAN_TASK_H_ */

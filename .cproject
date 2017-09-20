@@ -50,19 +50,10 @@
 									<listOptionValue builtIn="false" value="&quot;${StudioSdkPath}/hardware/kit/common/bsp&quot;"/>
 								</option>
 								<option id="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.compiler.def.symbols.530559547" name="Defined symbols (-D)" superClass="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.compiler.def.symbols" valueType="definedSymbols">
-									<listOptionValue builtIn="false" value="REGION_EU868=1"/>
-									<listOptionValue builtIn="false" value="REGION_US915=1"/>
-									<listOptionValue builtIn="false" value="REGION_CN470=1"/>
 									<listOptionValue builtIn="false" value="REGION_KR920=1"/>
-									<listOptionValue builtIn="false" value="REGION_AU915=1"/>
-									<listOptionValue builtIn="false" value="REGION_CN779=1"/>
 									<listOptionValue builtIn="false" value="GCC_ARMCM3=1"/>
 									<listOptionValue builtIn="false" value="EXCLUDE_DEFAULT_DMA_IRQ_HANDLER=1"/>
-									<listOptionValue builtIn="false" value="REGION_AS923=1"/>
-									<listOptionValue builtIn="false" value="REGION_US915_HYBRID=1"/>
-									<listOptionValue builtIn="false" value="REGION_IN865=1"/>
 									<listOptionValue builtIn="false" value="EXCLUDE_DEFAULT_RTC_IRQ_HANDLER=1"/>
-									<listOptionValue builtIn="false" value="REGION_EU433=1"/>
 									<listOptionValue builtIn="false" value="DEBUG=1"/>
 									<listOptionValue builtIn="false" value="_DEBUG=1"/>
 									<listOptionValue builtIn="false" value="EFM32JG1B100F128GM32=1"/>

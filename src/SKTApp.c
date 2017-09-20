@@ -20,8 +20,12 @@
 #define	__MODULE__	"SKT"
 
 static uint8_t AppNonce[3];
+static StaticSemaphore_t xSemaphoreBuffer;
+static xSemaphoreHandle SKTAppSemaphore;
+static SKTAppStatus_t	SKTApp_xStatus;
+static bool				SKTApp_ConfirmedMsgType = false;
 
- void SKTAPP_SendPeriodicDataExt(uint8_t messageType, bool retry);	// Forward definition
+void SKTAPP_SendPeriodicDataExt(uint8_t messageType, bool retry);	// Forward definition
 bool DEVICEAPP_ExecDaliworks(LORA_MESSAGE* msg);
 
 static bool DEVICEAPP_ExecSKTNetwork(LORA_MESSAGE* msg)
@@ -33,43 +37,28 @@ static bool DEVICEAPP_ExecSKTNetwork(LORA_MESSAGE* msg)
 	switch(msg->MessageType)
 	{
 	case MSG_SKT_NET_REAL_APP_KEY_ALLOC_ANS:
-		if (LORAWAN_GetStatus() == LORAWAN_STATUS_REQ_REAL_APP_KEY_ALLOC_CONFIRMED)
+		if (msg->PayloadLen == sizeof(AppNonce))
 		{
-			if (msg->PayloadLen == sizeof(AppNonce))
-			{
-				memcpy(AppNonce, msg->Payload, 3);
-				rc = true;
-				TRACE("%16s - ", "App Nonce"); TRACE_DUMP(AppNonce, sizeof(AppNonce));
+			memcpy(AppNonce, msg->Payload, 3);
+			TRACE("%16s - ", "App Nonce"); TRACE_DUMP(AppNonce, sizeof(AppNonce));
 
-				DevicePostEvent(REAL_APP_KEY_ALLOC_COMPLETED);
-			}
-		}
-		else
-		{
-			ERROR("LoRaWAN status invalid.\n");
+			if(SKTAppSemaphore) xSemaphoreGive(SKTAppSemaphore);
 		}
 		break;
 
 	case MSG_SKT_NET_REAL_APP_KEY_RX_REPORT_ANS:
 		{
-			if (LORAWAN_GetStatus() == LORAWAN_STATUS_REQ_REAL_APP_KEY_RX_REPORT_CONFIRMED)
-			{
-				uint8_t RealAppKey[16];
+			uint8_t RealAppKey[16];
 
-				LoRaMacJoinComputeRealAppKey( UNIT_APPKEY, AppNonce, UNIT_NETWORKID, RealAppKey );
+			LoRaMacJoinComputeRealAppKey( UNIT_APPKEY, AppNonce, UNIT_NETWORKID, RealAppKey );
 
-				TRACE("%16s : ", "App Nonce"); TRACE_DUMP(AppNonce, sizeof(AppNonce));
-				TRACE("%16s : ", "Net ID", UNIT_NETWORKID);
-				TRACE("%16s : ", "Real App Key"); TRACE_DUMP(RealAppKey, sizeof(RealAppKey));
+			TRACE("%16s : ", "App Nonce"); TRACE_DUMP(AppNonce, sizeof(AppNonce));
+			TRACE("%16s : ", "Net ID", UNIT_NETWORKID);
+			TRACE("%16s : ", "Real App Key"); TRACE_DUMP(RealAppKey, sizeof(RealAppKey));
 
-				DeviceUserDateSetSKTRealAppKey(RealAppKey);
+			DeviceUserDataSetSKTRealAppKey(RealAppKey);
 
-				DevicePostEvent(REAL_APP_KEY_RX_REPORT_COMPLETED);
-			}
-			else
-			{
-				ERROR("LoRaWAN status invalid.\n");
-			}
+			if(SKTAppSemaphore) xSemaphoreGive(SKTAppSemaphore);
 		}
 		break;
 
@@ -93,8 +82,10 @@ static bool DEVICEAPP_ExecSKTDevice(LORA_MESSAGE* msg)
 	TRACE("Exec STK : %02x\n", msg->MessageType);
 	switch(msg->MessageType)
 	{
-	case 0x00:
+	case MSG_SKT_DEV_EXT_DEVICE_MANAGEMENT:
 		// Add your code here
+		LocalMessage.Message->PayloadLen = 0;
+		rc = true;
 		break;
 
 	case MSG_SKT_DEV_RESET:
@@ -138,6 +129,20 @@ static bool DEVICEAPP_ExecSKTDevice(LORA_MESSAGE* msg)
 	}
 	return rc;
 }
+
+
+bool	SKTAPP_Init(void)
+{
+	 if (!SKTAppSemaphore)
+	 {
+		 SKTAppSemaphore = xSemaphoreCreateBinaryStatic( &xSemaphoreBuffer );
+	 }
+
+	 SKTApp_xStatus = SKTAPP_STATUS_IDLE;
+
+	 return	true;
+}
+
 /*
  * @brief Send standard data using a specific messageType
  */
@@ -152,9 +157,19 @@ static bool DEVICEAPP_ExecSKTDevice(LORA_MESSAGE* msg)
 	 LocalMessage.Message->PayloadLen = 0;
 	 LocalMessage.Size = LORA_MESSAGE_HEADER_SIZE + LocalMessage.Message->PayloadLen;
 
+	 if (SKTAppSemaphore)	xSemaphoreTake(SKTAppSemaphore, 0);
+
+	 SKTApp_xStatus = SKTAPP_STATUS_REQ_REAL_APP_KEY_ALLOC;
 	 if (LORAWAN_SendMessage(&LocalMessage) == LORAMAC_STATUS_OK)
 	 {
-		 rc = true;
+		 if (SKTAppSemaphore)
+		 {
+			 if (xSemaphoreTake(SKTAppSemaphore, 7 * configTICK_RATE_HZ + 1))
+			 {
+				 SKTApp_xStatus = SKTAPP_STATUS_REQ_REAL_APP_KEY_ALLOC_COMPLETED;
+				 rc = true;
+			 }
+		 }
 	 }
 	 else
 	 {
@@ -195,9 +210,19 @@ static bool DEVICEAPP_ExecSKTDevice(LORA_MESSAGE* msg)
 	 LocalMessage.Message->PayloadLen = 0;
 	 LocalMessage.Size = LORA_MESSAGE_HEADER_SIZE + LocalMessage.Message->PayloadLen;
 
+	 if (SKTAppSemaphore)	xSemaphoreTake(SKTAppSemaphore, 0);
+
+	 SKTApp_xStatus = SKTAPP_STATUS_REQ_REAL_APP_KEY_RX_REPORT;
 	 if (LORAWAN_SendMessage(&LocalMessage)  == LORAMAC_STATUS_OK)
 	 {
-		 rc = true;
+		 if (SKTAppSemaphore)
+		 {
+			 if (xSemaphoreTake(SKTAppSemaphore, 7 * configTICK_RATE_HZ + 1))
+			 {
+				 SKTApp_xStatus = SKTAPP_STATUS_REQ_REAL_APP_KEY_RX_REPORT_COMPLETED;
+				 rc = true;
+			 }
+		 }
 	 }
 	 else
  	 {
@@ -228,7 +253,8 @@ static bool DEVICEAPP_ExecSKTDevice(LORA_MESSAGE* msg)
  * @brief Send standard data using a specific messageType
  */
 static uint32_t PeriodicCount = 0;
-void SKTAPP_SendPeriodicDataExt(uint8_t messageType, bool retry) {
+void SKTAPP_SendPeriodicDataExt(uint8_t messageType, bool retry)
+{
 #if (INCLUDE_COMPLIANCE_TEST > 0)
 	if (Compliance_SendPeriodic()) return;
 #endif
@@ -243,6 +269,7 @@ void SKTAPP_SendPeriodicDataExt(uint8_t messageType, bool retry) {
 		LocalMessage.Message->PayloadLen += sprintf((char*)&(LocalMessage.Message->Payload[LocalMessage.Message->PayloadLen]),
 				",%ld",(retry) ? SUPERVISOR_GetHistoricalValue(0,1) : DeviceGetPulseInValue(1));
 	LocalMessage.Size = LORA_MESSAGE_HEADER_SIZE + LocalMessage.Message->PayloadLen;
+	TRACE("SendPeriodicData : "); TRACE_DUMP(LocalMessage.Message->Payload, LocalMessage.Message->PayloadLen);
 	if (LORAWAN_SendMessage(&LocalMessage)  != LORAMAC_STATUS_OK) {
 		switch(LocalMessage.Status) {
 			case LORAMAC_EVENT_INFO_STATUS_ERROR:
@@ -260,22 +287,33 @@ void SKTAPP_SendPeriodicDataExt(uint8_t messageType, bool retry) {
 	}
 }
 
-void SKTAPP_SendPeriodic(bool retry) {
+void SKTAPP_SendPeriodic(bool retry)
+{
 	SKTAPP_SendPeriodicDataExt(1, retry);
 }
 
-void SKTAPP_ParseMessage(McpsIndication_t* ind) {
-bool rc = false;
+bool SKTAPP_ParseMessage(McpsIndication_t* ind)
+{
+	bool rc = false;
 	LocalMessage.Buffer = LocalBuffer;	/* Just to be sure */
-	if (ind) {
-		if (ind->Status == LORAMAC_EVENT_INFO_STATUS_OK) {
-			if (ind->AckReceived) {
+
+	if (ind)
+	{
+		TRACE("ind->Status = %d\n", ind->Status);
+		if (ind->Status == LORAMAC_EVENT_INFO_STATUS_OK)
+		{
+			if (ind->AckReceived)
+			{
 				DeviceFlashLed(1);	// Show that we received an acknowledgment to a confirmed message
 			}
-			if (ind->RxData) {
+			TRACE("ind->RxData= %08x\n", (uint32_t)ind->RxData);
+			if (ind->RxData)
+			{
 				LORA_PACKET *msg = LORAWAN_GetMessage();
-				if (msg) {
-					switch(msg->Port) {
+				if (msg)
+				{
+					switch(msg->Port)
+					{
 					case SKT_DEVICE_SERVICE_PORT:
 						TRACE("SKT Device Service Port received.\n");
 						if (msg->Size > 0) {
@@ -299,13 +337,17 @@ bool rc = false;
 						DEVICEAPP_RunComplianceTest(ind);
 						break;
 #endif
-					default: break;
+					default:
+						TRACE("Unknown Port : %d\n", msg->Port);
+						break;
 					}
 				}
 				/* If rc is true, a message has been prepared and we need to transmit it) */
 				if (rc) {
+#if 1
 					LocalMessage.Message->Version = LORA_MESSAGE_VERSION;
 					LocalMessage.Size = LORA_MESSAGE_HEADER_SIZE + LocalMessage.Message->PayloadLen;
+
 					if (LORAWAN_SendMessage(&LocalMessage)  != LORAMAC_STATUS_OK) {
 						switch(LocalMessage.Status) {
 							case LORAMAC_EVENT_INFO_STATUS_ERROR:
@@ -321,10 +363,15 @@ bool rc = false;
 								break;
 						}
 					}
+#else
+						SKTAPP_SendAck();
+#endif
 				}
 			}
 		}
 	}
+
+	return	rc;
 }
 
 void SKTAPP_ParseMlme(MlmeConfirm_t *m)
@@ -334,5 +381,110 @@ void SKTAPP_ParseMlme(MlmeConfirm_t *m)
 #endif
 }
 
+bool SKTAPP_GetPeriodicMode(void)
+{
+	return	SUPERVISOR_IsCyclicTaskRun();
+}
 
+bool SKTAPP_SetPeriodicMode(bool bEnable)
+{
+	if (SUPERVISOR_IsCyclicTaskRun() != bEnable)
+	{
+		if (bEnable)
+		{
+			SUPERVISOR_StartCyclicTask(0, SUPERVISOR_GetRFPeriod());
+		}
+		else
+		{
+			SUPERVISOR_StopCyclicTask();
+		}
+	}
+
+	return	true;
+}
+
+bool SKTAPP_SetConfirmedMsgType(bool bConfirmed)
+{
+	SKTApp_ConfirmedMsgType = bConfirmed;
+
+	return	true;
+}
+
+bool SKTAPP_IsConfirmedMsgType(boid)
+{
+	return	SKTApp_ConfirmedMsgType;
+}
+
+
+bool SKTAPP_Send(uint8_t messageType, uint8_t *pFrame, uint32_t ulFrameLen)
+{
+	LocalMessage.Buffer = LocalBuffer;
+	LocalMessage.Port = LORAWAN_APP_PORT;
+	if (SKTApp_ConfirmedMsgType)
+	{
+		LocalMessage.Request = MCPS_CONFIRMED;
+	}
+	else
+	{
+		LocalMessage.Request = MCPS_UNCONFIRMED;
+	}
+	LocalMessage.Message->MessageType = messageType;
+	LocalMessage.Message->Version = LORA_MESSAGE_VERSION;
+	LocalMessage.Message->PayloadLen = ulFrameLen;
+	memcpy(LocalMessage.Message->Payload, pFrame, ulFrameLen);
+	LocalMessage.Size = LORA_MESSAGE_HEADER_SIZE + LocalMessage.Message->PayloadLen;
+	TRACE("SendPeriodicData : "); TRACE_DUMP(LocalMessage.Message->Payload, LocalMessage.Message->PayloadLen);
+	if (LORAWAN_SendMessage(&LocalMessage)  != LORAMAC_STATUS_OK)
+	{
+		switch(LocalMessage.Status)
+		{
+		case LORAMAC_EVENT_INFO_STATUS_ERROR:
+			ERROR("LORAMAC_EVENT_INFO_STATUS_ERROR");
+			DeviceFlashLed(10);
+			break;
+		case LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT:
+			ERROR("LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT");
+			DeviceFlashLed(3);
+			break;
+		default:
+			DeviceFlashLed(5);
+			break;
+		}
+	}
+
+	return	true;
+}
+
+
+
+bool SKTAPP_SendAck(void)
+{
+	LocalMessage.Buffer = LocalBuffer;
+	LocalMessage.Port = 0;
+	LocalMessage.Request = MCPS_UNCONFIRMED;
+	LocalMessage.Message->MessageType = 0;
+	LocalMessage.Message->Version = LORA_MESSAGE_VERSION;
+	LocalMessage.Message->PayloadLen = 1;
+	LocalMessage.Size = LORA_MESSAGE_HEADER_SIZE + LocalMessage.Message->PayloadLen;
+	TRACE("SendAck\n");
+	if (LORAWAN_SendMessage(&LocalMessage)  != LORAMAC_STATUS_OK)
+	{
+		switch(LocalMessage.Status)
+		{
+		case LORAMAC_EVENT_INFO_STATUS_ERROR:
+			ERROR("LORAMAC_EVENT_INFO_STATUS_ERROR");
+			DeviceFlashLed(10);
+			break;
+		case LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT:
+			ERROR("LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT");
+			DeviceFlashLed(3);
+			break;
+		default:
+			DeviceFlashLed(5);
+			break;
+		}
+	}
+
+	return	true;
+}
 /** }@ */

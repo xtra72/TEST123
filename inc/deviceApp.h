@@ -15,7 +15,7 @@ extern uint8_t LocalBuffer[255];
 /*!
  * @brief Set this macro to 1 to enable compliance test support
  */
-#define INCLUDE_COMPLIANCE_TEST			( 1 )
+#define INCLUDE_COMPLIANCE_TEST			( 0 )
 /*!
  * @brief Send Periodic message whilst in compliance test mode
  * @return true if in compliance test mode
