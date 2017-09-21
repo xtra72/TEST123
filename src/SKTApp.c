@@ -84,7 +84,7 @@ static bool DEVICEAPP_ExecSKTDevice(LORA_MESSAGE* msg)
 	{
 	case MSG_SKT_DEV_EXT_DEVICE_MANAGEMENT:
 		// Add your code here
-		LocalMessage.Message->PayloadLen = 0;
+		SKTAPP_SendAck();
 		rc = true;
 		break;
 
@@ -93,7 +93,8 @@ static bool DEVICEAPP_ExecSKTDevice(LORA_MESSAGE* msg)
 		// until it is re-installed using the magnet.
 		// If a factory reset is requested, uncomment next line
 //		DeviceUserDataSetFlag(FLAG_INSTALLED, 0);
-		SystemReboot();
+		SKTAPP_SendAck();
+		DevicePostEvent(SYSTEM_RESET);
 		// This code will never return
 		break;
 
@@ -119,6 +120,8 @@ static bool DEVICEAPP_ExecSKTDevice(LORA_MESSAGE* msg)
 			{
 				SUPERVISOR_StartCyclicTask(0, ulPeriod);
 			}
+
+			SKTAPP_SendAck();
 		}
 		break;
 
@@ -292,6 +295,57 @@ void SKTAPP_SendPeriodic(bool retry)
 	SKTAPP_SendPeriodicDataExt(1, retry);
 }
 
+
+bool SKTAPP_Send(uint8_t port, uint8_t messageType, uint8_t *pFrame, uint32_t ulFrameLen)
+{
+	LocalMessage.Buffer = LocalBuffer;
+	LocalMessage.Port = port;
+	if (SKTApp_ConfirmedMsgType)
+	{
+		LocalMessage.Request = MCPS_CONFIRMED;
+	}
+	else
+	{
+		LocalMessage.Request = MCPS_UNCONFIRMED;
+	}
+	LocalMessage.Message->MessageType = messageType;
+	LocalMessage.Message->Version = LORA_MESSAGE_VERSION;
+	LocalMessage.Message->PayloadLen = ulFrameLen;
+	memcpy(LocalMessage.Message->Payload, pFrame, ulFrameLen);
+	LocalMessage.Size = LORA_MESSAGE_HEADER_SIZE + LocalMessage.Message->PayloadLen;
+	TRACE("SendPeriodicData : "); TRACE_DUMP(LocalMessage.Message->Payload, LocalMessage.Message->PayloadLen);
+	if (LORAWAN_SendMessage(&LocalMessage)  != LORAMAC_STATUS_OK)
+	{
+		switch(LocalMessage.Status)
+		{
+		case LORAMAC_EVENT_INFO_STATUS_ERROR:
+			ERROR("LORAMAC_EVENT_INFO_STATUS_ERROR");
+			DeviceFlashLed(10);
+			break;
+		case LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT:
+			ERROR("LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT");
+			DeviceFlashLed(3);
+			break;
+		default:
+			DeviceFlashLed(5);
+			break;
+		}
+	}
+
+	return	true;
+}
+
+
+bool SKTAPP_SendAck(void)
+{
+	return	LORAWAN_SendAck();
+}
+
+bool SKTAPP_LinkCheck(void)
+{
+	return	LORAWAN_SendLinkCheckRequest();
+}
+
 bool SKTAPP_ParseMessage(McpsIndication_t* ind)
 {
 	bool rc = false;
@@ -344,7 +398,7 @@ bool SKTAPP_ParseMessage(McpsIndication_t* ind)
 				}
 				/* If rc is true, a message has been prepared and we need to transmit it) */
 				if (rc) {
-#if 1
+#if 0
 					LocalMessage.Message->Version = LORA_MESSAGE_VERSION;
 					LocalMessage.Size = LORA_MESSAGE_HEADER_SIZE + LocalMessage.Message->PayloadLen;
 
@@ -383,22 +437,13 @@ void SKTAPP_ParseMlme(MlmeConfirm_t *m)
 
 bool SKTAPP_GetPeriodicMode(void)
 {
-	return	SUPERVISOR_IsCyclicTaskRun();
+	return	SUPERVISOR_IsPeriodicMode();
 }
 
 bool SKTAPP_SetPeriodicMode(bool bEnable)
 {
-	if (SUPERVISOR_IsCyclicTaskRun() != bEnable)
-	{
-		if (bEnable)
-		{
-			SUPERVISOR_StartCyclicTask(0, SUPERVISOR_GetRFPeriod());
-		}
-		else
-		{
-			SUPERVISOR_StopCyclicTask();
-		}
-	}
+
+	SUPERVISOR_SetPeriodicMode(bEnable);
 
 	return	true;
 }
@@ -410,56 +455,10 @@ bool SKTAPP_SetConfirmedMsgType(bool bConfirmed)
 	return	true;
 }
 
-bool SKTAPP_IsConfirmedMsgType(boid)
+bool SKTAPP_IsConfirmedMsgType(void)
 {
 	return	SKTApp_ConfirmedMsgType;
 }
 
 
-bool SKTAPP_Send(uint8_t messageType, uint8_t port, uint8_t *pFrame, uint32_t ulFrameLen)
-{
-	LocalMessage.Buffer = LocalBuffer;
-	LocalMessage.Port = port;
-	if (SKTApp_ConfirmedMsgType)
-	{
-		LocalMessage.Request = MCPS_CONFIRMED;
-	}
-	else
-	{
-		LocalMessage.Request = MCPS_UNCONFIRMED;
-	}
-	LocalMessage.Message->MessageType = messageType;
-	LocalMessage.Message->Version = LORA_MESSAGE_VERSION;
-	LocalMessage.Message->PayloadLen = ulFrameLen;
-	memcpy(LocalMessage.Message->Payload, pFrame, ulFrameLen);
-	LocalMessage.Size = LORA_MESSAGE_HEADER_SIZE + LocalMessage.Message->PayloadLen;
-	TRACE("SendPeriodicData : "); TRACE_DUMP(LocalMessage.Message->Payload, LocalMessage.Message->PayloadLen);
-	if (LORAWAN_SendMessage(&LocalMessage)  != LORAMAC_STATUS_OK)
-	{
-		switch(LocalMessage.Status)
-		{
-		case LORAMAC_EVENT_INFO_STATUS_ERROR:
-			ERROR("LORAMAC_EVENT_INFO_STATUS_ERROR");
-			DeviceFlashLed(10);
-			break;
-		case LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT:
-			ERROR("LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT");
-			DeviceFlashLed(3);
-			break;
-		default:
-			DeviceFlashLed(5);
-			break;
-		}
-	}
-
-	return	true;
-}
-
-
-
-bool SKTAPP_SendAck(void)
-{
-	LORAMAC_AddACK();
-	return SKTAPP_Send(0, 0, NULL, 0);
-}
 /** }@ */

@@ -26,7 +26,7 @@
 #include "lorawan_task.h"
 #include "loramac_ex.h"
 #include "utilities.h"
-
+#include "SKTApp.h"
 #undef	__MODULE__
 #define	__MODULE__ "TRACE"
 
@@ -678,11 +678,31 @@ int SHELL_CMD_AT_PS(char *ppArgv[], int nArgc)
 
 int SHELL_CMD_AT_GetConfig(char *ppArgv[], int nArgc)
 {
+	SHELL_Printf("Get Configuration\n");
+
+	SHELL_Printf("- Current Channel : %d, Channel Tx Power : %d\n", 922100000 + 200000 * LoRaMacTestGetChannel(), LoRaMacTestGetChannelsTxPower());
+
+	SHELL_Printf("- MaxDCycle : %d, AggregatedDCycle : %d\n", LoRaMacTestGetMaxDCycle(), LoRaMacTestGetAggreagtedDCycle());
+	SHELL_Printf("- Current Rx1 DR Offset : %d, Rx2 DataRate : %d\n", LoRaMacTestGetRx1DrOffset(), LoRaMacTestGetRx2Datarate());
+
+	for(uint32_t i = 0 ; i <= LORAMAC_TX_CHANNEL_MAX - LORAMAC_TX_CHANNEL_MIN ; i++)
+	{
+		SHELL_Printf("- Channels[%d] : %d, Band : 0\n", i, 922100000 + i * 200000);
+	}
+
+	SHELL_Printf("- Channels Mask : %04x\n", LORAMAC_GetChannelsMask());
+	SHELL_Printf("- Rx1 Delay : %d, Rx2 Delay : %d\n", LORAMAC_GetRx1Delay(), LORAMAC_GetRx2Delay());
+	SHELL_Printf("- Join Delay1 : %d, Join Delay2 : %d\n", LORAMAC_GetJoinDelay1(), LORAMAC_GetJoinDelay2());
+	SHELL_Printf("- Retransmission Count : %d\n", LORAMAC_GetRetries());
+
 	return	0;
 }
 
 int SHELL_CMD_AT_FirmwareInfo(char *ppArgv[], int nArgc)
 {
+	SHELL_Printf("Firmware Information\n");
+	SHELL_Printf("- Version : %s\n", DeviceVersion());
+
 	return	0;
 }
 
@@ -707,6 +727,7 @@ int SHELL_CMD_AT_AppKey(char *ppArgv[], int nArgc)
 	}
 	else
 	{
+		bool	ret = false;
 		uint8_t pAppKey[16];
 
 		SHELL_Printf("SET APPLICATION KEY\n");
@@ -714,6 +735,11 @@ int SHELL_CMD_AT_AppKey(char *ppArgv[], int nArgc)
 		if ((nArgc == 2) && (HexString2Array(ppArgv[1], pAppKey, sizeof(pAppKey)) == LORAMAC_APP_KEY_SIZE))
 		{
 			DeviceUserDataSetAppKey(pAppKey);
+			ret = true;
+		}
+
+		if (ret)
+		{
 			SHELL_Printf("- Application Key : ");	SHELL_Dump(UNIT_APPKEY, LORAMAC_APP_KEY_SIZE);
 		}
 		else
@@ -734,12 +760,18 @@ int SHELL_CMD_AT_AppEUI(char *ppArgv[], int nArgc)
 	}
 	else
 	{
+		bool	ret = false;
 		uint8_t pAppEUI[LORAMAC_APP_EUI_SIZE];
 
 		SHELL_Printf("SET APPLICATION EUI\n");
 		if ((nArgc == 2) && (HexString2Array(ppArgv[1], pAppEUI, sizeof(pAppEUI)) == sizeof(pAppEUI)))
 		{
 			DeviceUserDataSetAppEUI(pAppEUI);
+			ret = true;
+		}
+
+		if (ret)
+		{
 			SHELL_Printf("- Application EUI : ");	SHELL_Dump(pAppEUI, sizeof(pAppEUI));
 		}
 		else
@@ -760,25 +792,32 @@ int SHELL_CMD_AT_SetTxDR(char *ppArgv[], int nArgc)
 	}
 	else
 	{
+		bool	ret = false;
+
 		SHELL_Printf("SET TX DATA RATE\n");
 		if (nArgc == 2)
 		{
 			int8_t	nDatarate = atoi(ppArgv[1]);
 			if ((LORAMAC_TX_DATARATE_MIN <= nDatarate) && (nDatarate <= LORAMAC_TX_DATARATE_MAX))
 			{
-				LORAMAC_SetDatarate(nDatarate);
-				SHELL_Printf("- Data Rate : %d\n", nDatarate);
-				return	0;
+				ret = LORAMAC_SetDatarate(nDatarate);
 			}
 		}
 
-		SHELL_Printf("- ERROR, Invalid Arguments\n");
+		if (ret)
+		{
+			SHELL_Printf("- Data Rate : %d\n", LORAMAC_GetDatarate());
+		}
+		else
+		{
+			SHELL_Printf("- ERROR, Invalid Arguments\n");
+		}
 	}
 
 	return	0;
 }
 
-int SHELL_CMD_AT_SetTxPower(char *ppArgv[], int nArgc)
+int SHELL_CMD_AT_TxPower(char *ppArgv[], int nArgc)
 {
 	if (nArgc == 1)
 	{
@@ -787,6 +826,8 @@ int SHELL_CMD_AT_SetTxPower(char *ppArgv[], int nArgc)
 	}
 	else
 	{
+		bool	ret = false;
+
 		SHELL_Printf("SET TX POWER\n");
 
 		if (nArgc == 2)
@@ -794,13 +835,18 @@ int SHELL_CMD_AT_SetTxPower(char *ppArgv[], int nArgc)
 			int8_t	nTxPower = atoi(ppArgv[1]);
 			if ((LORAMAC_TX_POWER_MIN <= nTxPower) && (nTxPower <= LORAMAC_TX_POWER_MAX))
 			{
-				LORAMAC_SetTxPower(nTxPower);
-				SHELL_Printf("- Tx Power Index : %d\n", LORAMAC_GetTxPower());
-				return	0;
+				ret = LORAMAC_SetTxPower(nTxPower);
 			}
 		}
 
-		SHELL_Printf("- ERROR, Invalid Arguments\n");
+		if (ret)
+		{
+			SHELL_Printf("- Tx Power Index : %d\n", LORAMAC_GetTxPower());
+		}
+		else
+		{
+			SHELL_Printf("- ERROR, Invalid Arguments\n");
+		}
 	}
 
 	return	0;
@@ -808,7 +854,40 @@ int SHELL_CMD_AT_SetTxPower(char *ppArgv[], int nArgc)
 
 int SHELL_CMD_AT_SetChannelAndTxPower(char *ppArgv[], int nArgc)
 {
+	bool	ret = false;
 
+	SHELL_Printf("Set Channel & Tx Power\n");
+	if (nArgc == 3)
+	{
+		int8_t	nTxChannel = atoi(ppArgv[1]);
+		if (nTxChannel == 25)
+		{
+			int8_t	nTxPower = atoi(ppArgv[1]);
+			if ((2 <= nTxPower) && (nTxPower <= LORAMAC_TX_POWER_MAX))
+			{
+				ret = LoRaMacTestSetChannel( nTxChannel );
+				ret &= LORAMAC_SetTxPower(nTxPower);
+			}
+		}
+		else if ((LORAMAC_TX_CHANNEL_MIN <= nTxChannel) && (nTxChannel <= LORAMAC_TX_CHANNEL_MAX))
+		{
+			int8_t	nTxPower = atoi(ppArgv[1]);
+			if ((LORAMAC_TX_POWER_MIN <= nTxPower) && (nTxPower <= LORAMAC_TX_POWER_MAX))
+			{
+				ret = LoRaMacTestSetChannel( nTxChannel );
+				ret &= LORAMAC_SetTxPower(nTxPower);
+			}
+		}
+	}
+
+	if (ret)
+	{
+		SHELL_Printf("- Set Tx Channel : %d, PWR index : %d\n", LoRaMacTestGetChannel(), LORAMAC_GetTxPower());
+	}
+	else
+	{
+		SHELL_Printf("- ERROR, Invalid Arguments\n");
+	}
 	return	0;
 }
 
@@ -817,10 +896,12 @@ int SHELL_CMD_AT_Channel(char *ppArgv[], int nArgc)
 	if (nArgc == 1)
 	{
 		SHELL_Printf("GET TX CHANNEL\n");
-
+		SHELL_Printf("- Tx Channel : %d\n", LoRaMacTestGetChannel());
 	}
 	else
 	{
+		bool	ret = false;
+
 		SHELL_Printf("SET TX CHANNEL\n");
 
 		if (nArgc == 2)
@@ -828,12 +909,18 @@ int SHELL_CMD_AT_Channel(char *ppArgv[], int nArgc)
 			int8_t	nTxChannel = atoi(ppArgv[1]);
 			if ((LORAMAC_TX_CHANNEL_MIN <= nTxChannel) && (nTxChannel <= LORAMAC_TX_CHANNEL_MAX))
 			{
-				SHELL_Printf("- Tx Channel : %d\n", nTxChannel);
-				return	0;
+				ret = LoRaMacTestSetChannel( nTxChannel );
 			}
 		}
 
-		SHELL_Printf("- ERROR, Invalid Arguments\n");
+		if (ret)
+		{
+			SHELL_Printf("- Tx Channel : %d\n", LoRaMacTestGetChannel());
+		}
+		else
+		{
+			SHELL_Printf("- ERROR, Invalid Arguments\n");
+		}
 	}
 
 	return	0;
@@ -844,27 +931,36 @@ int SHELL_CMD_AT_ADR(char *ppArgv[], int nArgc)
 	if (nArgc == 1)
 	{
 		SHELL_Printf("GET ADAPTIVE DATA RATE FLAG\n");
-		SHELL_Printf("Adaptive Data Rate Flag : ");
+		SHELL_Printf("Adaptive Data Rate Flag : %s\n", (LORAMAC_GetADR()?"Enable":"Disable"));
 
-	}
-	else if (nArgc == 2)
-	{
-		SHELL_Printf("SET ADAPTIVE DATA RATE FLAG\n");
-
-		int8_t	bEnable = atoi(ppArgv[1]);
-		if (bEnable != 0 && bEnable != 1)
-		{
-			SHELL_Printf("- ERROR, Invalid Arguments\n");
-		}
-		else
-		{
-			SHELL_Printf("Adaptive Data Rate Flag : ");
-		}
 	}
 	else
 	{
-		SHELL_Printf("SET ADAPTIVE DATA RATE FLAG\n");
-		SHELL_Printf("- ERROR, Invalid Arguments\n");
+		bool	ret = false;
+
+		if (nArgc == 2)
+		{
+			SHELL_Printf("SET ADAPTIVE DATA RATE FLAG\n");
+
+			int8_t	bEnable = atoi(ppArgv[1]);
+			if (bEnable == 0)
+			{
+				ret = LORAMAC_SetADR(false);
+			}
+			else if (bEnable == 1)
+			{
+				ret = LORAMAC_SetADR(true);
+			}
+		}
+
+		if (ret)
+		{
+			SHELL_Printf("Adaptive Data Rate Flag : %s\n", (LORAMAC_GetADR()?"Enable":"Disable"));
+		}
+		else
+		{
+			SHELL_Printf("- ERROR, Invalid Arguments\n");
+		}
 	}
 
 	return	0;
@@ -888,13 +984,11 @@ int SHELL_CMD_AT_CLS(char *ppArgv[], int nArgc)
 		{
 			if  (strcasecmp(ppArgv[1], "A") == 0)
 			{
-				LORAMAC_SetClassType(CLASS_A);
-				ret = true;
+				ret = LORAMAC_SetClassType(CLASS_A);
 			}
 			else if (strcasecmp(ppArgv[1], "C") == 0)
 			{
-				LORAMAC_SetClassType(CLASS_C);
-				ret = true;
+				ret = LORAMAC_SetClassType(CLASS_C);
 			}
 		}
 
@@ -936,12 +1030,11 @@ int SHELL_CMD_AT_TxRetransmissionNumber(char *ppArgv[], int nArgc)
 			int8_t	nRetries = atoi(ppArgv[1]);
 			if ((LORAWAN_RETRANSMISSION_MIN <= nRetries) && ( nRetries <= LORAWAN_RETRANSMISSION_MAX))
 			{
-				LORAWAN_SetMaxRetries(nRetries);
-				ret = true;
+				ret = LORAWAN_SetMaxRetries(nRetries);
 			}
 		}
 
-		if (ret == true)
+		if (ret)
 		{
 			SHELL_Printf("- Count  : %d\n", LORAWAN_GetMaxRetries());
 		}
@@ -959,11 +1052,7 @@ int SHELL_CMD_AT_Send(char *ppArgv[], int nArgc)
 	static	uint8_t pData[128];
 	uint8_t			nDataLen = 0;
 
-	if (nArgc == 1)
-	{
-		SKTAPP_Send(0, LORAWAN_APP_PORT, NULL, 0);
-	}
-	else if (nArgc == 2)
+	if (nArgc == 2)
 	{
 		uint32_t	ulLen = strlen(ppArgv[1]);
 
@@ -978,7 +1067,7 @@ int SHELL_CMD_AT_Send(char *ppArgv[], int nArgc)
 		}
 		else
 		{
-			SKTAPP_Send(0, LORAWAN_APP_PORT, pData, nDataLen);
+			SKTAPP_Send(pData[0], 0, &pData[1], nDataLen - 1);
 		}
 	}
 	else
@@ -989,9 +1078,17 @@ int SHELL_CMD_AT_Send(char *ppArgv[], int nArgc)
 	return	0;
 }
 
-int SHELL_CMD_AT_ACK(char *ppArgv[], int nArgc)
+int SHELL_CMD_AT_SendAck(char *ppArgv[], int nArgc)
 {
 	SKTAPP_SendAck();
+
+	return	0;
+}
+
+
+int SHELL_CMD_AT_LinkCheck(char *ppArgv[], int nArgc)
+{
+	SKTAPP_LinkCheck();
 
 	return	0;
 }
@@ -1003,6 +1100,35 @@ int SHELL_CMD_AT_DutyCycleTime(char *ppArgv[], int nArgc)
 
 int SHELL_CMD_AT_UnconfirmedRetransmissionNumber(char *ppArgv[], int nArgc)
 {
+	if (nArgc == 1)
+	{
+		SHELL_Printf("Get Tx Unconfirmed Retransmission Count\n");
+		SHELL_Printf("- Count : %d\n", LORAMAC_GetChannelsNbRepeat());
+	}
+	else
+	{
+		bool	ret = false;
+
+		SHELL_Printf("Set Tx Unconfirmed Retransmission Count\n");
+		if (nArgc == 2)
+		{
+			uint32_t	nCount = atoi(ppArgv[1]);
+			if ((LORAMAC_TX_RETRANSMISSION_COUNT_MIN <= nCount) && (nCount <= LORAMAC_TX_RETRANSMISSION_COUNT_MAX))
+			{
+				ret = LORAMAC_SetChannelsNbRepeat(nCount);
+			}
+		}
+
+		if (ret)
+		{
+			SHELL_Printf("- Count : %d\n", LORAMAC_GetChannelsNbRepeat());
+		}
+		else
+		{
+			SHELL_Printf("- ERROR, Invalid Arguments\n");
+		}
+	}
+
 	return	0;
 }
 
@@ -1024,18 +1150,16 @@ int SHELL_CMD_AT_Confirmed(char *ppArgv[], int nArgc)
 		{
 			if (strcmp(ppArgv[1], "1") == 0)
 			{
-				SKTAPP_SetConfirmedMsgType(true);
-				ret = true;
+				ret = SKTAPP_SetConfirmedMsgType(true);
 			}
 			else if (strcmp(ppArgv[1], "0") == 0)
 			{
-				SKTAPP_SetConfirmedMsgType(false);
-				ret = true;
+				ret = SKTAPP_SetConfirmedMsgType(false);
 			}
 
 		}
 
-		if (ret == true)
+		if (ret)
 		{
 			SHELL_Printf("- MSG TYPE: %s\n", (SKTAPP_IsConfirmedMsgType()?"Confirmed":"Unconfirmed"));
 		}
@@ -1072,26 +1196,17 @@ int SHELL_CMD_AT_Log(char *ppArgv[], int nArgc)
 		{
 			if (strcmp(ppArgv[1], "0") == 0)
 			{
-				TRACE_SetEnable(false);
-				ret = true;
+				ret = TRACE_SetEnable(false);
 			}
 			if (strcmp(ppArgv[1], "1") == 0)
 			{
-				TRACE_SetEnable(true);
-				ret = true;
+				ret = TRACE_SetEnable(true);
 			}
 		}
 
-		if (ret == true)
+		if (ret)
 		{
-			if (TRACE_GetEnable())
-			{
-				SHELL_Printf("- LOG Message Enabled.\n");
-			}
-			else
-			{
-				SHELL_Printf("- LOG Message Disabled.\n");
-			}
+			SHELL_Printf("- LOG Message %s.\n", (TRACE_GetEnable()?"Enabled":"Disabled"));
 		}
 		else
 		{
@@ -1119,17 +1234,15 @@ int SHELL_CMD_AT_PRF(char *ppArgv[], int nArgc)
 		{
 			if (strcmp(ppArgv[1], "0") == 0)
 			{
-				SKTAPP_SetPeriodicMode(false);
-				ret = true;
+				ret = SKTAPP_SetPeriodicMode(false);
 			}
 			if (strcmp(ppArgv[1], "1") == 0)
 			{
-				SKTAPP_SetPeriodicMode(true);
-				ret = true;
+				ret = SKTAPP_SetPeriodicMode(true);
 			}
 		}
 
-		if (ret == true)
+		if (ret)
 		{
 			SHELL_Printf("- Period Report Status : %s Mode\n", (SKTAPP_GetPeriodicMode()?"Timer":"Event"));
 		}
@@ -1144,11 +1257,50 @@ int SHELL_CMD_AT_PRF(char *ppArgv[], int nArgc)
 
 int SHELL_CMD_AT_FCNT(char *ppArgv[], int nArgc)
 {
+	if (nArgc == 1)
+	{
+		SHELL_Printf("Get Up/Down Link Counter\n");
+		SHELL_Printf("- Up Link Counter : %d\n", LORAMAC_GetUpLinkCounter());
+		SHELL_Printf("- Down Link Counter : %d\n", LORAMAC_GetDownLinkCounter());
+	}
+	else
+	{
+		bool	rc = false;
+
+		if (nArgc == 3)
+		{
+			uint32_t	ulCounter = atoi(ppArgv[2]);
+
+			if (strcasecmp(ppArgv[1], "up") == 0)
+			{
+				LORAMAC_SetUpLinkCounter(ulCounter);
+				rc = true;
+			}
+			else if (strcasecmp(ppArgv[1], "down") == 0)
+			{
+				LORAMAC_SetDownLinkCounter(ulCounter);
+				rc = true;
+			}
+		}
+
+		if (rc)
+		{
+			SHELL_Printf("- Up Link Counter : %d\n", LORAMAC_GetUpLinkCounter());
+			SHELL_Printf("- Down Link Counter : %d\n", LORAMAC_GetDownLinkCounter());
+		}
+		else
+		{
+			SHELL_Printf("- ERROR, Invalid Arguments\n");
+		}
+	}
+
 	return	0;
 }
 
 int SHELL_CMD_AT_BATT(char *ppArgv[], int nArgc)
 {
+	SHELL_Printf("- Battery Level : %d\n", BoardGetBatteryLevel());
+
 	return	0;
 }
 
@@ -1157,13 +1309,13 @@ SHELL_CMD	pShellCmds[] =
 		{	"AT",	  "Checking the serial connection status", SHELL_CMD_AT},
 		{	"AT+RST", "Reset",	SHELL_CMD_AT_Reset},
 		{	"AT+PS",	"Pseudo Join",	SHELL_CMD_AT_PS},
-		{	"AT+GCFG", "Get Config",	SHELL_CMD_AT_GetConfig},
+		{	"AT+GCFG", "Get Configuration",	SHELL_CMD_AT_GetConfig},
 		{	"AT+FWI", "Firmware Information",	SHELL_CMD_AT_FirmwareInfo},
 		{	"AT+DEUI", "Get Device EUI",	SHELL_CMD_AT_DevEUI},
 		{	"AT+AK", "Set/Get Application Key",	SHELL_CMD_AT_AppKey},
 		{	"AT+AEUI", "Set/Get Application EUI",	SHELL_CMD_AT_AppEUI},
 		{	"AT+DR", "Set Tx Data Rate",	SHELL_CMD_AT_SetTxDR},
-		{	"AT+POW", "Set Tx Power",	SHELL_CMD_AT_SetTxPower},
+		{	"AT+POW", "Set Tx Power",	SHELL_CMD_AT_TxPower},
 		{	"AT+CHTX", "Set Channel and Tx Power",	SHELL_CMD_AT_SetChannelAndTxPower},
 		{	"AT+CH", "Set/Get Channel",	SHELL_CMD_AT_Channel},
 		{	"AT+ADR", "Set/Get ADR Flag",	SHELL_CMD_AT_ADR},
@@ -1171,7 +1323,7 @@ SHELL_CMD	pShellCmds[] =
 		{	"AT+SIG", "Latest RF Signal",	SHELL_CMD_AT_LatestSignal},
 		{	"AT+RCNT", "Tx Retransmission Number",	SHELL_CMD_AT_TxRetransmissionNumber},
 		{	"AT+SEND", "Sending the user defined packet",	SHELL_CMD_AT_Send},
-		{	"AT+ACK", "Sending ack",	SHELL_CMD_AT_ACK},
+		{	"AT+ACK", "Sending ACK",	SHELL_CMD_AT_SendAck},
 		{	"AT+DUTC", "Set/Get Duty Cycle Time",	SHELL_CMD_AT_DutyCycleTime},
 		{	"AT+RUNT", "Tx Retransmission Number(Unconfirmed)",	SHELL_CMD_AT_UnconfirmedRetransmissionNumber},
 		{	"AT+CFM", "Enable or disable Confirmed message",	SHELL_CMD_AT_Confirmed},
@@ -1179,6 +1331,7 @@ SHELL_CMD	pShellCmds[] =
 		{	"AT+PRF", "Select Timer or Event Mode (Period Report)",	SHELL_CMD_AT_PRF},
 		{	"AT+FCNT", "changing the down link fcnt for testing",	SHELL_CMD_AT_FCNT},
 		{	"AT+BATT", "Setting battery level",	SHELL_CMD_AT_BATT},
+		{	"AT+LCHK", "Link Check Request",	SHELL_CMD_AT_LinkCheck},
 
 		{	"join", "join",	SHELL_CMD_Join},
 		{	"req", "req",	SHELL_CMD_Req},

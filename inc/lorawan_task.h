@@ -154,6 +154,9 @@ bool LORAWAN_JoinNetworkUseOTTA(uint8_t* pDevEUID, uint8_t* pAppEUID, uint8_t* p
 bool LORAWAN_JoinNetworkUseABP(void);
 bool LORAWAN_CancelJoinNetwork(void);
 
+bool LORAWAN_SendAck(void);
+bool LORAWAN_SendLinkCheckRequest(void);
+
 /*!
  * @brief Sends a LORA_MESSAGE to the network
  * @param[in] message
@@ -204,7 +207,7 @@ void LORAWAN_ResetDownLinkCounter(void);
  * @brief Set the maximum number of retries for confirmed up messages
  * @param retries number of retries (from 1 to 8, 0 to use @ref LORAWAN_RETRIES default value)
  */
-void LORAWAN_SetMaxRetries(uint8_t retries);
+bool LORAWAN_SetMaxRetries(uint8_t retries);
 /*!
  * @brief Get the current maximum number of retries for confirmed messages
  * @return the number of retries (from 1 to 8)

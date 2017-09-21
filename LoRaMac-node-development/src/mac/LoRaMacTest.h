@@ -74,7 +74,17 @@ void LoRaMacTestSetDutyCycleOn( bool enable );
  *
  * \param   [IN] channel - Channel index
  */
-void LoRaMacTestSetChannel( uint8_t channel );
+bool	LoRaMacTestSetChannel( uint8_t channel );
+uint8_t	LoRaMacTestGetChannel( void );
+
+uint8_t	LoRaMacTestGetMaxDCycle(void);
+
+uint8_t	LoRaMacTestGetAggreagtedDCycle(void);
+uint8_t	LoRaMacTestGetRx1DrOffset(void);
+uint8_t LoRaMacTestGetRx2Datarate(void);
+int8_t	LoRaMacTestGetChannelsDatarate(void);
+int8_t	LoRaMacTestGetChannelsTxPower(void);
+
 
 /*! \} defgroup LORAMACTEST */
 

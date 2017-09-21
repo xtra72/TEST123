@@ -63,10 +63,13 @@ uint32_t	TRACE_Printf(const char* pModule, const char *pFormat, ...)
 	return	nOutputLength;
 }
 
-void		TRACE_SetEnable(bool bEnable)
+bool		TRACE_SetEnable(bool bEnable)
 {
 	_bEnable = bEnable;
+
+	return	true;
 }
+
 bool		TRACE_GetEnable(void)
 {
 	return	_bEnable;

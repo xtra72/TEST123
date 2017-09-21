@@ -100,7 +100,6 @@ bool	LORAMAC_SetDatarate(int8_t datarate)
 	return	true;
 }
 
-
 int8_t	LORAMAC_GetTxPower(void)
 {
 	// Did we already join the network ?
@@ -154,3 +153,134 @@ bool	LORAMAC_AddACK(void)
 	return	true;
 }
 
+uint32_t LORAMAC_GetDownLinkCounter(void)
+{
+	mibReq.Type = MIB_DOWNLINK_COUNTER;
+	mibReq.Param.DownLinkCounter = 0;
+
+	LoRaMacMibGetRequestConfirm( &mibReq );
+
+	return	mibReq.Param.DownLinkCounter;
+}
+
+bool 	LORAMAC_SetDownLinkCounter(uint32_t ulCounter)
+{
+	mibReq.Type = MIB_DOWNLINK_COUNTER;
+	mibReq.Param.DownLinkCounter = ulCounter;
+
+	return	(LoRaMacMibSetRequestConfirm( &mibReq )  == LORAMAC_STATUS_OK);
+}
+
+uint32_t LORAMAC_GetUpLinkCounter(void)
+{
+	mibReq.Type = MIB_UPLINK_COUNTER;
+	mibReq.Param.UpLinkCounter = 0;
+
+	LoRaMacMibGetRequestConfirm( &mibReq );
+
+	return	mibReq.Param.UpLinkCounter;
+}
+
+bool 	LORAMAC_SetUpLinkCounter(uint32_t ulCounter)
+{
+	// Did we already join the network ?
+	mibReq.Type = MIB_UPLINK_COUNTER;
+	mibReq.Param.UpLinkCounter = ulCounter;
+
+	return	(LoRaMacMibSetRequestConfirm( &mibReq )  == LORAMAC_STATUS_OK);
+}
+
+uint32_t	LORAMAC_GetChannelsNbRepeat(void)
+{
+	mibReq.Type = MIB_CHANNELS_NB_REP;
+	mibReq.Param.ChannelNbRep = 1;
+
+	LoRaMacMibGetRequestConfirm( &mibReq );
+
+	return	mibReq.Param.ChannelNbRep;
+}
+
+bool 	LORAMAC_SetChannelsNbRepeat(uint32_t ulCounter)
+{
+	mibReq.Type = MIB_CHANNELS_NB_REP;
+	mibReq.Param.ChannelNbRep = ulCounter;
+
+	return	(LoRaMacMibSetRequestConfirm( &mibReq )  == LORAMAC_STATUS_OK);
+}
+
+uint16_t	LORAMAC_GetChannelsMask(void)
+{
+	mibReq.Type = MIB_CHANNELS_MASK;
+	mibReq.Param.ChannelsMask = 0;
+
+	LoRaMacMibGetRequestConfirm( &mibReq );
+
+	if (mibReq.Param.ChannelsMask != 0)
+	{
+		return	mibReq.Param.ChannelsMask[0];
+	}
+
+	return	0;
+}
+
+
+uint32_t	LORAMAC_GetRx1Delay(void)
+{
+	mibReq.Type = MIB_RECEIVE_DELAY_1;
+	mibReq.Param.ReceiveDelay1 = 0;
+
+	LoRaMacMibGetRequestConfirm( &mibReq );
+
+	return	mibReq.Param.ReceiveDelay1;
+}
+
+
+uint32_t	LORAMAC_GetRx2Delay(void)
+{
+	mibReq.Type = MIB_RECEIVE_DELAY_2;
+	mibReq.Param.ReceiveDelay2 = 0;
+
+	LoRaMacMibGetRequestConfirm( &mibReq );
+
+	return	mibReq.Param.ReceiveDelay2;
+}
+
+
+uint32_t	LORAMAC_GetJoinDelay1(void)
+{
+	mibReq.Type = MIB_JOIN_ACCEPT_DELAY_1;
+	mibReq.Param.JoinAcceptDelay1 = 0;
+
+	LoRaMacMibGetRequestConfirm( &mibReq );
+
+	return	mibReq.Param.JoinAcceptDelay1;
+}
+
+
+uint32_t	LORAMAC_GetJoinDelay2(void)
+{
+	mibReq.Type = MIB_JOIN_ACCEPT_DELAY_2;
+	mibReq.Param.JoinAcceptDelay2 = 0;
+
+	LoRaMacMibGetRequestConfirm( &mibReq );
+
+	return	mibReq.Param.JoinAcceptDelay2;
+}
+
+bool	LORAMAC_GetADR(void)
+{
+	mibReq.Type =  MIB_ADR;
+	mibReq.Param.AdrEnable = false;
+
+	LoRaMacMibGetRequestConfirm( &mibReq );
+
+	return	mibReq.Param.AdrEnable;
+}
+
+bool	LORAMAC_SetADR(bool bADR)
+{
+	mibReq.Type =  MIB_ADR;
+	mibReq.Param.AdrEnable = bADR;
+
+	return	(LoRaMacMibSetRequestConfirm( &mibReq )  == LORAMAC_STATUS_OK);
+}

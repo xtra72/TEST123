@@ -96,7 +96,7 @@ _USERPAGE_ = {
 		.DeviceSerialNumber = LORAWAN_DEVICE_ADDRESS,
 #if (OVER_THE_AIR_ACTIVATION > 0)
 #if (USE_SKT_FORMAT > 0)
-		.DeviceFlags = FLAG_USE_OTAA | FLAG_USE_SKT_APP,
+		.DeviceFlags = FLAG_USE_OTAA | FLAG_USE_SKT_APP | FLAG_TRANS_ON,
 #else
 		.DeviceFlags = FLAG_USE_OTAA,
 #endif

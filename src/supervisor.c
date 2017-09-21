@@ -230,6 +230,17 @@ bool SUPERVISOR_IsCyclicTaskRun(void)
 	return	xCyclicHandle != 0;
 }
 
+
+bool	SUPERVISOR_IsPeriodicMode(void)
+{
+	return	UNIT_TRANS_ON;
+}
+
+void	SUPERVISOR_SetPeriodicMode(bool bPeriodicMode)
+{
+	UPDATE_USERFLAG(FLAG_TRANS_ON, bPeriodicMode);
+}
+
 /*
  * This array defines the various functions available depending on the duration
  * of the positioning of a magnet on the magnet detector
@@ -273,7 +284,7 @@ __attribute__((noreturn)) void SUPERVISOR_Task(void* pvParameters)
 	  DeviceFlashLed(LED_FLASH_OFF);
   }
 #else
-  DevicePostEvent(RUN_ATTACH);
+ // DevicePostEvent(RUN_ATTACH);
 #endif
 
 #if (NODE_TEMP > 0)
@@ -537,7 +548,14 @@ __attribute__((noreturn)) void SUPERVISOR_Task(void* pvParameters)
 
 		if (!bStepByStep)
 		{
-//			DevicePostEvent(PERIODIC_EVENT);		// Force immediate communication
+			DevicePostEvent(PERIODIC_EVENT);		// Force immediate communication
+		}
+		break;
+
+	case SYSTEM_RESET:
+		{
+			DeviceFlashLed(20);
+			SystemReboot();
 		}
 		break;
 

@@ -1660,7 +1660,7 @@ static LoRaMacStatus_t AddMacCommand( uint8_t cmd, uint8_t p1, uint8_t p2 )
         case MOTE_MAC_ACK:
             if( MacCommandsBufferIndex < bufLen )
             {
-                MacCommandsBuffer[MacCommandsBufferIndex++] = 0x80;
+                MacCommandsBuffer[MacCommandsBufferIndex++] = cmd;
                 status = LORAMAC_STATUS_OK;
             }
             break;
@@ -1925,7 +1925,7 @@ LoRaMacStatus_t Send( LoRaMacHeader_t *macHdr, uint8_t fPort, void *fBuffer, uin
     // Validate status
     if( status != LORAMAC_STATUS_OK )
     {
-    	ERROR("Send failed : Invalid frame!");
+    	ERROR("Send failed : Invalid frame!\n");
         return status;
     }
 
@@ -3326,11 +3326,10 @@ LoRaMacStatus_t LoRaMacMlmeRequest( MlmeReq_t *mlmeRequest )
 
         case MLME_ACK:
         {
-            LoRaMacFlags.Bits.MlmeReq = 1;
-            // LoRaMac will send this command piggy-pack
             MlmeConfirm.MlmeRequest = mlmeRequest->Type;
+            LoRaMacFlags.Bits.MlmeReq = 1;
 
-            status = AddMacCommand( 0x80, 0, 0 );
+            status = AddMacCommand( MOTE_MAC_ACK, 0, 0 );
             break;
         }
         default:
@@ -3481,7 +3480,44 @@ void LoRaMacTestSetDutyCycleOn( bool enable )
     }
 }
 
-void LoRaMacTestSetChannel( uint8_t channel )
+uint8_t	LoRaMacTestGetChannel( void )
+{
+    return	Channel;
+}
+
+bool	LoRaMacTestSetChannel( uint8_t channel )
 {
     Channel = channel;
+
+    return	true;
+}
+
+uint8_t	LoRaMacTestGetMaxDCycle(void)
+{
+	return	MaxDCycle;
+}
+
+uint8_t	LoRaMacTestGetAggreagtedDCycle(void)
+{
+	return	AggregatedDCycle;
+}
+
+uint8_t	LoRaMacTestGetRx1DrOffset(void)
+{
+	return	LoRaMacParams.Rx1DrOffset;
+}
+
+uint8_t LoRaMacTestGetRx2Datarate(void)
+{
+	return	LoRaMacParams.Rx2Channel.Datarate;
+}
+
+int8_t	LoRaMacTestGetChannelsDatarate(void)
+{
+	return	LoRaMacParams.ChannelsDatarate;
+}
+
+int8_t	LoRaMacTestGetChannelsTxPower(void)
+{
+	return	LoRaMacParams.ChannelsTxPower;
 }

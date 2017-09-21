@@ -53,6 +53,9 @@ uint8_t	SUPERVISOR_GetSNR(void);
 int16_t	SUPERVISOR_GetRSSI(void);
 uint8_t	SUPERVISOR_GetSF(void);
 
+bool	SUPERVISOR_IsPeriodicMode(void);
+void	SUPERVISOR_SetPeriodicMode(bool bPeriodicMode);
+
 void SUPERVISOR_Task(void* pvParameters);
 
 /** }@ */

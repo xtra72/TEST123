@@ -87,6 +87,7 @@ typedef enum {
 	REQ_REAL_APP_KEY_RX_REPORT,
 	REAL_APP_KEY_RX_REPORT_COMPLETED,
 	JOIN_COMPLETED,
+	SYSTEM_RESET,
 	UNKNOWN_EVENT	= 255	//!< Undefined event @hideinitializer
 } EVENT_TYPE;
 

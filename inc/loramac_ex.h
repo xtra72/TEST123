@@ -32,6 +32,25 @@ bool	LORAMAC_SetRetries(uint8_t nRetries);
 uint8_t	LORAMAC_GetPeriodMode(void);
 bool	LORAMAC_SetPeriodMode(bool bEnable);
 
-bool	LORAMAC_AddACK(void);
+uint32_t LORAMAC_GetDownLinkCounter(void);
+bool 	LORAMAC_SetDownLinkCounter(uint32_t ulCounter);
+
+uint32_t LORAMAC_GetUpLinkCounter(void);
+bool 	LORAMAC_SetUpLinkCounter(uint32_t ulCounter);
+
+
+uint32_t	LORAMAC_GetChannelsNbRepeat(void);
+bool 	LORAMAC_SetChannelsNbRepeat(uint32_t ulCounter);
+
+uint16_t	LORAMAC_GetChannelsMask(void);
+
+uint32_t	LORAMAC_GetRx1Delay(void);
+uint32_t	LORAMAC_GetRx2Delay(void);
+
+uint32_t	LORAMAC_GetJoinDelay1(void);
+uint32_t	LORAMAC_GetJoinDelay2(void);
+
+bool	LORAMAC_GetADR(void);
+bool	LORAMAC_SetADR(bool bADR);
 
 #endif

@@ -215,6 +215,7 @@ void LORAWAN_Init(void) {
 	LoRaMacPrimitives.MacMlmeConfirm = MlmeConfirm;
 	LoRaMacCallbacks.GetBatteryLevel = BoardGetBatteryLevel;
 	LoRaMacInitialization( &LoRaMacPrimitives, &LoRaMacCallbacks,UNIT_REGION );
+
 	mibReq.Type = MIB_ADR;
 	mibReq.Param.AdrEnable = LORAWAN_ADR_ON;
 	LoRaMacMibSetRequestConfirm( &mibReq );
@@ -495,6 +496,100 @@ McpsIndication_t *ind = LORAWAN_GetIndication();
 	return NULL;
 }
 
+bool	LORAWAN_SendAck(void)
+{
+	MlmeReq_t mlmeReq;
+	TRACE("Send Ack\n");
+
+	mlmeReq.Type = MLME_ACK;
+	if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, 0 );
+
+	if (LoRaMacMlmeRequest( &mlmeReq ) != LORAMAC_STATUS_OK)
+	{
+		ERROR("LoRaMacMlmeRequest failed.\n");
+		return	false;
+	}
+	if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, LORAWAN_TIMEOUT );
+
+	LORA_MESSAGE	xMessage;
+	LORA_PACKET		xPacket;
+
+	xPacket.Buffer = &xMessage;
+	xPacket.Port = 0;
+	xPacket.Request = MCPS_UNCONFIRMED;
+	xPacket.Message->MessageType = 0;
+	xPacket.Message->Version = LORA_MESSAGE_VERSION;
+	xPacket.Message->PayloadLen = 0;
+	xPacket.Size = LORA_MESSAGE_HEADER_SIZE;
+
+	if (LORAWAN_SendMessage(&xPacket)  != LORAMAC_STATUS_OK)
+	{
+		switch(xPacket.Status)
+		{
+		case LORAMAC_EVENT_INFO_STATUS_ERROR:
+			ERROR("LORAMAC_EVENT_INFO_STATUS_ERROR");
+			DeviceFlashLed(10);
+			break;
+		case LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT:
+			ERROR("LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT");
+			DeviceFlashLed(3);
+			break;
+		default:
+			DeviceFlashLed(5);
+			break;
+		}
+	}
+
+	return	true;
+}
+
+
+bool	LORAWAN_SendLinkCheckRequest(void)
+{
+	MlmeReq_t mlmeReq;
+	TRACE("Send Link Check\n");
+
+	mlmeReq.Type = MLME_LINK_CHECK;
+	if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, 0 );
+
+	if (LoRaMacMlmeRequest( &mlmeReq ) != LORAMAC_STATUS_OK)
+	{
+		ERROR("LoRaMacMlmeRequest failed.\n");
+		return	false;
+	}
+	if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, LORAWAN_TIMEOUT );
+
+	LORA_MESSAGE	xMessage;
+	LORA_PACKET		xPacket;
+
+	xPacket.Buffer = &xMessage;
+	xPacket.Port = 0;
+	xPacket.Request = MCPS_CONFIRMED;
+	xPacket.Message->MessageType = 0;
+	xPacket.Message->Version = LORA_MESSAGE_VERSION;
+	xPacket.Message->PayloadLen = 0;
+	xPacket.Size = LORA_MESSAGE_HEADER_SIZE;
+
+	if (LORAWAN_SendMessage(&xPacket)  != LORAMAC_STATUS_OK)
+	{
+		switch(xPacket.Status)
+		{
+		case LORAMAC_EVENT_INFO_STATUS_ERROR:
+			ERROR("LORAMAC_EVENT_INFO_STATUS_ERROR");
+			DeviceFlashLed(10);
+			break;
+		case LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT:
+			ERROR("LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT");
+			DeviceFlashLed(3);
+			break;
+		default:
+			DeviceFlashLed(5);
+			break;
+		}
+	}
+
+	return	true;
+}
 bool LORAWAN_IsNetworkJoined() {
 	// Did we already join the network ?
 	mibReq.Type = MIB_NETWORK_JOINED;
@@ -524,9 +619,14 @@ void LORAWAN_ResetDownLinkCounter(void) {
 	LoRaDownLinkCounter = 0;
 }
 
-void LORAWAN_SetMaxRetries(uint8_t retries) {
+bool LORAWAN_SetMaxRetries(uint8_t retries) {
 	if (retries < 9)
+	{
 		LoRaWAN_Retries = (retries) ? retries : LORAWAN_RETRIES;
+		return	true;
+	}
+
+	return	false;
 }
 
 uint8_t LORAWAN_GetMaxRetries(void) {
