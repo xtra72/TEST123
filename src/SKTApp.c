@@ -53,7 +53,7 @@ static bool DEVICEAPP_ExecSKTNetwork(LORA_MESSAGE* msg)
 			LoRaMacJoinComputeRealAppKey( UNIT_APPKEY, AppNonce, UNIT_NETWORKID, RealAppKey );
 
 			TRACE("%16s : ", "App Nonce"); TRACE_DUMP(AppNonce, sizeof(AppNonce));
-			TRACE("%16s : ", "Net ID", UNIT_NETWORKID);
+			TRACE("%16s : %06x\n", "Net ID", UNIT_NETWORKID);
 			TRACE("%16s : ", "Real App Key"); TRACE_DUMP(RealAppKey, sizeof(RealAppKey));
 
 			DeviceUserDataSetSKTRealAppKey(RealAppKey);
@@ -330,6 +330,7 @@ bool SKTAPP_Send(uint8_t port, uint8_t messageType, uint8_t *pFrame, uint32_t ul
 			DeviceFlashLed(5);
 			break;
 		}
+		return	false;
 	}
 
 	return	true;
@@ -338,7 +339,52 @@ bool SKTAPP_Send(uint8_t port, uint8_t messageType, uint8_t *pFrame, uint32_t ul
 
 bool SKTAPP_SendAck(void)
 {
-	return	LORAWAN_SendAck();
+	MlmeReq_t mlmeReq;
+	TRACE("Send Ack\n");
+	LORAMAC_SetADR(false);
+	LORAMAC_AddACK();
+#if 0
+	mlmeReq.Type = MLME_ACK;
+//	if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, 0 );
+
+	if (LoRaMacMlmeRequest( &mlmeReq ) != LORAMAC_STATUS_OK)
+	{
+		ERROR("LoRaMacMlmeRequest failed.\n");
+		return	false;
+	}
+//	if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, LORAWAN_TIMEOUT );
+#endif
+	LocalMessage.Buffer = LocalBuffer;
+	LocalMessage.Port = 0;
+	if (SKTApp_ConfirmedMsgType)
+	{
+		LocalMessage.Request = MCPS_CONFIRMED;
+	}
+	else
+	{
+		LocalMessage.Request = MCPS_UNCONFIRMED;
+	}
+	LocalMessage.Size = 0;
+	if (LORAWAN_SendMessage(&LocalMessage)  != LORAMAC_STATUS_OK)
+	{
+		switch(LocalMessage.Status)
+		{
+		case LORAMAC_EVENT_INFO_STATUS_ERROR:
+			ERROR("LORAMAC_EVENT_INFO_STATUS_ERROR");
+			DeviceFlashLed(10);
+			break;
+		case LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT:
+			ERROR("LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT");
+			DeviceFlashLed(3);
+			break;
+		default:
+			DeviceFlashLed(5);
+			break;
+		}
+		return	false;
+	}
+
+	return	true;
 }
 
 bool SKTAPP_LinkCheck(void)

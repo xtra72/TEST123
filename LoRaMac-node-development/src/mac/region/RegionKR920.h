@@ -246,7 +246,8 @@ static const uint32_t BandwidthsKR920[] = { 125000, 125000, 125000, 125000, 1250
 /*!
  * Maximum payload with respect to the datarate index. Can operate with and without a repeater.
  */
-static const uint8_t MaxPayloadOfDatarateKR920[] = { 51, 51, 51, 115, 242, 242 };
+//static const uint8_t MaxPayloadOfDatarateKR920[] = { 51, 51, 51, 115, 242, 242 };
+static const uint8_t MaxPayloadOfDatarateKR920[] = { 80, 80, 80, 115, 242, 242 };
 
 /*!
  * Maximum payload with respect to the datarate index. Can operate with repeater.

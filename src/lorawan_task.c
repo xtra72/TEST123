@@ -358,7 +358,7 @@ bool LORAWAN_JoinNetwork(void)
 	TRACE("Start Join Network.\n");
 	if( UNIT_USE_OTAA)
 	{
-		if (UNIT_USE_SKT_APP && UNIT_INSTALLED)
+		if (UNIT_USE_SKT_APP && UNIT_USE_RAK)
 		{
 			return	LORAWAN_JoinNetworkUseOTTA((uint8_t*)UNIT_DEVEUID, (uint8_t*)UNIT_APPEUID, (uint8_t*)UNIT_REALAPPKEY);
 		}
@@ -502,20 +502,20 @@ bool	LORAWAN_SendAck(void)
 	TRACE("Send Ack\n");
 
 	mlmeReq.Type = MLME_ACK;
-	if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, 0 );
+//	if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, 0 );
 
 	if (LoRaMacMlmeRequest( &mlmeReq ) != LORAMAC_STATUS_OK)
 	{
 		ERROR("LoRaMacMlmeRequest failed.\n");
 		return	false;
 	}
-	if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, LORAWAN_TIMEOUT );
+//	if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, LORAWAN_TIMEOUT );
 
 	LORA_MESSAGE	xMessage;
 	LORA_PACKET		xPacket;
 
-	xPacket.Buffer = &xMessage;
-	xPacket.Port = 0;
+	xPacket.Buffer = (uint8_t *)&xMessage;
+	xPacket.Port = 1;
 	xPacket.Request = MCPS_UNCONFIRMED;
 	xPacket.Message->MessageType = 0;
 	xPacket.Message->Version = LORA_MESSAGE_VERSION;
@@ -538,6 +538,8 @@ bool	LORAWAN_SendAck(void)
 			DeviceFlashLed(5);
 			break;
 		}
+
+		return	false;
 	}
 
 	return	true;
@@ -550,7 +552,7 @@ bool	LORAWAN_SendLinkCheckRequest(void)
 	TRACE("Send Link Check\n");
 
 	mlmeReq.Type = MLME_LINK_CHECK;
-	if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, 0 );
+//	if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, 0 );
 
 	if (LoRaMacMlmeRequest( &mlmeReq ) != LORAMAC_STATUS_OK)
 	{
@@ -562,7 +564,7 @@ bool	LORAWAN_SendLinkCheckRequest(void)
 	LORA_MESSAGE	xMessage;
 	LORA_PACKET		xPacket;
 
-	xPacket.Buffer = &xMessage;
+	xPacket.Buffer = (uint8_t *)&xMessage;
 	xPacket.Port = 0;
 	xPacket.Request = MCPS_CONFIRMED;
 	xPacket.Message->MessageType = 0;

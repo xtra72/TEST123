@@ -11,6 +11,7 @@
 #include "global.h"
 #include "supervisor.h"
 #include "lorawan_task.h"
+#include "SKTApp.h"
 #include "trace.h"
 /** @cond */
 /* Make sure that we initialize HAL array */

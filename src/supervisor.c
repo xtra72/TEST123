@@ -233,12 +233,12 @@ bool SUPERVISOR_IsCyclicTaskRun(void)
 
 bool	SUPERVISOR_IsPeriodicMode(void)
 {
-	return	UNIT_TRANS_ON;
+	return	UNIT_CTM_ON;
 }
 
 void	SUPERVISOR_SetPeriodicMode(bool bPeriodicMode)
 {
-	UPDATE_USERFLAG(FLAG_TRANS_ON, bPeriodicMode);
+	UPDATE_USERFLAG(FLAG_USE_CTM, bPeriodicMode);
 }
 
 /*
@@ -284,7 +284,7 @@ __attribute__((noreturn)) void SUPERVISOR_Task(void* pvParameters)
 	  DeviceFlashLed(LED_FLASH_OFF);
   }
 #else
- // DevicePostEvent(RUN_ATTACH);
+  DevicePostEvent(RUN_ATTACH);
 #endif
 
 #if (NODE_TEMP > 0)
@@ -323,7 +323,7 @@ __attribute__((noreturn)) void SUPERVISOR_Task(void* pvParameters)
          * A battery low level was detected
          */
 	case BATTERYLOW_EVENT:
-		TRACE("A battery low level was detected.\n");
+//		TRACE("A battery low level was detected.\n");
 		break;
         /*
          * A pulse occurred
@@ -350,7 +350,7 @@ __attribute__((noreturn)) void SUPERVISOR_Task(void* pvParameters)
 #endif
 		SUPERVISOR_SaveHistorical();
 
-		if (UNIT_TRANS_ON == 0) break;
+		if (!UNIT_CTM_ON) break;
 		/* no break */
 	case PERIODIC_RESEND:
 		if (UNIT_INSTALLED == 0) break;
@@ -390,11 +390,10 @@ __attribute__((noreturn)) void SUPERVISOR_Task(void* pvParameters)
 		 */
 
 	case	RUN_ATTACH:
-		TRACE("Run attach.\n");
-
-		if (UNIT_USE_SKT_APP)
+		TRACE("Run Attach.\n");
+		if( UNIT_USE_SKT_APP)
 		{
-			if (UNIT_INSTALLED)
+			if (UNIT_USE_RAK)
 			{
 				DevicePostEvent(REAL_JOIN_NETWORK);
 			}
@@ -407,6 +406,7 @@ __attribute__((noreturn)) void SUPERVISOR_Task(void* pvParameters)
 		{
 			DevicePostEvent(RUN_ATTACH_USE_OTTA);
 		}
+
 		CLEAR_FLAG(DEVICE_COMM_ERROR | DEVICE_TEMPORARY_ERROR | DEVICE_LOW_BATTERY);	/* Reset Communication Status and Low battery indicator */
 		break;
 
@@ -545,6 +545,7 @@ __attribute__((noreturn)) void SUPERVISOR_Task(void* pvParameters)
 	case REAL_JOIN_NETWORK_COMPLETED:
 		CLEAR_FLAG(DEVICE_UNINSTALLED);
 		DeviceUserDataSetFlag(FLAG_INSTALLED,FLAG_INSTALLED);
+		DeviceUserDataSetFlag(FLAG_USE_RAK,FLAG_USE_RAK);
 
 		if (!bStepByStep)
 		{

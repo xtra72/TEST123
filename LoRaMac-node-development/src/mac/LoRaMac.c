@@ -1225,6 +1225,7 @@ static void OnMacStateCheckTimerEvent( void )
     GetPhyParams_t getPhy;
     PhyParam_t phyParam;
     bool txTimeout = false;
+    bool	bIncreasedCount = false;
 
     TimerStop( &MacStateCheckTimer );
 
@@ -1293,10 +1294,11 @@ static void OnMacStateCheckTimerEvent( void )
 
                         ChannelsNbRepCounter = 0;
 
-                        if( IsUpLinkCounterFixed == false )
+                        if( (IsUpLinkCounterFixed == false ) && (bIncreasedCount == false))
                         {
-#if  0 // XTRA - Why?
+#if  1 // XTRA - Why?
                             UpLinkCounter++;
+                            bIncreasedCount = true;
                         	TRACE("UpLinkCount1 : %d\n", UpLinkCounter);
 #endif
                         }
@@ -1320,10 +1322,11 @@ static void OnMacStateCheckTimerEvent( void )
             {
                 AckTimeoutRetry = false;
                 NodeAckRequested = false;
-                if( IsUpLinkCounterFixed == false )
+                if( (IsUpLinkCounterFixed == false ) && (bIncreasedCount == false))
                 {
                     UpLinkCounter++;
-                	TRACE("UpLinkCount2 : %d\n", UpLinkCounter);
+                    bIncreasedCount = true;
+               	TRACE("UpLinkCount2 : %d\n", UpLinkCounter);
                 }
                 McpsConfirm.NbRetries = AckTimeoutRetriesCounter;
 
@@ -1467,6 +1470,8 @@ static void OnTxDelayedTimerEvent( void )
 static void OnRxWindow1TimerEvent( void )
 {
     TimerStop( &RxWindowTimer1 );
+//    TRACE("OnRxWindow1TimerEvent!\n");
+
     RxSlot = 0;
 
     RxWindow1Config.Channel = Channel;
@@ -1489,6 +1494,7 @@ static void OnRxWindow2TimerEvent( void )
 {
     TimerStop( &RxWindowTimer2 );
 
+//    TRACE("OnRxWindow2TimerEvent!\n");
     RxWindow2Config.Channel = Channel;
     RxWindow2Config.Frequency = LoRaMacParams.Rx2Channel.Frequency;
     RxWindow2Config.DownlinkDwellTime = LoRaMacParams.DownlinkDwellTime;
@@ -1530,6 +1536,7 @@ static void RxWindowSetup( bool rxContinuous, uint32_t maxRxWindow )
 {
     if( rxContinuous == false )
     {
+ //   	TRACE("RxWindowSetup(false, %d)\n", maxRxWindow);
         Radio.Rx( maxRxWindow );
     }
     else
@@ -2170,7 +2177,7 @@ LoRaMacStatus_t PrepareFrame( LoRaMacHeader_t *macHdr, LoRaMacFrameCtrl_t *fCtrl
             memcpy1( &MacCommandsBuffer[MacCommandsBufferIndex], MacCommandsBufferToRepeat, MacCommandsBufferToRepeatIndex );
             MacCommandsBufferIndex += MacCommandsBufferToRepeatIndex;
 
-            if( ( payload != NULL ) && ( LoRaMacTxPayloadLen > 0 ) )
+            if( ( payload != NULL ) )//&& ( LoRaMacTxPayloadLen > 0 ) )
             {
                 if( MacCommandsInNextTx == true )
                 {
@@ -2291,9 +2298,13 @@ LoRaMacStatus_t SendFrameOnChannel( uint8_t channel )
     }
     else
     {
-		TRACE("Send Frame[%d] - ", LoRaMacBufferPktLen);
+#if 1
+    	TRACE("Send Frame[%d] - ", LoRaMacBufferPktLen);
 		TRACE_DUMP(LoRaMacBuffer, LoRaMacBufferPktLen);
-    }
+
+#endif
+	}
+#if 0
     TRACE("Tx Config : CH = %d, DR = %d, PWR = %d, EIRP = %d.%02d, GAIN = %d.%02d\n",
     		txConfig.Channel,
 			txConfig.Datarate,
@@ -2302,7 +2313,7 @@ LoRaMacStatus_t SendFrameOnChannel( uint8_t channel )
 			(int32_t)txConfig.AntennaGain, ((int32_t)txConfig.AntennaGain * 100) % 100);
     TRACE("MCPS Confirm : DR = %d, PWR = %d\n",
     		McpsConfirm.Datarate, McpsConfirm.TxPower);
-
+#endif
 
     LoRaMacState |= LORAMAC_TX_RUNNING;
 

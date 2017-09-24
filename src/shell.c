@@ -30,7 +30,7 @@
 #undef	__MODULE__
 #define	__MODULE__ "TRACE"
 
-static char pBuffer[256];
+static char pBuffer[512];
 xSemaphoreHandle	SHELLSemaphore;
 //static StaticSemaphore_t xSHELLSemaphoreBuffer;
 extern SHELL_CMD	pShellCmds[];
@@ -355,7 +355,7 @@ int	SHELL_ParseLine(char* pLine, char* pArgv[], uint32_t nMaxArgs)
 }
 
 extern	SHELL_CMD	pShellCmds[];
-static	char pLine[128];
+static	char pLine[256];
 static char*	ppArgv[16];
 
 __attribute__((noreturn)) void SHELL_Task(void* pvParameters)
@@ -516,12 +516,12 @@ int	SHELL_CMD_Report(char *ppArgv[], int nArgc)
 		if (strcasecmp(ppArgv[1], "on") == 0)
 		{
 			SUPERVISOR_StartCyclicTask(0, SUPERVISOR_GetRFPeriod());
-			DeviceUserDataSetFlag(FLAG_TRANS_ON, FLAG_TRANS_ON);
+			DeviceUserDataSetFlag(FLAG_USE_CTM, FLAG_USE_CTM);
 		}
 		else if (strcasecmp(ppArgv[1], "off") == 0)
 		{
 			SUPERVISOR_StopCyclicTask();
-			DeviceUserDataSetFlag(FLAG_TRANS_ON,0);
+			DeviceUserDataSetFlag(FLAG_USE_CTM, false);
 		}
 		else if (strcasecmp(ppArgv[1], "period") == 0)
 		{
@@ -665,14 +665,13 @@ int SHELL_CMD_AT(char *ppArgv[], int nArgc)
 int SHELL_CMD_AT_Reset(char *ppArgv[], int nArgc)
 {
 	SHELL_Printf("RESET OK\n");
-	vTaskDelay(configTICK_RATE_HZ);
-	SystemReboot();
+	DevicePostEvent(SYSTEM_RESET);
 	return	0;
 }
 
 int SHELL_CMD_AT_PS(char *ppArgv[], int nArgc)
 {
-	CLEAR_USERFLAG(UNIT_INSTALLED);
+	CLEAR_USERFLAG(UNIT_USE_RAK);
 	return	0;
 }
 
@@ -1007,7 +1006,9 @@ int SHELL_CMD_AT_CLS(char *ppArgv[], int nArgc)
 
 int SHELL_CMD_AT_LatestSignal(char *ppArgv[], int nArgc)
 {
-	SHELL_Printf("Latest RF Signal  : %d %d\n", LORAWAN_GetRSSI(), LORAWAN_GetSNR());
+	SHELL_Printf("GET Latest Signal\n");
+	SHELL_Printf("- RSSI  : %d\n", LORAWAN_GetRSSI());
+	SHELL_Printf("- SNR   : %d\n", LORAWAN_GetSNR());
 
 	return	0;
 }
@@ -1049,9 +1050,10 @@ int SHELL_CMD_AT_TxRetransmissionNumber(char *ppArgv[], int nArgc)
 
 int SHELL_CMD_AT_Send(char *ppArgv[], int nArgc)
 {
-	static	uint8_t pData[128];
+	static	uint8_t pData[256];
 	uint8_t			nDataLen = 0;
 
+	SHELL_Printf("SEND PACKET\n");
 	if (nArgc == 2)
 	{
 		uint32_t	ulLen = strlen(ppArgv[1]);
@@ -1067,7 +1069,10 @@ int SHELL_CMD_AT_Send(char *ppArgv[], int nArgc)
 		}
 		else
 		{
-			SKTAPP_Send(pData[0], 0, &pData[1], nDataLen - 1);
+			if (SKTAPP_Send(pData[0], 0, &pData[1], nDataLen - 1) == false)
+			{
+				SHELL_Printf("- ERROR, Failed to send packet!\n");
+			}
 		}
 	}
 	else
@@ -1080,7 +1085,12 @@ int SHELL_CMD_AT_Send(char *ppArgv[], int nArgc)
 
 int SHELL_CMD_AT_SendAck(char *ppArgv[], int nArgc)
 {
-	SKTAPP_SendAck();
+	SHELL_Printf("SEND ACK\n");
+
+	if (SKTAPP_SendAck() == false)
+	{
+		SHELL_Printf("- ERROR, Failed to send ACK!\n");
+	}
 
 	return	0;
 }
@@ -1221,14 +1231,14 @@ int SHELL_CMD_AT_PRF(char *ppArgv[], int nArgc)
 {
 	if (nArgc == 1)
 	{
-		SHELL_Printf("Get Period Report Flag\n");
+		SHELL_Printf("GET PERIOD REPORT FLAG\n");
 		SHELL_Printf("- Period Report Status : %s Mode\n", (SKTAPP_GetPeriodicMode()?"Timer":"Event"));
 	}
 	else
 	{
 		bool	ret = false;
 
-		SHELL_Printf("Set Period Report Flag\n");
+		SHELL_Printf("SET PERIOD REPORT FLAG\n");
 
 		if (nArgc == 2)
 		{
@@ -1259,7 +1269,7 @@ int SHELL_CMD_AT_FCNT(char *ppArgv[], int nArgc)
 {
 	if (nArgc == 1)
 	{
-		SHELL_Printf("Get Up/Down Link Counter\n");
+		SHELL_Printf("GET UP/DOWN LINK COUNTER\n");
 		SHELL_Printf("- Up Link Counter : %d\n", LORAMAC_GetUpLinkCounter());
 		SHELL_Printf("- Down Link Counter : %d\n", LORAMAC_GetDownLinkCounter());
 	}
@@ -1299,7 +1309,11 @@ int SHELL_CMD_AT_FCNT(char *ppArgv[], int nArgc)
 
 int SHELL_CMD_AT_BATT(char *ppArgv[], int nArgc)
 {
-	SHELL_Printf("- Battery Level : %d\n", BoardGetBatteryLevel());
+	if (nArgc == 1)
+	{
+		SHELL_Printf("BATTERY INFORMATION\n");
+		SHELL_Printf("- Battery Level : %d\n", BoardGetBatteryLevel());
+	}
 
 	return	0;
 }
@@ -1330,7 +1344,7 @@ SHELL_CMD	pShellCmds[] =
 		{	"AT+LOG", "Enable or Disable Log message",	SHELL_CMD_AT_Log},
 		{	"AT+PRF", "Select Timer or Event Mode (Period Report)",	SHELL_CMD_AT_PRF},
 		{	"AT+FCNT", "changing the down link fcnt for testing",	SHELL_CMD_AT_FCNT},
-		{	"AT+BATT", "Setting battery level",	SHELL_CMD_AT_BATT},
+		{	"AT+BATT", "Battery",	SHELL_CMD_AT_BATT},
 		{	"AT+LCHK", "Link Check Request",	SHELL_CMD_AT_LinkCheck},
 
 		{	"join", "join",	SHELL_CMD_Join},
