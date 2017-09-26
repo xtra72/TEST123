@@ -3,6 +3,7 @@
  *
  */
 #include "global.h"
+#include "loramac_ex.h"
 #include "lorawan_task.h"
 #include "Commissioning.h"
 #include "trace.h"
@@ -18,11 +19,13 @@ static xSemaphoreHandle LORAWANSemaphore;
 
 #define LORAWAN_TIMEOUT	(50 * configTICK_RATE_HZ)	//!< LORAWAN_SendMessage Timeout value
 
-static struct {
-MlmeConfirm_t		mlme;
-McpsConfirm_t		confirm;
-McpsIndication_t	indication;
+static struct
+{
+	MlmeConfirm_t		mlme;
+	McpsConfirm_t		confirm;
+	McpsIndication_t	indication;
 } LocalMcps;
+
 static uint16_t LoRaDownLinkCounter = 0;
 static LoRaMacPrimitives_t LoRaMacPrimitives;
 static LoRaMacCallback_t LoRaMacCallbacks;
@@ -112,7 +115,8 @@ static __attribute__((noreturn)) void LORAWAN_EventTask(void* pvParameter)
 			// Confirm event
 			// Perform any specific action
 			// and Give Semaphore to unlock waiting task
-		    if( LocalMcps.confirm.Status == LORAMAC_EVENT_INFO_STATUS_OK ) {
+		    if( LocalMcps.confirm.Status == LORAMAC_EVENT_INFO_STATUS_OK )
+		    {
 		    	LoRaDownLinkCounter++;
 				switch( LocalMcps.confirm.McpsRequest )
 				{
@@ -206,8 +210,10 @@ static void McpsConfirm( McpsConfirm_t *mcpsConfirm )
 /*!
  * @brief Initializes the LORAWAN primitives
  */
-void LORAWAN_Init(void) {
+void LORAWAN_Init(void)
+{
 	LORAWANEventTask = xTaskCreateStatic( LORAWAN_EventTask, (const char*)"LW_EVENT", RF_EVENT_STACK, NULL, tskIDLE_PRIORITY + 2, RFEventStack, &RFEventTask );
+
 	static StaticSemaphore_t xRFSemaphoreBuffer;
 	LORAWANSemaphore = xSemaphoreCreateBinaryStatic( &xRFSemaphoreBuffer );
 	LoRaMacPrimitives.MacMcpsConfirm = McpsConfirm;
@@ -216,17 +222,9 @@ void LORAWAN_Init(void) {
 	LoRaMacCallbacks.GetBatteryLevel = BoardGetBatteryLevel;
 	LoRaMacInitialization( &LoRaMacPrimitives, &LoRaMacCallbacks,UNIT_REGION );
 
-	mibReq.Type = MIB_ADR;
-	mibReq.Param.AdrEnable = LORAWAN_ADR_ON;
-	LoRaMacMibSetRequestConfirm( &mibReq );
-
-	mibReq.Type = MIB_PUBLIC_NETWORK;
-	mibReq.Param.EnablePublicNetwork = LORAWAN_PUBLIC_NETWORK;
-	LoRaMacMibSetRequestConfirm( &mibReq );
-
-	GetPhyParams_t PhyParam;
-	PhyParam.Attribute = PHY_DUTY_CYCLE;
-	LoRaMacTestSetDutyCycleOn( RegionGetPhyParam(UNIT_REGION,&PhyParam).Value );
+	LORAMAC_SetADR(LORAWAN_ADR_ON);
+	LORAMAC_SetPublicNetwork(LORAWAN_PUBLIC_NETWORK);
+	LORAMAC_SetDutyCycle(PHY_DUTY_CYCLE);
 
 #if( USE_SEMTECH_DEFAULT_CHANNEL_LINEUP == 1 )
 	if (UNIT_REGION == LORAMAC_REGION_EU868)
@@ -482,9 +480,11 @@ LoRaMacStatus_t LORAWAN_SendMessage( LORA_PACKET* message )
     return result;
 }
 
-LORA_PACKET* LORAWAN_GetMessage(void) {
+LORA_PACKET* LORAWAN_GetMessage(void)
+{
 McpsIndication_t *ind = LORAWAN_GetIndication();
-	if (ind && (ind->RxData)) {
+	if (ind && (ind->RxData))
+	{
 		messageIn.Port = ind->Port;
 		messageIn.Buffer = ind->Buffer;
 		messageIn.Size = ind->BufferSize;
@@ -498,33 +498,32 @@ McpsIndication_t *ind = LORAWAN_GetIndication();
 
 bool	LORAWAN_SendAck(void)
 {
-	MlmeReq_t mlmeReq;
 	TRACE("Send Ack\n");
 
+//	LORAMAC_SetADR(false);
+	LORAMAC_AddACK();
+
+#if 0
+	MlmeReq_t mlmeReq;
+
 	mlmeReq.Type = MLME_ACK;
-//	if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, 0 );
 
 	if (LoRaMacMlmeRequest( &mlmeReq ) != LORAMAC_STATUS_OK)
 	{
 		ERROR("LoRaMacMlmeRequest failed.\n");
 		return	false;
 	}
-//	if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, LORAWAN_TIMEOUT );
+#endif
 
-	LORA_MESSAGE	xMessage;
-	LORA_PACKET		xPacket;
+	LORA_PACKET		xMessage;
 
-	xPacket.Buffer = (uint8_t *)&xMessage;
-	xPacket.Port = 1;
-	xPacket.Request = MCPS_UNCONFIRMED;
-	xPacket.Message->MessageType = 0;
-	xPacket.Message->Version = LORA_MESSAGE_VERSION;
-	xPacket.Message->PayloadLen = 0;
-	xPacket.Size = LORA_MESSAGE_HEADER_SIZE;
-
-	if (LORAWAN_SendMessage(&xPacket)  != LORAMAC_STATUS_OK)
+	xMessage.Port = 0;
+	xMessage.Request = MCPS_UNCONFIRMED;
+	xMessage.Buffer = NULL;
+	xMessage.Size = LORA_MESSAGE_HEADER_SIZE;
+	if (LORAWAN_SendMessage(&xMessage)  != LORAMAC_STATUS_OK)
 	{
-		switch(xPacket.Status)
+		switch(xMessage.Status)
 		{
 		case LORAMAC_EVENT_INFO_STATUS_ERROR:
 			ERROR("LORAMAC_EVENT_INFO_STATUS_ERROR");
@@ -548,18 +547,16 @@ bool	LORAWAN_SendAck(void)
 
 bool	LORAWAN_SendLinkCheckRequest(void)
 {
-	MlmeReq_t mlmeReq;
 	TRACE("Send Link Check\n");
 
+	MlmeReq_t mlmeReq;
 	mlmeReq.Type = MLME_LINK_CHECK;
-//	if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, 0 );
 
 	if (LoRaMacMlmeRequest( &mlmeReq ) != LORAMAC_STATUS_OK)
 	{
 		ERROR("LoRaMacMlmeRequest failed.\n");
 		return	false;
 	}
-	if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, LORAWAN_TIMEOUT );
 
 	LORA_MESSAGE	xMessage;
 	LORA_PACKET		xPacket;
@@ -571,7 +568,6 @@ bool	LORAWAN_SendLinkCheckRequest(void)
 	xPacket.Message->Version = LORA_MESSAGE_VERSION;
 	xPacket.Message->PayloadLen = 0;
 	xPacket.Size = LORA_MESSAGE_HEADER_SIZE;
-
 	if (LORAWAN_SendMessage(&xPacket)  != LORAMAC_STATUS_OK)
 	{
 		switch(xPacket.Status)

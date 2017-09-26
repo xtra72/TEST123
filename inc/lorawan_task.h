@@ -142,8 +142,8 @@ LORA_MESSAGE *Message;
 void LORAWAN_Init(void);
 
 LoRaWANStatus_t LORAWAN_GetStatus(void);
-bool LORAWAN_SetStatus(LoRaWANStatus_t xStatus );
 char*			LORAWAN_GetStatusString(void);
+bool LORAWAN_SetStatus(LoRaWANStatus_t xStatus );
 
 /*!
  * @brief Tries to join the LoRaWAN network if not already done
@@ -154,7 +154,16 @@ bool LORAWAN_JoinNetworkUseOTTA(uint8_t* pDevEUID, uint8_t* pAppEUID, uint8_t* p
 bool LORAWAN_JoinNetworkUseABP(void);
 bool LORAWAN_CancelJoinNetwork(void);
 
+/*!
+ * @brief Sends a ACK to the network
+ * @return true if ack sent successfully
+ */
 bool LORAWAN_SendAck(void);
+
+/*!
+ * @brief Sends a link check request to the network
+ * @return true if message sent successfully
+ */
 bool LORAWAN_SendLinkCheckRequest(void);
 
 /*!

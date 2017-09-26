@@ -5,7 +5,9 @@
  *      Author: xtra
  */
 #include "loramac_ex.h"
+#include "LoRaMacTest.h"
 #include "utilities.h"
+#include "Region.h"
 #include "global.h"
 
 static MibRequestConfirm_t mibReq;
@@ -14,43 +16,42 @@ bool	LORAMAC_GetAppSKey(uint8_t* pAppSKey)
 {
 	mibReq.Type = MIB_APP_SKEY;
 
-	if (LoRaMacMibGetRequestConfirm( &mibReq ) != LORAMAC_STATUS_OK)
+	if (LoRaMacMibGetRequestConfirm( &mibReq ) == LORAMAC_STATUS_OK)
 	{
-		return	false;
+		memcpy1( pAppSKey, mibReq.Param.AppSKey, LORAMAC_APP_SKEY_SIZE );
+
+		return	true;
 	}
 
-	memcpy1( pAppSKey, mibReq.Param.AppSKey, LORAMAC_APP_SKEY_SIZE );
-
-	return	true;
+	return	false;
 }
 
 bool	LORAMAC_GetNwkSKey(uint8_t* pNwkSKey)
 {
 	mibReq.Type = MIB_NWK_SKEY;
 
-	if (LoRaMacMibGetRequestConfirm( &mibReq ) != LORAMAC_STATUS_OK)
+	if (LoRaMacMibGetRequestConfirm( &mibReq ) == LORAMAC_STATUS_OK)
 	{
-		return	false;
+		memcpy1( pNwkSKey, mibReq.Param.NwkSKey, LORAMAC_NWK_SKEY_SIZE );
+
+		return	true;
 	}
 
-	memcpy1( pNwkSKey, mibReq.Param.NwkSKey, LORAMAC_NWK_SKEY_SIZE );
-
-	return	true;
-
+	return	false;
 }
 
 bool	LORAMAC_GetAppNonce(uint32_t* pAppNonce)
 {
 	mibReq.Type = MIB_APP_NONCE;
 
-	if (LoRaMacMibGetRequestConfirm( &mibReq ) != LORAMAC_STATUS_OK)
+	if (LoRaMacMibGetRequestConfirm( &mibReq ) == LORAMAC_STATUS_OK)
 	{
-		return	false;
+		*pAppNonce = mibReq.Param.AppNonce;
+
+		return	true;
 	}
 
-	*pAppNonce = mibReq.Param.AppNonce;
-
-	return	true;
+	return	false;
 }
 
 
@@ -69,12 +70,25 @@ bool	LORAMAC_SetClassType(DeviceClass_t class)
 	// Did we already join the network ?
 	mibReq.Type = MIB_DEVICE_CLASS;
 	mibReq.Param.Class = class;
-	if (LoRaMacMibSetRequestConfirm( &mibReq ) != LORAMAC_STATUS_OK)
-	{
-		return	false;
-	}
+	return	(LoRaMacMibSetRequestConfirm( &mibReq ) == LORAMAC_STATUS_OK);
+}
 
-	return	true;
+bool	LORAMAC_IsPublicNetwork(void)
+{
+	mibReq.Type = MIB_PUBLIC_NETWORK;
+	mibReq.Param.EnablePublicNetwork = false;
+
+	LoRaMacMibGetRequestConfirm( &mibReq );
+
+	// We are already attached
+	return	mibReq.Param.EnablePublicNetwork;
+}
+
+bool	LORAMAC_SetPublicNetwork(bool bPublic)
+{
+	mibReq.Type = MIB_PUBLIC_NETWORK;
+	mibReq.Param.EnablePublicNetwork = bPublic;
+	return	(LoRaMacMibSetRequestConfirm( &mibReq ) == LORAMAC_STATUS_OK);
 }
 
 int8_t 	LORAMAC_GetDatarate(void)
@@ -92,12 +106,7 @@ bool	LORAMAC_SetDatarate(int8_t datarate)
 	// Did we already join the network ?
 	mibReq.Type = MIB_CHANNELS_DATARATE;
 	mibReq.Param.ChannelsDatarate = datarate;
-	if (LoRaMacMibSetRequestConfirm( &mibReq ) != LORAMAC_STATUS_OK)
-	{
-		return	false;
-	}
-
-	return	true;
+	return	(LoRaMacMibSetRequestConfirm( &mibReq ) == LORAMAC_STATUS_OK);
 }
 
 int8_t	LORAMAC_GetTxPower(void)
@@ -188,6 +197,18 @@ bool 	LORAMAC_SetUpLinkCounter(uint32_t ulCounter)
 	mibReq.Param.UpLinkCounter = ulCounter;
 
 	return	(LoRaMacMibSetRequestConfirm( &mibReq )  == LORAMAC_STATUS_OK);
+}
+
+bool	LORAMAC_SetDutyCycle(uint32_t ulDutyCycle)
+{
+	GetPhyParams_t 	GetPhyParam;
+	PhyParam_t		PhyParam;
+
+	GetPhyParam.Attribute = ulDutyCycle;
+	PhyParam = RegionGetPhyParam(UNIT_REGION,&GetPhyParam);
+	LoRaMacTestSetDutyCycleOn( PhyParam.Value );
+
+	return	true;
 }
 
 uint32_t	LORAMAC_GetChannelsNbRepeat(void)

@@ -84,7 +84,7 @@ static bool DEVICEAPP_ExecSKTDevice(LORA_MESSAGE* msg)
 	{
 	case MSG_SKT_DEV_EXT_DEVICE_MANAGEMENT:
 		// Add your code here
-		SKTAPP_SendAck();
+		LORAWAN_SendAck();
 		rc = true;
 		break;
 
@@ -93,7 +93,7 @@ static bool DEVICEAPP_ExecSKTDevice(LORA_MESSAGE* msg)
 		// until it is re-installed using the magnet.
 		// If a factory reset is requested, uncomment next line
 //		DeviceUserDataSetFlag(FLAG_INSTALLED, 0);
-		SKTAPP_SendAck();
+		LORAWAN_SendAck();
 		DevicePostEvent(SYSTEM_RESET);
 		// This code will never return
 		break;
@@ -121,7 +121,7 @@ static bool DEVICEAPP_ExecSKTDevice(LORA_MESSAGE* msg)
 				SUPERVISOR_StartCyclicTask(0, ulPeriod);
 			}
 
-			SKTAPP_SendAck();
+			LORAWAN_SendAck();
 		}
 		break;
 
@@ -337,61 +337,6 @@ bool SKTAPP_Send(uint8_t port, uint8_t messageType, uint8_t *pFrame, uint32_t ul
 }
 
 
-bool SKTAPP_SendAck(void)
-{
-	MlmeReq_t mlmeReq;
-	TRACE("Send Ack\n");
-	LORAMAC_SetADR(false);
-	LORAMAC_AddACK();
-#if 0
-	mlmeReq.Type = MLME_ACK;
-//	if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, 0 );
-
-	if (LoRaMacMlmeRequest( &mlmeReq ) != LORAMAC_STATUS_OK)
-	{
-		ERROR("LoRaMacMlmeRequest failed.\n");
-		return	false;
-	}
-//	if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, LORAWAN_TIMEOUT );
-#endif
-	LocalMessage.Buffer = LocalBuffer;
-	LocalMessage.Port = 0;
-	if (SKTApp_ConfirmedMsgType)
-	{
-		LocalMessage.Request = MCPS_CONFIRMED;
-	}
-	else
-	{
-		LocalMessage.Request = MCPS_UNCONFIRMED;
-	}
-	LocalMessage.Size = 0;
-	if (LORAWAN_SendMessage(&LocalMessage)  != LORAMAC_STATUS_OK)
-	{
-		switch(LocalMessage.Status)
-		{
-		case LORAMAC_EVENT_INFO_STATUS_ERROR:
-			ERROR("LORAMAC_EVENT_INFO_STATUS_ERROR");
-			DeviceFlashLed(10);
-			break;
-		case LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT:
-			ERROR("LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT");
-			DeviceFlashLed(3);
-			break;
-		default:
-			DeviceFlashLed(5);
-			break;
-		}
-		return	false;
-	}
-
-	return	true;
-}
-
-bool SKTAPP_LinkCheck(void)
-{
-	return	LORAWAN_SendLinkCheckRequest();
-}
-
 bool SKTAPP_ParseMessage(McpsIndication_t* ind)
 {
 	bool rc = false;
@@ -464,7 +409,7 @@ bool SKTAPP_ParseMessage(McpsIndication_t* ind)
 						}
 					}
 #else
-						SKTAPP_SendAck();
+					LORAWAN_SendAck();
 #endif
 				}
 			}

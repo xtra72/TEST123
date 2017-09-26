@@ -91,7 +91,7 @@ __attribute__((noreturn)) int main()
 	/* Create the various tasks */
 	/* Create the task that Monitors the system */
 	hSuperTask = xTaskCreateStatic( SUPERVISOR_Task, (const char*)"SUPER", SUPER_STACK, NULL, tskIDLE_PRIORITY + 1, SuperStack, &SuperTask );
-	hShellTask = xTaskCreateStatic( SHELL_Task, (const char*)"TRACE", SHELL_STACK, NULL, tskIDLE_PRIORITY + 1, ShellStack, &ShellTask );
+	hShellTask = xTaskCreateStatic( SHELL_Task, (const char*)"SHELL", SHELL_STACK, NULL, tskIDLE_PRIORITY + 1, ShellStack, &ShellTask );
 
 	/* Start the scheduler. */
 	vEFMEnergyEnableLowPowerMode(false);	// Make sure FreeRTOS can go in deep sleep mode

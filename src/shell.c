@@ -81,29 +81,8 @@ void SHELL_Init(void)
 
   LEUART0->ROUTEPEN  = USART_ROUTEPEN_RXPEN | USART_ROUTEPEN_TXPEN;
 
-  /* Set RXDMAWU to wake up the DMA controller in EM2 */
-//  LEUART_RxDmaInEM2Enable(LEUART0, true);
-
   /* Finally enable it */
   LEUART_Enable(LEUART0, leuartEnable);
-
-//SHELLSemaphore = xSemaphoreCreateBinaryStatic( &xSHELLSemaphoreBuffer );
-
-#if 0
-  /* LDMA transfer configuration for LEUART */
-  const LDMA_TransferCfg_t periTransferRx =
-    LDMA_TRANSFER_CFG_PERIPHERAL(ldmaPeripheralSignal_LEUART0_RXDATAV);
-
-  xfer.xfer.dstInc  = ldmaCtrlDstIncNone;
-  xfer.xfer.doneIfs = 1;
-
-  /* LDMA initialization mode definition */
-  LDMA_Init_t init = LDMA_INIT_DEFAULT;
-
-  /* LDMA initialization */
-  LDMA_Init(&init);
-  LDMA_StartTransfer(0, (LDMA_TransferCfg_t *)&periTransferRx, &xfer);
-#endif
 }
 
 /*!
@@ -354,7 +333,6 @@ int	SHELL_ParseLine(char* pLine, char* pArgv[], uint32_t nMaxArgs)
 	return	nArgc;
 }
 
-extern	SHELL_CMD	pShellCmds[];
 static	char pLine[256];
 static char*	ppArgv[16];
 
@@ -395,7 +373,7 @@ __attribute__((noreturn)) void SHELL_Task(void* pvParameters)
 
 }
 
-int	SHELL_CMD_Join(char *ppArgv[], int nArgc)
+int	AT_CMD_Join(char *ppArgv[], int nArgc)
 {
 	if (nArgc == 1)
 	{
@@ -425,131 +403,76 @@ int	SHELL_CMD_Join(char *ppArgv[], int nArgc)
 	return	0;
 }
 
-
-int	SHELL_CMD_Req(char *ppArgv[], int nArgc)
-{
-	if (nArgc == 2)
-	{
-		if (strcasecmp(ppArgv[1], "0") == 0)
-		{
-			DevicePostEvent(REQ_REAL_APP_KEY_ALLOC);
-		}
-		else if (strcasecmp(ppArgv[1], "2") == 0)
-		{
-			DevicePostEvent(REQ_REAL_APP_KEY_RX_REPORT);
-		}
-	}
-
-
-	return	0;
-}
-
-int	SHELL_CMD_Set(char *ppArgv[], int nArgc)
-{
-	if (nArgc == 3)
-	{
-		if (strcasecmp(ppArgv[1], "appkey") == 0)
-		{
-			uint8_t pAppKey[16];
-			if (HexString2Array(ppArgv[2], pAppKey, sizeof(pAppKey)) != 16)
-			{
-				SHELL_Printf("Invalid appkey!\n");
-			}
-			else
-			{
-				DeviceUserDataSetAppKey(pAppKey);
-			}
-		}
-		else if (strcasecmp(ppArgv[1], "realappkey") == 0)
-		{
-			uint8_t pRealAppKey[16];
-			if (HexString2Array(ppArgv[2], pRealAppKey, sizeof(pRealAppKey)) != 16)
-			{
-				SHELL_Printf("Invalid realappkey!\n");
-			}
-			else
-			{
-				DeviceUserDataSetSKTRealAppKey(pRealAppKey);
-			}
-		}
-	}
-
-	return	0;
-}
-
-int	SHELL_CMD_Get(char *ppArgv[], int nArgc)
+int	AT_CMD_CTM(char *ppArgv[], int nArgc)
 {
 	if (nArgc == 1)
 	{
-		SHELL_Printf("%16s : ", "DevEUI");	SHELL_Dump(UNIT_DEVEUID, 8);
-		SHELL_Printf("%16s : ", "Pseudo App Key");	SHELL_Dump(UNIT_APPKEY, 16);
-		SHELL_Printf("%16s : ", "Real App Key");	SHELL_Dump(UNIT_REALAPPKEY, 16);
+		SHELL_Printf("GET CYCLIC MODE\n");
+		SHELL_Printf("- %16s : %s\n", "Status", (SUPERVISOR_IsCyclicTaskRun())?"run":"stop");
+		SHELL_Printf("- %16s : %d\n", "Period", SUPERVISOR_GetRFPeriod());
 	}
-	else if (nArgc == 2)
+	else
 	{
-		if (strcasecmp(ppArgv[1], "deui") == 0)
-		{
-			SHELL_Dump(UNIT_DEVEUID, 8);
-		}
-		else if (strcasecmp(ppArgv[1], "appkey") == 0)
-		{
-			SHELL_Dump(UNIT_APPKEY, 16);
-		}
-		else if (strcasecmp(ppArgv[1], "realappkey") == 0)
-		{
-			SHELL_Dump(UNIT_REALAPPKEY, 16);
-		}
-	}
+		bool	ret = false;
 
-	return	0;
-}
-
-int	SHELL_CMD_Report(char *ppArgv[], int nArgc)
-{
-	if (nArgc == 1)
-	{
-		SHELL_Printf("%16s : %s\n", "Status", (SUPERVISOR_IsCyclicTaskRun())?"run":"stop");
-		SHELL_Printf("%16s : %d\n", "Period", SUPERVISOR_GetRFPeriod());
-	}
-	else if (nArgc == 2)
-	{
-		if (strcasecmp(ppArgv[1], "on") == 0)
+		if (nArgc == 2)
 		{
-			SUPERVISOR_StartCyclicTask(0, SUPERVISOR_GetRFPeriod());
-			DeviceUserDataSetFlag(FLAG_USE_CTM, FLAG_USE_CTM);
-		}
-		else if (strcasecmp(ppArgv[1], "off") == 0)
-		{
-			SUPERVISOR_StopCyclicTask();
-			DeviceUserDataSetFlag(FLAG_USE_CTM, false);
-		}
-		else if (strcasecmp(ppArgv[1], "period") == 0)
-		{
-			SHELL_Printf("%d\n", SUPERVISOR_GetRFPeriod());
-		}
-		else if (strcasecmp(ppArgv[1], "now") == 0)
-		{
-			DevicePostEvent(PERIODIC_RESEND);
-		}
-	}
-	else if (nArgc == 3)
-	{
-		if (strcasecmp(ppArgv[1], "period") == 0)
-		{
-			uint32_t ulPeriod = atoi(ppArgv[2]);
-
-			if (!SUPERVISOR_SetRFPeriod(ulPeriod))
+			if (strcasecmp(ppArgv[1], "on") == 0)
 			{
-				SHELL_Printf("Invalid period!\n");
+				SUPERVISOR_StartCyclicTask(0, SUPERVISOR_GetRFPeriod());
+				DeviceUserDataSetFlag(FLAG_USE_CTM, FLAG_USE_CTM);
+
+				ret = true;
+			}
+			else if (strcasecmp(ppArgv[1], "off") == 0)
+			{
+				SUPERVISOR_StopCyclicTask();
+				DeviceUserDataSetFlag(FLAG_USE_CTM, false);
+
+				ret = true;
+}
+			else if (strcasecmp(ppArgv[1], "period") == 0)
+			{
+				SHELL_Printf("%d\n", SUPERVISOR_GetRFPeriod());
+
+				ret = true;
+}
+			else if (strcasecmp(ppArgv[1], "now") == 0)
+			{
+				DevicePostEvent(PERIODIC_RESEND);
+
+				ret = true;
+}
+		}
+		else if (nArgc == 3)
+		{
+			if (strcasecmp(ppArgv[1], "period") == 0)
+			{
+				uint32_t ulPeriod = atoi(ppArgv[2]);
+
+				if (SUPERVISOR_SetRFPeriod(ulPeriod))
+				{
+					ret = true;
+				}
+				else
+				{
+					SHELL_Printf("Invalid period!\n");
+				}
 			}
 		}
+
+		if (!ret)
+		{
+			SHELL_Printf("- ERROR, Invalid Arguments\n");
+		}
 	}
+
 
 	return	0;
 }
 
 
-int	SHELL_CMD_Mac(char *ppArgv[], int nArgc)
+int	AT_CMD_Mac(char *ppArgv[], int nArgc)
 {
 	if (nArgc == 1)
 	{
@@ -583,7 +506,7 @@ int	SHELL_CMD_Mac(char *ppArgv[], int nArgc)
 extern	TaskHandle_t	hSuperTask;
 extern	TaskHandle_t	hShellTask;
 
-int	SHELL_CMD_Task(char *ppArgv[], int nArgc)
+int	AT_CMD_Task(char *ppArgv[], int nArgc)
 {
 	if (nArgc == 1)
 	{
@@ -599,17 +522,17 @@ int	SHELL_CMD_Task(char *ppArgv[], int nArgc)
 	return	0;
 }
 
-int	SHELL_CMD_LoRaWAN(char *ppArgv[], int nArgc)
+int	AT_CMD_Status(char *ppArgv[], int nArgc)
 {
 	if (nArgc == 1)
 	{
-		SHELL_Printf("%16s : %s\n", "Status", LORAWAN_GetStatusString());
+		SHELL_Printf("%16s : %s\n", "LoRaWAN", LORAWAN_GetStatusString());
 	}
 
 	return	0;
 }
 
-int	SHELL_CMD_Trace(char *ppArgv[], int nArgc)
+int	AT_CMD_Trace(char *ppArgv[], int nArgc)
 {
 	if (nArgc == 1)
 	{
@@ -633,7 +556,7 @@ int	SHELL_CMD_Trace(char *ppArgv[], int nArgc)
 	return	0;
 }
 
-int	SHELL_CMD_Help(char *ppArgv[], int nArgc)
+int	AT_CMD_Help(char *ppArgv[], int nArgc)
 {
 	SHELL_CMD	*pCmd = pShellCmds;
 
@@ -646,7 +569,7 @@ int	SHELL_CMD_Help(char *ppArgv[], int nArgc)
 	return	0;
 }
 
-int SHELL_CMD_AT(char *ppArgv[], int nArgc)
+int AT_CMD(char *ppArgv[], int nArgc)
 {
 	SHELL_CMD*	pCmd = pShellCmds;
 
@@ -662,20 +585,20 @@ int SHELL_CMD_AT(char *ppArgv[], int nArgc)
 	return	0;
 }
 
-int SHELL_CMD_AT_Reset(char *ppArgv[], int nArgc)
+int AT_CMD_Reset(char *ppArgv[], int nArgc)
 {
 	SHELL_Printf("RESET OK\n");
 	DevicePostEvent(SYSTEM_RESET);
 	return	0;
 }
 
-int SHELL_CMD_AT_PS(char *ppArgv[], int nArgc)
+int AT_CMD_PS(char *ppArgv[], int nArgc)
 {
 	CLEAR_USERFLAG(UNIT_USE_RAK);
 	return	0;
 }
 
-int SHELL_CMD_AT_GetConfig(char *ppArgv[], int nArgc)
+int AT_CMD_GetConfig(char *ppArgv[], int nArgc)
 {
 	SHELL_Printf("Get Configuration\n");
 
@@ -697,7 +620,7 @@ int SHELL_CMD_AT_GetConfig(char *ppArgv[], int nArgc)
 	return	0;
 }
 
-int SHELL_CMD_AT_FirmwareInfo(char *ppArgv[], int nArgc)
+int AT_CMD_FirmwareInfo(char *ppArgv[], int nArgc)
 {
 	SHELL_Printf("Firmware Information\n");
 	SHELL_Printf("- Version : %s\n", DeviceVersion());
@@ -705,19 +628,19 @@ int SHELL_CMD_AT_FirmwareInfo(char *ppArgv[], int nArgc)
 	return	0;
 }
 
-int SHELL_CMD_AT_FirmwareUpgrade(char *ppArgv[], int nArgc)
+int AT_CMD_FirmwareUpgrade(char *ppArgv[], int nArgc)
 {
 	return	0;
 }
 
 
-int SHELL_CMD_AT_DevEUI(char *ppArgv[], int nArgc)
+int AT_CMD_DevEUI(char *ppArgv[], int nArgc)
 {
 	SHELL_Printf("Device EUI : ");	SHELL_Dump(UNIT_DEVEUID, 8);
 	return	0;
 }
 
-int SHELL_CMD_AT_AppKey(char *ppArgv[], int nArgc)
+int AT_CMD_AppKey(char *ppArgv[], int nArgc)
 {
 	if (nArgc == 1)
 	{
@@ -750,7 +673,7 @@ int SHELL_CMD_AT_AppKey(char *ppArgv[], int nArgc)
 	return	0;
 }
 
-int SHELL_CMD_AT_AppEUI(char *ppArgv[], int nArgc)
+int AT_CMD_AppEUI(char *ppArgv[], int nArgc)
 {
 	if (nArgc == 1)
 	{
@@ -782,7 +705,23 @@ int SHELL_CMD_AT_AppEUI(char *ppArgv[], int nArgc)
 	return	0;
 }
 
-int SHELL_CMD_AT_SetTxDR(char *ppArgv[], int nArgc)
+
+int AT_CMD_RealAppKey(char *ppArgv[], int nArgc)
+{
+	if (nArgc == 1)
+	{
+		SHELL_Printf("GET REAL APPLICATION KEY\n");
+		SHELL_Printf("- Real Application Key : ");	SHELL_Dump(UNIT_REALAPPKEY, LORAMAC_APP_KEY_SIZE);
+	}
+	else
+	{
+		SHELL_Printf("- ERROR, Invalid Arguments\n");
+	}
+
+	return	0;
+}
+
+int AT_CMD_SetTxDR(char *ppArgv[], int nArgc)
 {
 	if (nArgc == 1)
 	{
@@ -816,7 +755,7 @@ int SHELL_CMD_AT_SetTxDR(char *ppArgv[], int nArgc)
 	return	0;
 }
 
-int SHELL_CMD_AT_TxPower(char *ppArgv[], int nArgc)
+int AT_CMD_TxPower(char *ppArgv[], int nArgc)
 {
 	if (nArgc == 1)
 	{
@@ -851,7 +790,7 @@ int SHELL_CMD_AT_TxPower(char *ppArgv[], int nArgc)
 	return	0;
 }
 
-int SHELL_CMD_AT_SetChannelAndTxPower(char *ppArgv[], int nArgc)
+int AT_CMD_SetChannelAndTxPower(char *ppArgv[], int nArgc)
 {
 	bool	ret = false;
 
@@ -890,7 +829,7 @@ int SHELL_CMD_AT_SetChannelAndTxPower(char *ppArgv[], int nArgc)
 	return	0;
 }
 
-int SHELL_CMD_AT_Channel(char *ppArgv[], int nArgc)
+int AT_CMD_Channel(char *ppArgv[], int nArgc)
 {
 	if (nArgc == 1)
 	{
@@ -925,7 +864,7 @@ int SHELL_CMD_AT_Channel(char *ppArgv[], int nArgc)
 	return	0;
 }
 
-int SHELL_CMD_AT_ADR(char *ppArgv[], int nArgc)
+int AT_CMD_ADR(char *ppArgv[], int nArgc)
 {
 	if (nArgc == 1)
 	{
@@ -965,7 +904,7 @@ int SHELL_CMD_AT_ADR(char *ppArgv[], int nArgc)
 	return	0;
 }
 
-int SHELL_CMD_AT_CLS(char *ppArgv[], int nArgc)
+int AT_CMD_CLS(char *ppArgv[], int nArgc)
 {
 	if (nArgc == 1)
 	{
@@ -1004,7 +943,7 @@ int SHELL_CMD_AT_CLS(char *ppArgv[], int nArgc)
 	return	0;
 }
 
-int SHELL_CMD_AT_LatestSignal(char *ppArgv[], int nArgc)
+int AT_CMD_LatestSignal(char *ppArgv[], int nArgc)
 {
 	SHELL_Printf("GET Latest Signal\n");
 	SHELL_Printf("- RSSI  : %d\n", LORAWAN_GetRSSI());
@@ -1013,7 +952,7 @@ int SHELL_CMD_AT_LatestSignal(char *ppArgv[], int nArgc)
 	return	0;
 }
 
-int SHELL_CMD_AT_TxRetransmissionNumber(char *ppArgv[], int nArgc)
+int AT_CMD_TxRetransmissionNumber(char *ppArgv[], int nArgc)
 {
 	if (nArgc == 1)
 	{
@@ -1048,7 +987,7 @@ int SHELL_CMD_AT_TxRetransmissionNumber(char *ppArgv[], int nArgc)
 	return	0;
 }
 
-int SHELL_CMD_AT_Send(char *ppArgv[], int nArgc)
+int AT_CMD_Send(char *ppArgv[], int nArgc)
 {
 	static	uint8_t pData[256];
 	uint8_t			nDataLen = 0;
@@ -1083,11 +1022,11 @@ int SHELL_CMD_AT_Send(char *ppArgv[], int nArgc)
 	return	0;
 }
 
-int SHELL_CMD_AT_SendAck(char *ppArgv[], int nArgc)
+int AT_CMD_SendAck(char *ppArgv[], int nArgc)
 {
 	SHELL_Printf("SEND ACK\n");
 
-	if (SKTAPP_SendAck() == false)
+	if (LORAWAN_SendAck() == false)
 	{
 		SHELL_Printf("- ERROR, Failed to send ACK!\n");
 	}
@@ -1096,19 +1035,19 @@ int SHELL_CMD_AT_SendAck(char *ppArgv[], int nArgc)
 }
 
 
-int SHELL_CMD_AT_LinkCheck(char *ppArgv[], int nArgc)
+int AT_CMD_LinkCheck(char *ppArgv[], int nArgc)
 {
-	SKTAPP_LinkCheck();
+	LORAWAN_SendLinkCheckRequest();
 
 	return	0;
 }
 
-int SHELL_CMD_AT_DutyCycleTime(char *ppArgv[], int nArgc)
+int AT_CMD_DutyCycleTime(char *ppArgv[], int nArgc)
 {
 	return	0;
 }
 
-int SHELL_CMD_AT_UnconfirmedRetransmissionNumber(char *ppArgv[], int nArgc)
+int AT_CMD_UnconfirmedRetransmissionNumber(char *ppArgv[], int nArgc)
 {
 	if (nArgc == 1)
 	{
@@ -1142,7 +1081,7 @@ int SHELL_CMD_AT_UnconfirmedRetransmissionNumber(char *ppArgv[], int nArgc)
 	return	0;
 }
 
-int SHELL_CMD_AT_Confirmed(char *ppArgv[], int nArgc)
+int AT_CMD_Confirmed(char *ppArgv[], int nArgc)
 {
 	if (nArgc == 1)
 	{
@@ -1182,7 +1121,7 @@ int SHELL_CMD_AT_Confirmed(char *ppArgv[], int nArgc)
 	return	0;
 }
 
-int SHELL_CMD_AT_Log(char *ppArgv[], int nArgc)
+int AT_CMD_Log(char *ppArgv[], int nArgc)
 {
 	if (nArgc == 1)
 	{
@@ -1227,7 +1166,7 @@ int SHELL_CMD_AT_Log(char *ppArgv[], int nArgc)
 	return	0;
 }
 
-int SHELL_CMD_AT_PRF(char *ppArgv[], int nArgc)
+int AT_CMD_PRF(char *ppArgv[], int nArgc)
 {
 	if (nArgc == 1)
 	{
@@ -1265,7 +1204,7 @@ int SHELL_CMD_AT_PRF(char *ppArgv[], int nArgc)
 	return	0;
 }
 
-int SHELL_CMD_AT_FCNT(char *ppArgv[], int nArgc)
+int AT_CMD_FCNT(char *ppArgv[], int nArgc)
 {
 	if (nArgc == 1)
 	{
@@ -1307,7 +1246,7 @@ int SHELL_CMD_AT_FCNT(char *ppArgv[], int nArgc)
 	return	0;
 }
 
-int SHELL_CMD_AT_BATT(char *ppArgv[], int nArgc)
+int AT_CMD_BATT(char *ppArgv[], int nArgc)
 {
 	if (nArgc == 1)
 	{
@@ -1320,42 +1259,39 @@ int SHELL_CMD_AT_BATT(char *ppArgv[], int nArgc)
 
 SHELL_CMD	pShellCmds[] =
 {
-		{	"AT",	  "Checking the serial connection status", SHELL_CMD_AT},
-		{	"AT+RST", "Reset",	SHELL_CMD_AT_Reset},
-		{	"AT+PS",	"Pseudo Join",	SHELL_CMD_AT_PS},
-		{	"AT+GCFG", "Get Configuration",	SHELL_CMD_AT_GetConfig},
-		{	"AT+FWI", "Firmware Information",	SHELL_CMD_AT_FirmwareInfo},
-		{	"AT+DEUI", "Get Device EUI",	SHELL_CMD_AT_DevEUI},
-		{	"AT+AK", "Set/Get Application Key",	SHELL_CMD_AT_AppKey},
-		{	"AT+AEUI", "Set/Get Application EUI",	SHELL_CMD_AT_AppEUI},
-		{	"AT+DR", "Set Tx Data Rate",	SHELL_CMD_AT_SetTxDR},
-		{	"AT+POW", "Set Tx Power",	SHELL_CMD_AT_TxPower},
-		{	"AT+CHTX", "Set Channel and Tx Power",	SHELL_CMD_AT_SetChannelAndTxPower},
-		{	"AT+CH", "Set/Get Channel",	SHELL_CMD_AT_Channel},
-		{	"AT+ADR", "Set/Get ADR Flag",	SHELL_CMD_AT_ADR},
-		{	"AT+CLS", "Set/Get Class",	SHELL_CMD_AT_CLS},
-		{	"AT+SIG", "Latest RF Signal",	SHELL_CMD_AT_LatestSignal},
-		{	"AT+RCNT", "Tx Retransmission Number",	SHELL_CMD_AT_TxRetransmissionNumber},
-		{	"AT+SEND", "Sending the user defined packet",	SHELL_CMD_AT_Send},
-		{	"AT+ACK", "Sending ACK",	SHELL_CMD_AT_SendAck},
-		{	"AT+DUTC", "Set/Get Duty Cycle Time",	SHELL_CMD_AT_DutyCycleTime},
-		{	"AT+RUNT", "Tx Retransmission Number(Unconfirmed)",	SHELL_CMD_AT_UnconfirmedRetransmissionNumber},
-		{	"AT+CFM", "Enable or disable Confirmed message",	SHELL_CMD_AT_Confirmed},
-		{	"AT+LOG", "Enable or Disable Log message",	SHELL_CMD_AT_Log},
-		{	"AT+PRF", "Select Timer or Event Mode (Period Report)",	SHELL_CMD_AT_PRF},
-		{	"AT+FCNT", "changing the down link fcnt for testing",	SHELL_CMD_AT_FCNT},
-		{	"AT+BATT", "Battery",	SHELL_CMD_AT_BATT},
-		{	"AT+LCHK", "Link Check Request",	SHELL_CMD_AT_LinkCheck},
-
-		{	"join", "join",	SHELL_CMD_Join},
-		{	"req", "req",	SHELL_CMD_Req},
-		{	"task", "task", SHELL_CMD_Task},
-		{	"set", "set environment variables", SHELL_CMD_Set},
-		{	"get", "get environment variables", SHELL_CMD_Get},
-		{	"report", "report", SHELL_CMD_Report},
-		{	"mac", "LoRaMAC", SHELL_CMD_Mac},
-		{	"lorawan", "lorawan",	SHELL_CMD_LoRaWAN},
-		{   "trace", "trace", SHELL_CMD_Trace},
-		{	"?", "Help", SHELL_CMD_Help},
+		{	"AT",	  	"Checking the serial connection status", AT_CMD},
+		{	"AT+RST", 	"Reset",	AT_CMD_Reset},
+		{	"AT+PS",	"Pseudo Join",	AT_CMD_PS},
+		{	"AT+JOIN",	"Join",	AT_CMD_Join},
+		{	"AT+GCFG", 	"Get Configuration",	AT_CMD_GetConfig},
+		{	"AT+FWI", 	"Firmware Information",	AT_CMD_FirmwareInfo},
+		{	"AT+DEUI", 	"Get Device EUI",	AT_CMD_DevEUI},
+		{	"AT+AK", 	"Set/Get Application Key",	AT_CMD_AppKey},
+		{	"AT+RAK", 	"Get Real Application Key",	AT_CMD_RealAppKey},
+		{	"AT+AEUI", 	"Set/Get Application EUI",	AT_CMD_AppEUI},
+		{	"AT+DR", 	"Set Tx Data Rate",	AT_CMD_SetTxDR},
+		{	"AT+POW", 	"Set Tx Power",	AT_CMD_TxPower},
+		{	"AT+CHTX", 	"Set Channel and Tx Power",	AT_CMD_SetChannelAndTxPower},
+		{	"AT+CH", 	"Set/Get Channel",	AT_CMD_Channel},
+		{	"AT+ADR", 	"Set/Get ADR Flag",	AT_CMD_ADR},
+		{	"AT+CLS", 	"Set/Get Class",	AT_CMD_CLS},
+		{	"AT+SIG", 	"Latest RF Signal",	AT_CMD_LatestSignal},
+		{	"AT+RCNT", 	"Tx Retransmission Number",	AT_CMD_TxRetransmissionNumber},
+		{	"AT+SEND", 	"Sending the user defined packet",	AT_CMD_Send},
+		{	"AT+ACK", 	"Sending ACK",	AT_CMD_SendAck},
+		{	"AT+DUTC", 	"Set/Get Duty Cycle Time",	AT_CMD_DutyCycleTime},
+		{	"AT+RUNT", 	"Tx Retransmission Number(Unconfirmed)",	AT_CMD_UnconfirmedRetransmissionNumber},
+		{	"AT+CFM", 	"Enable or disable Confirmed message",	AT_CMD_Confirmed},
+		{	"AT+LOG", 	"Enable or Disable Log message",	AT_CMD_Log},
+		{	"AT+PRF", 	"Select Timer or Event Mode (Period Report)",	AT_CMD_PRF},
+		{	"AT+CTM", 	"Set/Get Cyclic Time Mode", AT_CMD_CTM},
+		{	"AT+FCNT", 	"changing the down link FCnt for testing",	AT_CMD_FCNT},
+		{	"AT+BATT", 	"Battery",	AT_CMD_BATT},
+		{	"AT+LCHK", 	"Link Check Request",	AT_CMD_LinkCheck},
+		{	"AT+TASK",	"Get Task Information",	AT_CMD_Task},
+		{	"AT+STAT", 	"Get Status",	AT_CMD_Status},
+		{   "AT+TRCE", 	"Get/Set Trace", AT_CMD_Trace},
+		{	"AT+MAC",	"Get/Set MAC",	AT_CMD_Mac},
+		{	"AT+HELP", 	"Help", AT_CMD_Help},
 		{	NULL, NULL, NULL}
 };

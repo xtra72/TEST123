@@ -65,7 +65,6 @@ bool SKTAPP_SetConfirmedMsgType(bool bConfirmed);
 bool SKTAPP_IsConfirmedMsgType(void);
 
 bool SKTAPP_Send(uint8_t port, uint8_t messageType, uint8_t *pFrame, uint32_t ulFrameLen);
-bool SKTAPP_SendAck(void);
-bool SKTAPP_LinkCheck(void);
+
 
 #endif /* INC_SKTAPP_H_ */

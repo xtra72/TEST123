@@ -21,8 +21,12 @@ bool	LORAMAC_GetAppNonce(uint32_t* pAppNonce);
 DeviceClass_t 	LORAMAC_GetClassType(void);
 bool	LORAMAC_SetClassType(DeviceClass_t class);
 
+bool	LORAMAC_IsPublicNetwork(void);
+bool	LORAMAC_SetPublicNetwork(bool bPublic);
+
 int8_t 	LORAMAC_GetDatarate(void);
 bool	LORAMAC_SetDatarate(int8_t datarate);
+
 int8_t	LORAMAC_GetTxPower(void);
 bool	LORAMAC_SetTxPower(int8_t power);
 
@@ -38,6 +42,7 @@ bool 	LORAMAC_SetDownLinkCounter(uint32_t ulCounter);
 uint32_t LORAMAC_GetUpLinkCounter(void);
 bool 	LORAMAC_SetUpLinkCounter(uint32_t ulCounter);
 
+bool	LORAMAC_SetDutyCycle(uint32_t ulDutyCycle);
 
 uint32_t	LORAMAC_GetChannelsNbRepeat(void);
 bool 	LORAMAC_SetChannelsNbRepeat(uint32_t ulCounter);
@@ -52,5 +57,7 @@ uint32_t	LORAMAC_GetJoinDelay2(void);
 
 bool	LORAMAC_GetADR(void);
 bool	LORAMAC_SetADR(bool bADR);
+
+bool	LORAMAC_AddACK(void);
 
 #endif
