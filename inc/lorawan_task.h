@@ -94,9 +94,9 @@ typedef	enum
  * @brief Default LoRaWAN packet exchange periodicity
  */
 #ifdef _DEBUG
-#define LORAMAC_DEFAULT_RF_PERIOD					2
+#define LORAMAC_DEFAULT_RF_PERIOD					5
 #else
-#define LORAMAC_DEFAULT_RF_PERIOD					5 // 60
+#define LORAMAC_DEFAULT_RF_PERIOD					10 // 60
 #endif
 /*!
  * @brief SKT/Daliworks LoRaWAN buffer abstraction
@@ -159,6 +159,8 @@ bool LORAWAN_CancelJoinNetwork(void);
  * @return true if ack sent successfully
  */
 bool LORAWAN_SendAck(void);
+
+bool	LORAWAN_SendDevTimeReq(void);
 
 /*!
  * @brief Sends a link check request to the network

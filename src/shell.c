@@ -1042,6 +1042,13 @@ int AT_CMD_LinkCheck(char *ppArgv[], int nArgc)
 	return	0;
 }
 
+int AT_CMD_DeviceTimeRequest(char *ppArgv[], int nArgc)
+{
+	LORAWAN_SendDevTimeReq();
+
+	return	0;
+}
+
 int AT_CMD_DutyCycleTime(char *ppArgv[], int nArgc)
 {
 	return	0;
@@ -1288,6 +1295,7 @@ SHELL_CMD	pShellCmds[] =
 		{	"AT+FCNT", 	"changing the down link FCnt for testing",	AT_CMD_FCNT},
 		{	"AT+BATT", 	"Battery",	AT_CMD_BATT},
 		{	"AT+LCHK", 	"Link Check Request",	AT_CMD_LinkCheck},
+		{	"AT+DEVT", 	"Dev Time Request",	AT_CMD_DeviceTimeRequest},
 		{	"AT+TASK",	"Get Task Information",	AT_CMD_Task},
 		{	"AT+STAT", 	"Get Status",	AT_CMD_Status},
 		{   "AT+TRCE", 	"Get/Set Trace", AT_CMD_Trace},

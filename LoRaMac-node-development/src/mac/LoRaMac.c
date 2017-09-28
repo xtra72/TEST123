@@ -1671,6 +1671,15 @@ static LoRaMacStatus_t AddMacCommand( uint8_t cmd, uint8_t p1, uint8_t p2 )
                 status = LORAMAC_STATUS_OK;
             }
             break;
+
+        case MOTE_MAC_DEV_TIME_REQ:
+            if( MacCommandsBufferIndex < bufLen )
+            {
+                MacCommandsBuffer[MacCommandsBufferIndex++] = cmd;
+                // No payload for this command
+                status = LORAMAC_STATUS_OK;
+            }
+            break;
         default:
             return LORAMAC_STATUS_SERVICE_UNKNOWN;
     }
@@ -1723,6 +1732,7 @@ static uint8_t ParseMacCommandsToRepeat( uint8_t* cmdBufIn, uint8_t length, uint
             case MOTE_MAC_TX_PARAM_SETUP_ANS:
             case MOTE_MAC_DUTY_CYCLE_ANS:
             case MOTE_MAC_LINK_CHECK_REQ:
+            case MOTE_MAC_DEV_TIME_REQ:
             { // 0 byte payload
                 break;
             }
@@ -1906,6 +1916,9 @@ static void ProcessMacCommands( uint8_t *payload, uint8_t macIndex, uint8_t comm
 
                     AddMacCommand( MOTE_MAC_DL_CHANNEL_ANS, status, 0 );
                 }
+                break;
+            case SRV_MAC_DEV_TIME_ANS:
+                MlmeConfirm.Status = LORAMAC_EVENT_INFO_STATUS_OK;
                 break;
             default:
                 // Unknown command. ABORT MAC commands processing
@@ -2304,7 +2317,7 @@ LoRaMacStatus_t SendFrameOnChannel( uint8_t channel )
 
 #endif
 	}
-#if 0
+#if 1
     TRACE("Tx Config : CH = %d, DR = %d, PWR = %d, EIRP = %d.%02d, GAIN = %d.%02d\n",
     		txConfig.Channel,
 			txConfig.Datarate,
@@ -3341,6 +3354,15 @@ LoRaMacStatus_t LoRaMacMlmeRequest( MlmeReq_t *mlmeRequest )
             LoRaMacFlags.Bits.MlmeReq = 1;
 
             status = AddMacCommand( MOTE_MAC_ACK, 0, 0 );
+            break;
+        }
+
+        case MLME_DEV_TIME:
+        {
+            MlmeConfirm.MlmeRequest = mlmeRequest->Type;
+            LoRaMacFlags.Bits.MlmeReq = 1;
+
+            status = AddMacCommand( MOTE_MAC_DEV_TIME_REQ, 0, 0 );
             break;
         }
         default:

@@ -186,7 +186,7 @@ bool	SUPERVISOR_SetRFPeriod(unsigned long ulRFPeriod)
 }
 
 /** @cond */
-#define CYCLE_STACK	40
+#define CYCLE_STACK	50
 static StackType_t CycleStack[CYCLE_STACK];
 static StaticTask_t CycleTask;
 /** @endcond */

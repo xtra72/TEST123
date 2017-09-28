@@ -520,7 +520,7 @@ bool	LORAWAN_SendAck(void)
 	xMessage.Port = 0;
 	xMessage.Request = MCPS_UNCONFIRMED;
 	xMessage.Buffer = NULL;
-	xMessage.Size = LORA_MESSAGE_HEADER_SIZE;
+	xMessage.Size = 0;
 	if (LORAWAN_SendMessage(&xMessage)  != LORAMAC_STATUS_OK)
 	{
 		switch(xMessage.Status)
@@ -545,6 +545,49 @@ bool	LORAWAN_SendAck(void)
 }
 
 
+bool	LORAWAN_SendDevTimeReq(void)
+{
+	TRACE("Send DevTimeReq\n");
+
+	MlmeReq_t mlmeReq;
+
+	mlmeReq.Type = MLME_DEV_TIME;
+
+	if (LoRaMacMlmeRequest( &mlmeReq ) != LORAMAC_STATUS_OK)
+	{
+		ERROR("LoRaMacMlmeRequest failed.\n");
+		return	false;
+	}
+
+	LORA_PACKET		xMessage;
+
+	xMessage.Port = 0;
+	xMessage.Request = MCPS_CONFIRMED;
+	xMessage.Buffer = NULL;
+	xMessage.Size = 0;
+	if (LORAWAN_SendMessage(&xMessage)  != LORAMAC_STATUS_OK)
+	{
+		switch(xMessage.Status)
+		{
+		case LORAMAC_EVENT_INFO_STATUS_ERROR:
+			ERROR("LORAMAC_EVENT_INFO_STATUS_ERROR");
+			DeviceFlashLed(10);
+			break;
+		case LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT:
+			ERROR("LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT");
+			DeviceFlashLed(3);
+			break;
+		default:
+			DeviceFlashLed(5);
+			break;
+		}
+
+		return	false;
+	}
+
+	return	true;
+}
+
 bool	LORAWAN_SendLinkCheckRequest(void)
 {
 	TRACE("Send Link Check\n");
@@ -558,16 +601,12 @@ bool	LORAWAN_SendLinkCheckRequest(void)
 		return	false;
 	}
 
-	LORA_MESSAGE	xMessage;
 	LORA_PACKET		xPacket;
 
-	xPacket.Buffer = (uint8_t *)&xMessage;
+	xPacket.Buffer = NULL;
 	xPacket.Port = 0;
 	xPacket.Request = MCPS_CONFIRMED;
-	xPacket.Message->MessageType = 0;
-	xPacket.Message->Version = LORA_MESSAGE_VERSION;
-	xPacket.Message->PayloadLen = 0;
-	xPacket.Size = LORA_MESSAGE_HEADER_SIZE;
+	xPacket.Size = 0;
 	if (LORAWAN_SendMessage(&xPacket)  != LORAMAC_STATUS_OK)
 	{
 		switch(xPacket.Status)

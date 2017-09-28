@@ -402,6 +402,8 @@ typedef enum eLoRaMacMoteCmd
      */
     MOTE_MAC_DL_CHANNEL_ANS          = 0x0A,
 
+    MOTE_MAC_DEV_TIME_REQ            = 0x0B,
+
 	MOTE_MAC_ACK					 = 0x80
 }LoRaMacMoteCmd_t;
 
@@ -448,6 +450,8 @@ typedef enum eLoRaMacSrvCmd
      * DlChannelReq
      */
     SRV_MAC_DL_CHANNEL_REQ           = 0x0A,
+
+	SRV_MAC_DEV_TIME_ANS			 = 0x0B
 }LoRaMacSrvCmd_t;
 
 /*!
@@ -962,7 +966,8 @@ typedef enum eMlme
      */
     MLME_TXCW_1,
     MLME_CANCEL,
-	MLME_ACK
+	MLME_ACK,
+	MLME_DEV_TIME
 }Mlme_t;
 
 /*!
