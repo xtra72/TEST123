@@ -743,8 +743,7 @@ static void OnRadioRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t
     TimerStop( &RxWindowTimer2 );
 
     TRACE("OnRadioRxDone : RSSI = %d, SNR = %d, Size = %d\n", rssi, snr, size);;
-    TRACE("Rx Frame[%d] - ", size);
-    TRACE_DUMP(payload, size);
+    TRACE_DUMP(payload, size, "Rx Frame[%d] - ", size);
 
     macHdr.Value = payload[pktHeaderLen++];
 
@@ -769,7 +768,7 @@ static void OnRadioRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t
             micRx |= ( ( uint32_t )LoRaMacRxPayload[size - LORAMAC_MFR_LEN + 2] << 16 );
             micRx |= ( ( uint32_t )LoRaMacRxPayload[size - LORAMAC_MFR_LEN + 3] << 24 );
 
-            TRACE("%16s : ", "Join Payload"); TRACE_DUMP(LoRaMacRxPayload, size );
+            TRACE_DUMP(LoRaMacRxPayload, size, "%16s : ", "Join Payload");
             if( micRx == mic )
             {
                 LoRaMacJoinComputeSKeys( LoRaMacAppKey, LoRaMacRxPayload + 1, LoRaMacDevNonce, LoRaMacNwkSKey, LoRaMacAppSKey );
@@ -814,8 +813,8 @@ static void OnRadioRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t
                 TRACE("%16s : %d\n", "Rx2 Datarate", LoRaMacParams.Rx2Channel.Datarate);
                 TRACE("%16s : %d\n", "Rx Delay1", LoRaMacParams.ReceiveDelay1);
                 TRACE("%16s : %d\n", "Rx Delay2", LoRaMacParams.ReceiveDelay2);
-                TRACE("%16s : ", "NwkSKey"); TRACE_DUMP(LoRaMacNwkSKey, sizeof(LoRaMacNwkSKey));
-                TRACE("%16s : ", "AppSKey"); TRACE_DUMP(LoRaMacAppSKey, sizeof(LoRaMacAppSKey));
+                TRACE_DUMP(LoRaMacNwkSKey, sizeof(LoRaMacNwkSKey), "%16s : ", "NwkSKey");
+                TRACE_DUMP(LoRaMacAppSKey, sizeof(LoRaMacAppSKey), "%16s : ", "AppSKey");
 
                    MlmeConfirm.Status = LORAMAC_EVENT_INFO_STATUS_OK;
                 IsLoRaMacNetworkJoined = true;
@@ -1019,8 +1018,7 @@ static void OnRadioRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t
                                                        downLinkCounter,
                                                        LoRaMacRxPayload );
 
-                                TRACE("%16s : ", "Decode frame");
-                                TRACE_DUMP(LoRaMacRxPayload, frameLen);
+                                TRACE_DUMP(LoRaMacRxPayload, frameLen, "%16s : ", "Decode frame");
                                 // Decode frame payload MAC commands
                                 ProcessMacCommands( LoRaMacRxPayload, 0, frameLen, snr );
                             }
@@ -1034,8 +1032,7 @@ static void OnRadioRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t
                             if( fCtrl.Bits.FOptsLen > 0 )
                             {
                                 // Decode Options field MAC commands. Omit the fPort.
-                                TRACE("%16s : ", "Decode frame");
-                                TRACE_DUMP(payload, appPayloadStartIndex - 1);
+                                TRACE_DUMP(payload, appPayloadStartIndex - 1, "%16s : ", "Decode frame");
                                ProcessMacCommands( payload, 8, appPayloadStartIndex - 1, snr );
                             }
 
@@ -1052,8 +1049,7 @@ static void OnRadioRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t
                                 McpsIndication.Buffer = LoRaMacRxPayload;
                                 McpsIndication.BufferSize = frameLen;
                                 McpsIndication.RxData = true;
-                                TRACE("%16s : ", "Rx Data");
-                                TRACE_DUMP(LoRaMacRxPayload, frameLen);
+                                TRACE_DUMP(LoRaMacRxPayload, frameLen, "%16s : ", "Rx Data");
                             }
                         }
                     }
@@ -1062,8 +1058,7 @@ static void OnRadioRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t
                         if( fCtrl.Bits.FOptsLen > 0 )
                         {
                             // Decode Options field MAC commands
-                            TRACE("%16s : ", "Decode frame");
-                            TRACE_DUMP(payload, appPayloadStartIndex);
+                            TRACE_DUMP(payload, appPayloadStartIndex, "%16s : ", "Decode frame");
                             ProcessMacCommands( payload, 8, appPayloadStartIndex, snr );
                         }
                     }
@@ -1521,6 +1516,7 @@ static void OnAckTimeoutTimerEvent( void )
 {
     TimerStop( &AckTimeoutTimer );
 
+//    TRACE("OnAckTimeoutTimerEvent!\n");
     if( NodeAckRequested == true )
     {
         AckTimeoutRetry = true;
@@ -2306,14 +2302,12 @@ LoRaMacStatus_t SendFrameOnChannel( uint8_t channel )
 
     if( IsLoRaMacNetworkJoined == false )
     {
-		TRACE("Send Join[%d][%d] - ", JoinRequestTrials, LoRaMacBufferPktLen);
-		TRACE_DUMP(LoRaMacBuffer, LoRaMacBufferPktLen);
+		TRACE_DUMP(LoRaMacBuffer, LoRaMacBufferPktLen, "Send Join[%d][%d] - ", JoinRequestTrials, LoRaMacBufferPktLen);
     }
     else
     {
-#if 1
-    	TRACE("Send Frame[%d] - ", LoRaMacBufferPktLen);
-		TRACE_DUMP(LoRaMacBuffer, LoRaMacBufferPktLen);
+#if 0
+		TRACE_DUMP(LoRaMacBuffer, LoRaMacBufferPktLen, "Send Frame[%d] - ", LoRaMacBufferPktLen);
 
 #endif
 	}
@@ -2324,8 +2318,6 @@ LoRaMacStatus_t SendFrameOnChannel( uint8_t channel )
 			txConfig.TxPower,
 			(int32_t)txConfig.MaxEirp, ((int32_t)txConfig.MaxEirp * 100) % 100,
 			(int32_t)txConfig.AntennaGain, ((int32_t)txConfig.AntennaGain * 100) % 100);
-    TRACE("MCPS Confirm : DR = %d, PWR = %d\n",
-    		McpsConfirm.Datarate, McpsConfirm.TxPower);
 #endif
 
     LoRaMacState |= LORAMAC_TX_RUNNING;
