@@ -359,7 +359,9 @@ void PULSE_IN_IRQHandler(int pin) {
 		if(PULSE_IN[i].pin == pin) {
 			PulseInValue[i]++;
 #ifndef PULSE_NO_EVENT
-			portEND_SWITCHING_ISR( DeviceSendEventFromISR( PULSE_EVENT ) );
+			if (!GET_FLAG(DEVICE_PULSE_OFF))
+					portEND_SWITCHING_ISR( DeviceSendEventFromISR( PULSE_EVENT ) );
+			SET_FLAG(DEVICE_PULSE_OFF);
 #endif
 			break;
 		}

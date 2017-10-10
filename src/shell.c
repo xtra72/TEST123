@@ -419,15 +419,15 @@ int	AT_CMD_CTM(char *ppArgv[], int nArgc)
 		{
 			if (strcasecmp(ppArgv[1], "on") == 0)
 			{
+				SUPERVISOR_SetPeriodicMode(true);
 				SUPERVISOR_StartCyclicTask(0, SUPERVISOR_GetRFPeriod());
-				DeviceUserDataSetFlag(FLAG_USE_CTM, FLAG_USE_CTM);
 
 				ret = true;
 			}
 			else if (strcasecmp(ppArgv[1], "off") == 0)
 			{
 				SUPERVISOR_StopCyclicTask();
-				DeviceUserDataSetFlag(FLAG_USE_CTM, false);
+				SUPERVISOR_SetPeriodicMode(false);
 
 				ret = true;
 }
@@ -1019,6 +1019,7 @@ int AT_CMD_Send(char *ppArgv[], int nArgc)
 		SHELL_Printf("- ERROR, Invalid Arguments\n");
 	}
 
+	vTaskDelay(1024*10 );
 	return	0;
 }
 

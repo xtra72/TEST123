@@ -31,16 +31,30 @@
 /*!
  * @brief Console output
  */
+static bool _bDumpEnable = false;
 static bool	_bEnable = false;
 
-uint32_t	TRACE_Dump(char *pModule, uint8_t *pData, uint32_t ulDataLen)
+uint32_t	TRACE_Dump(char *pModule, uint8_t *pData, uint32_t ulDataLen, const char *pFormat, ...)
 {
-	if (_bEnable)
+	uint32_t	nOutputLength = 0;
+
+	if (_bDumpEnable)
 	{
-		return	SHELL_Dump(pData, ulDataLen);
+		if (pFormat != NULL)
+		{
+			va_list	xArgs;
+
+			va_start(xArgs, pFormat);
+
+			nOutputLength = SHELL_VPrintf(pModule, pFormat, xArgs);
+
+			va_end(xArgs);
+		}
+
+		nOutputLength += SHELL_Dump(pData, ulDataLen);
 	}
 
-	return	0;
+	return	nOutputLength;
 }
 /*!
  * @brief Console formatted output

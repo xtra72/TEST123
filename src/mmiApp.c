@@ -60,20 +60,9 @@ static int _loopUnconfirmed = 0;
 static int _loopConfirmed = 12;		// By default, send a confirmed packet every 12 packets (1/2 day @ 60 min. period)
 
 static void SendPacket(void) {
-	if (LORAWAN_SendMessage(&LocalMessage)  != LORAMAC_STATUS_OK) {
-		switch(LocalMessage.Status) {
-			case LORAMAC_EVENT_INFO_STATUS_ERROR:
-				ERROR("LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT");
-				DeviceFlashLed(10);
-				break;
-			case LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT:
-				ERROR("LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT");
-				DeviceFlashLed(3);
-				break;
-			default:
-				DeviceFlashLed(5);
-				break;
-		}
+	if (LORAWAN_SendMessage(&LocalMessage)  != LORAMAC_STATUS_OK)
+	{
+		 LORAWAN_ShowErrorStatus(LocalMessage.Status);
 	}
 }
 

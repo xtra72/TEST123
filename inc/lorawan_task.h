@@ -31,7 +31,7 @@
 
 #include "LoRaMacTest.h"
 
-#define USE_SEMTECH_DEFAULT_CHANNEL_LINEUP          1
+#define USE_SEMTECH_DEFAULT_CHANNEL_LINEUP          0
 
 #if( USE_SEMTECH_DEFAULT_CHANNEL_LINEUP == 1 )
 
@@ -230,6 +230,10 @@ int16_t	LORAWAN_GetRSSI(void);
 
 bool	LORAWAN_GetPeriodicMode(void);
 bool	LORAWAN_SetPeriodicMode(bool bEnable);
+
+uint32_t	LORAWAN_SetMessage(LORA_MESSAGE* pMessage, uint32_t ulMaxSize, uint8_t nType, uint8_t* pPayload, uint8_t nPayloadLen);
+void		LORAWAN_ShowErrorStatus(LoRaMacEventInfoStatus_t xStatus);
+
 /** }@ */
 
 #endif /* INC_LORAWAN_TASK_H_ */

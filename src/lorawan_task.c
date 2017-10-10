@@ -144,6 +144,10 @@ static __attribute__((noreturn)) void LORAWAN_EventTask(void* pvParameter)
 						break;
 				}
 		    }
+		    else
+		    {
+		    	ERROR("Error : %d\n", LocalMcps.confirm.Status );
+		    }
 
 		    if (LORAWANSemaphore) xSemaphoreGive( LORAWANSemaphore);
 		}
@@ -228,21 +232,33 @@ void LORAWAN_Init(void)
 
 #if( USE_SEMTECH_DEFAULT_CHANNEL_LINEUP == 1 )
 	if (UNIT_REGION == LORAMAC_REGION_EU868)
-	LoRaMacChannelAdd( 3, ( ChannelParams_t )LC4 );
-	LoRaMacChannelAdd( 4, ( ChannelParams_t )LC5 );
-	LoRaMacChannelAdd( 5, ( ChannelParams_t )LC6 );
-	LoRaMacChannelAdd( 6, ( ChannelParams_t )LC7 );
-	LoRaMacChannelAdd( 7, ( ChannelParams_t )LC8 );
-	LoRaMacChannelAdd( 8, ( ChannelParams_t )LC9 );
-	LoRaMacChannelAdd( 9, ( ChannelParams_t )LC10 );
+	{
+		LoRaMacChannelAdd( 3, ( ChannelParams_t )LC4 );
+		LoRaMacChannelAdd( 4, ( ChannelParams_t )LC5 );
+		LoRaMacChannelAdd( 5, ( ChannelParams_t )LC6 );
+		LoRaMacChannelAdd( 6, ( ChannelParams_t )LC7 );
+		LoRaMacChannelAdd( 7, ( ChannelParams_t )LC8 );
+		LoRaMacChannelAdd( 8, ( ChannelParams_t )LC9 );
+		LoRaMacChannelAdd( 9, ( ChannelParams_t )LC10 );
 
-	mibReq.Type = MIB_RX2_DEFAULT_CHANNEL;
-	mibReq.Param.Rx2DefaultChannel = ( Rx2ChannelParams_t ){ 869525000, DR_3 };
-	LoRaMacMibSetRequestConfirm( &mibReq );
+		mibReq.Type = MIB_RX2_DEFAULT_CHANNEL;
+		mibReq.Param.Rx2DefaultChannel = ( Rx2ChannelParams_t ){ 869525000, DR_3 };
+		LoRaMacMibSetRequestConfirm( &mibReq );
 
-	mibReq.Type = MIB_RX2_CHANNEL;
-	mibReq.Param.Rx2Channel = ( Rx2ChannelParams_t ){ 869525000, DR_3 };
-	LoRaMacMibSetRequestConfirm( &mibReq );
+		mibReq.Type = MIB_RX2_CHANNEL;
+		mibReq.Param.Rx2Channel = ( Rx2ChannelParams_t ){ 869525000, DR_3 };
+		LoRaMacMibSetRequestConfirm( &mibReq );
+	}
+	else if (UNIT_REGION == LORAMAC_REGION_KR920)
+	{
+		mibReq.Type = MIB_RX2_DEFAULT_CHANNEL;
+		mibReq.Param.Rx2DefaultChannel = ( Rx2ChannelParams_t ){ 921900000, DR_0 };
+		LoRaMacMibSetRequestConfirm( &mibReq );
+
+		mibReq.Type = MIB_RX2_CHANNEL;
+		mibReq.Param.Rx2Channel = ( Rx2ChannelParams_t ){ 921900000, DR_0 };
+		LoRaMacMibSetRequestConfirm( &mibReq );
+	}
 #endif
 
     memset(&LocalMcps,0,sizeof(McpsIndication_t));
@@ -291,9 +307,9 @@ bool LORAWAN_JoinNetworkUseOTTA(uint8_t* pDevEUI, uint8_t* pAppEUI, uint8_t* pAp
 	mlmeReq.Req.Join.AppEui = pAppEUI;
 	mlmeReq.Req.Join.AppKey = pAppKey;
 	mlmeReq.Req.Join.NbTrials = 3;
-	TRACE("%16s - ", "Dev EUI");TRACE_DUMP(pDevEUI, 8);
-	TRACE("%16s - ", "App EUI");TRACE_DUMP(pAppEUI, 8);
-	TRACE("%16s - ", "App Key");TRACE_DUMP(pAppKey, 16);
+	TRACE_DUMP(pDevEUI, 8, "%16s - ", "Dev EUI");
+	TRACE_DUMP(pAppEUI, 8, "%16s - ", "App EUI");
+	TRACE_DUMP(pAppKey, 16, "%16s - ", "App Key");
 
 	if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, 0 );
 
@@ -477,6 +493,7 @@ LoRaMacStatus_t LORAWAN_SendMessage( LORA_PACKET* message )
     	message->Status = LORAMAC_EVENT_INFO_STATUS_ERROR;
       	ERROR("Request error\n");
     }
+
     return result;
 }
 
@@ -523,20 +540,7 @@ bool	LORAWAN_SendAck(void)
 	xMessage.Size = 0;
 	if (LORAWAN_SendMessage(&xMessage)  != LORAMAC_STATUS_OK)
 	{
-		switch(xMessage.Status)
-		{
-		case LORAMAC_EVENT_INFO_STATUS_ERROR:
-			ERROR("LORAMAC_EVENT_INFO_STATUS_ERROR");
-			DeviceFlashLed(10);
-			break;
-		case LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT:
-			ERROR("LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT");
-			DeviceFlashLed(3);
-			break;
-		default:
-			DeviceFlashLed(5);
-			break;
-		}
+		 LORAWAN_ShowErrorStatus(xMessage.Status);
 
 		return	false;
 	}
@@ -567,20 +571,7 @@ bool	LORAWAN_SendDevTimeReq(void)
 	xMessage.Size = 0;
 	if (LORAWAN_SendMessage(&xMessage)  != LORAMAC_STATUS_OK)
 	{
-		switch(xMessage.Status)
-		{
-		case LORAMAC_EVENT_INFO_STATUS_ERROR:
-			ERROR("LORAMAC_EVENT_INFO_STATUS_ERROR");
-			DeviceFlashLed(10);
-			break;
-		case LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT:
-			ERROR("LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT");
-			DeviceFlashLed(3);
-			break;
-		default:
-			DeviceFlashLed(5);
-			break;
-		}
+		 LORAWAN_ShowErrorStatus(xMessage.Status);
 
 		return	false;
 	}
@@ -609,20 +600,7 @@ bool	LORAWAN_SendLinkCheckRequest(void)
 	xPacket.Size = 0;
 	if (LORAWAN_SendMessage(&xPacket)  != LORAMAC_STATUS_OK)
 	{
-		switch(xPacket.Status)
-		{
-		case LORAMAC_EVENT_INFO_STATUS_ERROR:
-			ERROR("LORAMAC_EVENT_INFO_STATUS_ERROR");
-			DeviceFlashLed(10);
-			break;
-		case LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT:
-			ERROR("LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT");
-			DeviceFlashLed(3);
-			break;
-		default:
-			DeviceFlashLed(5);
-			break;
-		}
+		 LORAWAN_ShowErrorStatus(xPacket.Status);
 	}
 
 	return	true;
@@ -680,6 +658,37 @@ int16_t	LORAWAN_GetRSSI(void)
 	return	nRSSI;
 }
 
+uint32_t	LORAWAN_SetMessage(LORA_MESSAGE* pMessage, uint32_t ulMaxSize, uint8_t nType, uint8_t* pPayload, uint8_t nPayloadLen)
+{
+	if (sizeof(LORA_MESSAGE) + nPayloadLen - 1 > ulMaxSize)
+	{
+		return	0;
+	}
 
+	pMessage->Version = LORA_MESSAGE_VERSION;
+	pMessage->MessageType = nType;
+	pMessage->PayloadLen = nPayloadLen;
+	memcpy(pMessage->Payload, pPayload, nPayloadLen);
+
+	return	sizeof(LORA_MESSAGE) + nPayloadLen - 1;
+}
+
+void	LORAWAN_ShowErrorStatus(LoRaMacEventInfoStatus_t xStatus)
+{
+	switch(xStatus)
+	{
+	case LORAMAC_EVENT_INFO_STATUS_ERROR:
+		ERROR("LORAMAC_EVENT_INFO_STATUS_ERROR");
+		DeviceFlashLed(10);
+		break;
+	case LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT:
+		ERROR("LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT");
+		DeviceFlashLed(3);
+		break;
+	default:
+		DeviceFlashLed(5);
+		break;
+	}
+}
 
 /** }@ */

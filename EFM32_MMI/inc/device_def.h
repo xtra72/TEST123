@@ -19,6 +19,8 @@ extern volatile unsigned long DeviceStatus;
  * @brief Generic LIST_INDEX typedef used by device peripherals
  */
 #define LIST_INDEX unsigned char
+#define DEVICE_PULSE_OFF		0x0100	//!< When this flag is on, no PULSE_EVENT is sent to the queue
+
 /** List of device status word flags */
 #define DEVICE_UNINSTALLED		0x0080	//!< Device not installed status flag
 #define DEVICE_COMM_ERROR		0x0040	//!< Device no communication error status flag
@@ -88,6 +90,7 @@ typedef enum {
 	REAL_APP_KEY_RX_REPORT_COMPLETED,
 	JOIN_COMPLETED,
 	SYSTEM_RESET,
+	RUN_TEST_EVENT,
 	UNKNOWN_EVENT	= 255	//!< Undefined event @hideinitializer
 } EVENT_TYPE;
 

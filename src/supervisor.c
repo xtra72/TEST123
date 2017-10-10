@@ -100,7 +100,14 @@ static void SUPERVISORUpdatePulseValue(void) {
 
 static void SUPERVISORRunAttach()
 {
-	DevicePostEvent(RUN_ATTACH);
+	if (UNIT_INSTALLED)
+	{
+		DevicePostEvent(RUN_TEST_EVENT);
+	}
+	else
+	{
+		DevicePostEvent(RUN_ATTACH);
+	}
 }
 
 static void SUPERVISORResetUnit(void) {
@@ -192,6 +199,7 @@ static StaticTask_t CycleTask;
 /** @endcond */
 void SUPERVISOR_StartCyclicTask(int Start, unsigned long period)
 {
+
 	if (xCyclicHandle) vTaskDelete(xCyclicHandle);
 #if (INCLUDE_COMPLIANCE_TEST > 0)
 	if (period == 0) RFPeriod = 0;	// Used for compliance test
@@ -331,8 +339,10 @@ __attribute__((noreturn)) void SUPERVISOR_Task(void* pvParameters)
 	case PULSE_EVENT:
 		TRACE("A pulse occurred.\n");
 		// Show Pulse LED if not installed or button was activated for less than 5 minutes
-		if (GET_FLAG(DEVICE_UNINSTALLED) || ((DeviceRTCGetSeconds() - lastButton) < (5*60)))
+		if (GET_FLAG(DEVICE_UNINSTALLED) || ((DeviceRTCGetSeconds() - lastButton) < (5*60))) {
 			DeviceFlashOneLedExt(0,1,LED_FLASH_SHORTER);
+			CLEAR_FLAG(DEVICE_PULSE_OFF);
+		}
 		break;
 		/*
 		 * The Cyclic Task triggered
@@ -352,6 +362,7 @@ __attribute__((noreturn)) void SUPERVISOR_Task(void* pvParameters)
 
 		if (!UNIT_CTM_ON) break;
 		/* no break */
+	case	RUN_TEST_EVENT:
 	case PERIODIC_RESEND:
 		if (UNIT_INSTALLED == 0) break;
 		DeviceFlashLed(LED_FLASH_ON);

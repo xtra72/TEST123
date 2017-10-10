@@ -1489,7 +1489,7 @@ static void OnRxWindow2TimerEvent( void )
 {
     TimerStop( &RxWindowTimer2 );
 
-//    TRACE("OnRxWindow2TimerEvent!\n");
+    TRACE("OnRxWindow2TimerEvent(%d, %d)!\n", Channel, LoRaMacParams.Rx2Channel.Frequency);
     RxWindow2Config.Channel = Channel;
     RxWindow2Config.Frequency = LoRaMacParams.Rx2Channel.Frequency;
     RxWindow2Config.DownlinkDwellTime = LoRaMacParams.DownlinkDwellTime;
@@ -1507,6 +1507,7 @@ static void OnRxWindow2TimerEvent( void )
 
     if( RegionRxConfig( LoRaMacRegion, &RxWindow2Config, ( int8_t* )&McpsIndication.RxDatarate ) == true )
     {
+    	TRACE("RX Datarate : %d\n", McpsIndication.RxDatarate);
         RxWindowSetup( RxWindow2Config.RxContinuous, LoRaMacParams.MaxRxWindow );
         RxSlot = RxWindow2Config.Window;
     }
@@ -1516,7 +1517,7 @@ static void OnAckTimeoutTimerEvent( void )
 {
     TimerStop( &AckTimeoutTimer );
 
-//    TRACE("OnAckTimeoutTimerEvent!\n");
+    TRACE("OnAckTimeoutTimerEvent!\n");
     if( NodeAckRequested == true )
     {
         AckTimeoutRetry = true;
@@ -1819,6 +1820,11 @@ static void ProcessMacCommands( uint8_t *payload, uint8_t macIndex, uint8_t comm
                         LoRaMacParams.Rx2Channel.Datarate = rxParamSetupReq.Datarate;
                         LoRaMacParams.Rx2Channel.Frequency = rxParamSetupReq.Frequency;
                         LoRaMacParams.Rx1DrOffset = rxParamSetupReq.DrOffset;
+
+                        TRACE("Rx Params Setup Req\n");
+                        TRACE("%16s : %d\n", "Rx1 DR Offset",  LoRaMacParams.Rx1DrOffset);
+                        TRACE("%16s : %d\n", "Rx2 DR", LoRaMacParams.Rx2Channel.Datarate);
+                        TRACE("%16s : %d\n", "Rx2 Frequency", LoRaMacParams.Rx2Channel.Frequency);
                     }
                     AddMacCommand( MOTE_MAC_RX_PARAM_SETUP_ANS, status, 0 );
                 }
@@ -2084,6 +2090,7 @@ static void ResetMacParameters( void )
     LoRaMacParams.MaxEirp = LoRaMacParamsDefaults.MaxEirp;
     LoRaMacParams.AntennaGain = LoRaMacParamsDefaults.AntennaGain;
 
+    TRACE("Rx2Channel.Frequency : %d\n", LoRaMacParams.Rx2Channel.Frequency);
     NodeAckRequested = false;
     SrvAckRequested = false;
     MacCommandsInNextTx = false;
@@ -2439,6 +2446,7 @@ LoRaMacStatus_t LoRaMacInitialization( LoRaMacPrimitives_t *primitives, LoRaMacC
     getPhy.Attribute = PHY_DEF_RX2_FREQUENCY;
     phyParam = RegionGetPhyParam( LoRaMacRegion, &getPhy );
     LoRaMacParamsDefaults.Rx2Channel.Frequency = phyParam.Value;
+    TRACE("Rx2Channel.Frequency2 : %d\n", LoRaMacParamsDefaults.Rx2Channel.Frequency);
 
     getPhy.Attribute = PHY_DEF_RX2_DR;
     phyParam = RegionGetPhyParam( LoRaMacRegion, &getPhy );
