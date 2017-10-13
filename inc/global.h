@@ -100,6 +100,8 @@
 #define	LORAWAN_RETRANSMISSION_MIN	1
 #define	LORAWAN_RETRANSMISSION_MAX	8
 
+#define	S47_SKT_CERT_ENABLED		1
+
 /* Hardware Init */
 #include "device_def.h"
 #include "board.h"
@@ -122,6 +124,11 @@
 #include <mcu_rtc.h>
 #include <datetime.h>
 #include <mmi_spi.h>
+
+#define	S47_SHELL_BAUDRATE_DEFAULT	115200
+#define	S47_SHELL_DATABITS_DEFAULT	leuartDatabits8
+#define	S47_SHELL_PARITY_DEFAULT	leuartNoParity
+#define	S47_SHELL_STOPBITS_DEFAULT	leuartStopbits1
 
 #endif
 

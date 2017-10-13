@@ -52,17 +52,17 @@ void SHELL_Init(void)
   LEUART_Init_TypeDef init = {                                                                                         \
 	    leuartEnable,    /* Enable RX/TX when init completed. */                                \
 	    0,               /* Use current configured reference clock for configuring baudrate. */ \
-	    9600,            /* 9600 bits/s. */                                                     \
-	    leuartDatabits8, /* 8 databits. */                                                      \
-	    leuartNoParity,  /* No parity. */                                                       \
-	    leuartStopbits1  /* 1 stopbit. */                                                       \
+		S47_SHELL_BAUDRATE_DEFAULT,            /* 9600 bits/s. */                                                     \
+		S47_SHELL_DATABITS_DEFAULT, /* 8 databits. */                                                      \
+		S47_SHELL_PARITY_DEFAULT,  /* No parity. */                                                       \
+		S47_SHELL_STOPBITS_DEFAULT  /* 1 stopbit. */                                                       \
 	  };
 
   /* Enable CORE LE clock in order to access LE modules */
   CMU_ClockEnable(cmuClock_CORELE, true);
 
   /* Select LFXO for LEUARTs (and wait for it to stabilize) */
-  CMU_ClockSelectSet(cmuClock_LFB, cmuSelect_HFXO);
+  CMU_ClockSelectSet(cmuClock_LFB, cmuSelect_HFCLKLE);
   CMU_ClockEnable(cmuClock_LEUART0, true);
 
   /* Do not prescale clock */
