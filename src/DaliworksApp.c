@@ -7,6 +7,7 @@
 
 #include "global.h"
 #include "deviceApp.h"
+#include "DaliworksApp.h"
 #include "supervisor.h"
 #include "trace.h"
 
@@ -26,15 +27,11 @@ bool rc = false;
 		TRACE("%16s : %02x %02x %02x\n", "App Nonce", msg->Payload[0], msg->Payload[1], msg->Payload[2]);
 		break;
 
-	case 0x81:
-		// WARNING: Upon factory reset the unit will not communicated with the LoRaWAN anymore
-		// until it is re-installed using the magnet.
-		// If a factory reset is requested, uncomment next line
-//		DeviceUserDataSetFlag(FLAG_INSTALLED, 0);
-		SystemReboot();
-		// This code will never return
+	case MSG_DALIWORKS_RESET:
+		SUPERVISOR_RequestSystemReset();
 		break;
-	case 0x83:
+
+	case MSG_DALIWORKS_UPLINK_DATA_REQ:
 		{
 			// I don't know the expected size of this information nor the endian type
 			// As an example I assume it's a long as the data is transfered in seconds
@@ -54,15 +51,13 @@ bool rc = false;
 				ulPeriod = *((uint32_t *)(msg->Payload));
 			}
 
+			LORAWAN_SendAck();
+
 			if (ulPeriod != 0)
 			{
-				SUPERVISOR_StartCyclicTask(0, ulPeriod);
-				LocalMessage.Port = LORAWAN_APP_PORT;
-				LocalMessage.Request = MCPS_UNCONFIRMED;
-				LocalMessage.Message->MessageType = 0x84;
-				LocalMessage.Message->PayloadLen = sizeof(unsigned long);
-				*((unsigned long*)(msg->Payload)) = SUPERVISOR_GetRFPeriod();
-				rc = true;
+				SUPERVISOR_SetPeriodicMode(true);
+				SUPERVISOR_SetRFPeriod(ulPeriod);
+				SUPERVISOR_RequestResend();
 			}
 		}
 		break;

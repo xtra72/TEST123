@@ -22,19 +22,19 @@ static uint32_t		RFPeriod = SUPERVISOR_CYCLIC_TASK_DEFAULT;
 static portTickType CycleStart = 0;
 static bool			bStepByStep = false;
 
-void	SUPERVISOR_startReport(void)
+bool	SUPERVISOR_RequestResend(void)
 {
-}
+	DevicePostEvent(PERIODIC_RESEND);
 
-void	SUPERVISOR_stopReport(void)
-{
-}
-
-bool	SUPERVISOR_setReportInterval(uint32_t ulSecs)
-{
 	return	true;
 }
 
+bool	SUPERVISOR_RequestSystemReset(void)
+{
+	DevicePostEvent(SYSTEM_RESET);
+
+	return	true;
+}
 /**************************** Private functions ********************/
 /** @cond */
 #define MS_DELAY_MIN		3L		// loose 3 ms per min. (in fact 2.941 ms)

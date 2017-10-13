@@ -28,6 +28,15 @@ Maintainer: Miguel Luis ( Semtech ), Gregory Cristian ( Semtech ) and Daniel Jae
 #undef	__MODULE__
 #define	__MODULE__	"LoRaMAC"
 
+#if 0
+#undef	TRACE
+#define	TRACE(format, ...)
+#undef	ERROR
+#define	ERROR(format, ...)
+#undef	TRACE_DUMP
+#define	TRACE_DUMP(pData, ulDataLen, format, ...)
+#endif
+
 /*!
  * Maximum PHY layer payload size
  */
@@ -2306,6 +2315,7 @@ LoRaMacStatus_t SendFrameOnChannel( uint8_t channel )
 
     // Send now
     Radio.Send( LoRaMacBuffer, LoRaMacBufferPktLen );
+    TRACE("Radio.Send(%d)\n", LoRaMacBufferPktLen);
 
     if( IsLoRaMacNetworkJoined == false )
     {

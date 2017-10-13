@@ -62,7 +62,7 @@ void SHELL_Init(void)
   CMU_ClockEnable(cmuClock_CORELE, true);
 
   /* Select LFXO for LEUARTs (and wait for it to stabilize) */
-  CMU_ClockSelectSet(cmuClock_LFB, cmuSelect_LFXO);
+  CMU_ClockSelectSet(cmuClock_LFB, cmuSelect_HFXO);
   CMU_ClockEnable(cmuClock_LEUART0, true);
 
   /* Do not prescale clock */
@@ -279,9 +279,12 @@ uint32_t	SHELL_GetLine(uint8_t* pBuffer, uint32_t ulBufferLen)
 			{
 				pBuffer[ulLineLen++] = nData;
 			}
+			vTaskDelay(0);
 		}
-
-		vTaskDelay(1);
+		else
+		{
+			vTaskDelay(1);
+		}
 	}
 
 	if (ulLineLen < ulBufferLen)
@@ -992,7 +995,6 @@ int AT_CMD_Send(char *ppArgv[], int nArgc)
 	static	uint8_t pData[256];
 	uint8_t			nDataLen = 0;
 
-	SHELL_Printf("SEND PACKET\n");
 	if (nArgc == 2)
 	{
 		uint32_t	ulLen = strlen(ppArgv[1]);
@@ -1019,7 +1021,9 @@ int AT_CMD_Send(char *ppArgv[], int nArgc)
 		SHELL_Printf("- ERROR, Invalid Arguments\n");
 	}
 
-	vTaskDelay(1024*10 );
+//	vTaskDelay(1024*10 );
+	SHELL_Printf("SEND PACKET\n");
+
 	return	0;
 }
 

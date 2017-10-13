@@ -93,7 +93,7 @@ static bool DEVICEAPP_ExecSKTDevice(LORA_MESSAGE* msg)
 		// If a factory reset is requested, uncomment next line
 //		DeviceUserDataSetFlag(FLAG_INSTALLED, 0);
 		LORAWAN_SendAck();
-		DevicePostEvent(SYSTEM_RESET);
+		SUPERVISOR_RequestSystemReset();
 		// This code will never return
 		break;
 
@@ -115,20 +115,20 @@ static bool DEVICEAPP_ExecSKTDevice(LORA_MESSAGE* msg)
 				ulPeriod = *((uint32_t *)(msg->Payload));
 			}
 
+			LORAWAN_SendAck();
+
 			if (ulPeriod != 0)
 			{
 				SUPERVISOR_SetPeriodicMode(true);
-				DeviceUserDataSetRFPeriod(ulPeriod);
-				DevicePostEvent(PERIODIC_RESEND);
+				SUPERVISOR_SetRFPeriod(ulPeriod);
+				SUPERVISOR_RequestResend();
 			}
-
-			LORAWAN_SendAck();
 		}
 		break;
 
 	case MSG_SKT_DEV_UPLINK_DATA_REQ:
 		// Just force Supervisor to send standard uplink message
-		DevicePostEvent(PERIODIC_RESEND);
+		SUPERVISOR_RequestResend();
 		break;
 	}
 	return rc;
@@ -325,7 +325,9 @@ bool SKTAPP_ParseMessage(McpsIndication_t* ind)
 					}
 				}
 
+				/* If rc is true then send ACK. */
 				if (rc) {
+					LORAWAN_SendAck();
 				}
 			}
 		}

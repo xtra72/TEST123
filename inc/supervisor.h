@@ -27,7 +27,6 @@ unsigned long SUPERVISOR_GetHistoricalValue(int rank, int index);
  * @return The period in seconds (from 1 to 30*24*60*60)
  */
 unsigned long SUPERVISOR_GetRFPeriod(void);
-
 bool	SUPERVISOR_SetRFPeriod(unsigned long ulPeriod);
 /*!
  * @brief Restart RF transmission cyclic loop
@@ -55,6 +54,9 @@ uint8_t	SUPERVISOR_GetSF(void);
 
 bool	SUPERVISOR_IsPeriodicMode(void);
 void	SUPERVISOR_SetPeriodicMode(bool bPeriodicMode);
+
+bool	SUPERVISOR_RequestResend(void);
+bool	SUPERVISOR_RequestSystemReset(void);
 
 void SUPERVISOR_Task(void* pvParameters);
 
