@@ -592,15 +592,15 @@ bool	LORAWAN_SendLinkCheckRequest(void)
 		return	false;
 	}
 
-	LORA_PACKET		xPacket;
+	LORA_PACKET		xMessage;
 
-	xPacket.Buffer = NULL;
-	xPacket.Port = 0;
-	xPacket.Request = MCPS_CONFIRMED;
-	xPacket.Size = 0;
-	if (LORAWAN_SendMessage(&xPacket)  != LORAMAC_STATUS_OK)
+	xMessage.Buffer = NULL;
+	xMessage.Port = 0;
+	xMessage.Request = MCPS_CONFIRMED;
+	xMessage.Size = 0;
+	if (LORAWAN_SendMessage(&xMessage)  != LORAMAC_STATUS_OK)
 	{
-		 LORAWAN_ShowErrorStatus(xPacket.Status);
+		 LORAWAN_ShowErrorStatus(xMessage.Status);
 	}
 
 	return	true;

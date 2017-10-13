@@ -16,6 +16,8 @@ uint32_t	TRACE_Dump(char *pModule, uint8_t *pData, uint32_t ulDataLen, const cha
 uint32_t	TRACE_Printf(const char* pModule, const char *pFormat, ...);
 bool		TRACE_SetEnable(bool bEnable);
 bool		TRACE_GetEnable(void);
+bool		TRACE_SetDumpEnable(bool bEnable);
+bool		TRACE_GetDumpEnable(void);
 void		TRACE_SetModule(const char * pModule, bool bEnable);
 bool		TRACE_GetModule(const char * pModule);
 

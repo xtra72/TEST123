@@ -1280,7 +1280,6 @@ static void OnMacStateCheckTimerEvent( void )
                         {
                             LoRaMacFlags.Bits.MacDone = 0;
                             // Sends the same frame again
-                            TRACE("OnTxDelayedTimerEvent called in OnMacStateCheckTimerEvent\n");
                             OnTxDelayedTimerEvent( );
                         }
                     }
@@ -2323,7 +2322,7 @@ LoRaMacStatus_t SendFrameOnChannel( uint8_t channel )
     }
     else
     {
-#if 0
+#if 1
 		TRACE_DUMP(LoRaMacBuffer, LoRaMacBufferPktLen, "Send Frame[%d] - ", LoRaMacBufferPktLen);
 
 #endif

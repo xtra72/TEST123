@@ -537,26 +537,43 @@ int	AT_CMD_Status(char *ppArgv[], int nArgc)
 
 int	AT_CMD_Trace(char *ppArgv[], int nArgc)
 {
+	int	nRet = -1;
+
 	if (nArgc == 1)
 	{
-		SHELL_Printf("%16s : %s\n", "Mode", (TRACE_GetEnable())?"Enable":"Disabled");
+		nRet = 0;
 	}
 	else if (nArgc == 2)
 	{
 		if (strcmp(ppArgv[1], "enable") == 0)
 		{
 			TRACE_SetEnable(true);
-			SHELL_Printf("%16s : %s\n", "Mode", (TRACE_GetEnable())?"Enable":"Disabled");
+			nRet = 0;
 		}
 		else if (strcmp(ppArgv[1], "disable") == 0)
 		{
 			TRACE_SetEnable(false);
-			SHELL_Printf("%16s : %s\n", "Mode", (TRACE_GetEnable())?"Enable":"Disabled");
+			nRet = 0;
 		}
-
+		else if (strcmp(ppArgv[1], "dump") == 0)
+		{
+			TRACE_SetDumpEnable(true);
+			nRet = 0;
+		}
+		else if (strcmp(ppArgv[1], "undump") == 0)
+		{
+			TRACE_SetDumpEnable(false);
+			nRet = 0;
+		}
 	}
 
-	return	0;
+	if (nRet == 0)
+	{
+		SHELL_Printf("%16s : %s\n", "Mode", (TRACE_GetEnable())?"Enable":"Disabled");
+		SHELL_Printf("%16s : %s\n", "Dump", (TRACE_GetDumpEnable())?"Enable":"Disabled");
+	}
+
+	return	nRet;
 }
 
 int	AT_CMD_Help(char *ppArgv[], int nArgc)
@@ -837,7 +854,7 @@ int AT_CMD_Channel(char *ppArgv[], int nArgc)
 	if (nArgc == 1)
 	{
 		SHELL_Printf("GET TX CHANNEL\n");
-		SHELL_Printf("- Tx Channel : %d\n", LoRaMacTestGetChannel());
+		SHELL_Printf("- Tx Channel : %d\n", 921900000 + 200000 * LoRaMacTestGetChannel());
 	}
 	else
 	{
@@ -850,7 +867,7 @@ int AT_CMD_Channel(char *ppArgv[], int nArgc)
 			int8_t	nTxChannel = atoi(ppArgv[1]);
 			if ((LORAMAC_TX_CHANNEL_MIN <= nTxChannel) && (nTxChannel <= LORAMAC_TX_CHANNEL_MAX))
 			{
-				ret = LoRaMacTestSetChannel( nTxChannel );
+				ret = LoRaMacTestSetChannel( nTxChannel - LORAMAC_TX_CHANNEL_MIN + 1);
 			}
 		}
 
@@ -995,6 +1012,7 @@ int AT_CMD_Send(char *ppArgv[], int nArgc)
 	static	uint8_t pData[256];
 	uint8_t			nDataLen = 0;
 
+	SHELL_Printf("SEND PACKET\n");
 	if (nArgc == 2)
 	{
 		uint32_t	ulLen = strlen(ppArgv[1]);
@@ -1002,7 +1020,7 @@ int AT_CMD_Send(char *ppArgv[], int nArgc)
 		nDataLen = HexString2Array( ppArgv[1], pData, sizeof(pData));
 		if (ulLen > nDataLen * 2)
 		{
-			SHELL_Printf("- ERROR, Max Payload Size : %d Byte\n", sizeof(pData));
+			SHELL_Printf("- ERROR, Max Payload Size : %d Byte\n", sizeof(pData) - 1);
 		}
 		else if (nDataLen == 0)
 		{
@@ -1020,9 +1038,6 @@ int AT_CMD_Send(char *ppArgv[], int nArgc)
 	{
 		SHELL_Printf("- ERROR, Invalid Arguments\n");
 	}
-
-//	vTaskDelay(1024*10 );
-	SHELL_Printf("SEND PACKET\n");
 
 	return	0;
 }

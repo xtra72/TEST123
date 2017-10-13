@@ -89,6 +89,18 @@ bool		TRACE_GetEnable(void)
 	return	_bEnable;
 }
 
+bool		TRACE_SetDumpEnable(bool bEnable)
+{
+	_bDumpEnable = bEnable;
+
+	return	true;
+}
+
+bool		TRACE_GetDumpEnable(void)
+{
+	return	_bDumpEnable;
+}
+
 void		TRACE_SetModule(const char * pModule, bool bEnable)
 {
 }
