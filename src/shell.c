@@ -53,7 +53,8 @@ void SHELL_Init(void)
   LEUART_Init_TypeDef init = {                                                                                         \
 	    leuartEnable,    /* Enable RX/TX when init completed. */                                \
 	    0,               /* Use current configured reference clock for configuring baudrate. */ \
-		S47_SHELL_BAUDRATE_DEFAULT,            /* 9600 bits/s. */                                                     \
+		//S47_SHELL_BAUDRATE_DEFAULT,
+		9600,/* 9600 bits/s. */                                                     \
 		S47_SHELL_DATABITS_DEFAULT, /* 8 databits. */                                                      \
 		S47_SHELL_PARITY_DEFAULT,  /* No parity. */                                                       \
 		S47_SHELL_STOPBITS_DEFAULT  /* 1 stopbit. */                                                       \
@@ -63,7 +64,7 @@ void SHELL_Init(void)
   CMU_ClockEnable(cmuClock_CORELE, true);
 
   /* Select LFXO for LEUARTs (and wait for it to stabilize) */
-  //  CMU_ClockSelectSet(cmuClock_LFB, cmuSelect_HFCLKLE);
+  //CMU_ClockSelectSet(cmuClock_LFB, cmuSelect_HFCLKLE);
   CMU_ClockSelectSet(cmuClock_LFB, cmuSelect_LFXO);
   CMU_ClockEnable(cmuClock_LEUART0, true);
 
@@ -435,19 +436,19 @@ int	AT_CMD_CTM(char *ppArgv[], int nArgc)
 				SUPERVISOR_SetPeriodicMode(false);
 
 				ret = true;
-}
+			}
 			else if (strcasecmp(ppArgv[1], "period") == 0)
 			{
 				SHELL_Printf("%d\n", SUPERVISOR_GetRFPeriod());
 
 				ret = true;
-}
+			}
 			else if (strcasecmp(ppArgv[1], "now") == 0)
 			{
 				DevicePostEvent(PERIODIC_RESEND);
 
 				ret = true;
-}
+			}
 		}
 		else if (nArgc == 3)
 		{
@@ -1298,6 +1299,16 @@ int AT_CMD_BATT(char *ppArgv[], int nArgc)
 	return	0;
 }
 
+int AT_CMD_Sleep(char *ppArgv[], int nArgc)
+{
+	if (nArgc == 1)
+	{
+		vTaskDelay(5*1024);
+	}
+
+	return	0;
+}
+
 SHELL_CMD	pShellCmds[] =
 {
 		{	"AT",	  	"Checking the serial connection status", AT_CMD},
@@ -1333,6 +1344,7 @@ SHELL_CMD	pShellCmds[] =
 		{	"AT+TASK",	"Get Task Information",	AT_CMD_Task},
 		{	"AT+STAT", 	"Get Status",	AT_CMD_Status},
 		{   "AT+TRCE", 	"Get/Set Trace", AT_CMD_Trace},
+		{	"AT+SLP",	"Sleep",	AT_CMD_Sleep},
 		{	"AT+MAC",	"Get/Set MAC",	AT_CMD_Mac},
 		{	"AT+HELP", 	"Help", AT_CMD_Help},
 		{	NULL, NULL, NULL}

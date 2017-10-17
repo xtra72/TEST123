@@ -56,7 +56,7 @@ __attribute__((noreturn)) void vApplicationStackOverflowHook( xTaskHandle pxTask
  * Tasks static allocation
  */
 /** @cond */
-#define SUPER_STACK		500
+#define SUPER_STACK		1000
 /** @endcond */
 static StackType_t SuperStack[SUPER_STACK];
 static StaticTask_t SuperTask;

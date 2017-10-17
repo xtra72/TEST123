@@ -17,7 +17,7 @@
 static LORA_PACKET messageIn;
 static xSemaphoreHandle LORAWANSemaphore;
 
-#define LORAWAN_TIMEOUT	(50 * configTICK_RATE_HZ)	//!< LORAWAN_SendMessage Timeout value
+#define LORAWAN_TIMEOUT	(10 * configTICK_RATE_HZ)	//!< LORAWAN_SendMessage Timeout value
 
 static struct
 {
@@ -36,7 +36,7 @@ static MibRequestConfirm_t mibReq;
 #define CONFIRM_EVENT		(0x01 << 1)
 #define INDICATION_EVENT	(0x01 << 2)
 
-#define RF_EVENT_STACK		( configMINIMAL_STACK_SIZE * 6)
+#define RF_EVENT_STACK		( configMINIMAL_STACK_SIZE * 8)
 static StackType_t RFEventStack[RF_EVENT_STACK];
 static StaticTask_t RFEventTask;
 static TaskHandle_t LORAWANEventTask;
@@ -475,12 +475,12 @@ LoRaMacStatus_t LORAWAN_SendMessage( LORA_PACKET* message )
 	    {
 	    	if (xSemaphoreTake( LORAWANSemaphore, ((message->NbTrials) ? 2 : 1 ) * LORAWAN_TIMEOUT ) == pdFALSE)
 	    	{
-	    		TRACE("Semaphore take failed[%d]\n", __LINE__);
-	    		TRACE("LoRaMAC Event Info Status Tx Timeout!\n");
+	    		ERROR("Request Timeout!\n");
 	        	message->Status = LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT;
 	    	}
 	    	else
 	    	{
+	         	TRACE("Request Done\n");
 	    		message->Status = LocalMcps.confirm.Status;
 	    		message->NbTrials = LocalMcps.confirm.NbRetries;
 	    	}
@@ -491,7 +491,7 @@ LoRaMacStatus_t LORAWAN_SendMessage( LORA_PACKET* message )
     	{
     	}
     	message->Status = LORAMAC_EVENT_INFO_STATUS_ERROR;
-      	ERROR("Request error\n");
+    	ERROR("Request error\n");
     }
 
     return result;

@@ -7,6 +7,7 @@
  * @brief S40 module main application files
  *  @{
  */
+#include <time.h>
 #include "global.h"
 #include "deviceApp.h"
 #include "SKTApp.h"
@@ -360,6 +361,8 @@ void SKTAPP_ParseMlme(MlmeConfirm_t *m)
 		newtime = localtime( &aclock );
 
 		TRACE( "The current date and time are: %s", asctime( newtime ) );
+		break;
+	default:
 		break;
 	}
 }

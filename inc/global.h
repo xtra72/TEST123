@@ -125,7 +125,7 @@
 #include <datetime.h>
 #include <mmi_spi.h>
 
-#define	S47_SHELL_BAUDRATE_DEFAULT	9600
+#define	S47_SHELL_BAUDRATE_DEFAULT	38400
 #define	S47_SHELL_DATABITS_DEFAULT	leuartDatabits8
 #define	S47_SHELL_PARITY_DEFAULT	leuartNoParity
 #define	S47_SHELL_STOPBITS_DEFAULT	leuartStopbits1
