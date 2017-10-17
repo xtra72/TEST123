@@ -1682,7 +1682,7 @@ static LoRaMacStatus_t AddMacCommand( uint8_t cmd, uint8_t p1, uint8_t p2 )
             {
                 MacCommandsBuffer[MacCommandsBufferIndex++] = cmd;
                 // No payload for this command
-                status = LORAMAC_STATUS_OK;
+                 status = LORAMAC_STATUS_OK;
             }
             break;
         default:
@@ -1863,6 +1863,14 @@ static void ProcessMacCommands( uint8_t *payload, uint8_t macIndex, uint8_t comm
                     chParam.Rx1Frequency = 0;
                     chParam.DrRange.Value = payload[macIndex++];
 
+#if	1 // for test by xtra
+                    if (chParam.DrRange.Fields.Max > DR_5)
+                    {
+                    	chParam.DrRange.Fields.Max = DR_5;
+                    }
+#endif
+                    TRACE("%16s : CH[%d] = %d\n", "New Channel", newChannelReq.ChannelId, chParam.Frequency);
+                    TRACE("%16s : DR_%d(%d ~ %d)\n", "DataRate", chParam.DrRange.Value, chParam.DrRange.Fields.Min, chParam.DrRange.Fields.Max);
                     status = RegionNewChannelReq( LoRaMacRegion, &newChannelReq );
 
                     AddMacCommand( MOTE_MAC_NEW_CHANNEL_ANS, status, 0 );
@@ -1928,8 +1936,17 @@ static void ProcessMacCommands( uint8_t *payload, uint8_t macIndex, uint8_t comm
                 }
                 break;
             case SRV_MAC_DEV_TIME_ANS:
-                MlmeConfirm.Status = LORAMAC_EVENT_INFO_STATUS_OK;
+				{
+					MlmeConfirm.Status = LORAMAC_EVENT_INFO_STATUS_OK;
+					MlmeConfirm.Epoch = (uint32_t)payload[macIndex++];
+					MlmeConfirm.Epoch |= (uint32_t)payload[macIndex++]<< 8;
+					MlmeConfirm.Epoch |= (uint32_t)payload[macIndex++]<< 16;
+					MlmeConfirm.Epoch |= (uint32_t)payload[macIndex++] << 24;
+					MlmeConfirm.FracSec = (uint16_t)payload[macIndex++];
+					MlmeConfirm.FracSec |= (uint16_t)payload[macIndex++]<< 8;
+				}
                 break;
+
             default:
                 // Unknown command. ABORT MAC commands processing
                 return;
@@ -3362,7 +3379,7 @@ LoRaMacStatus_t LoRaMacMlmeRequest( MlmeReq_t *mlmeRequest )
             MlmeConfirm.MlmeRequest = mlmeRequest->Type;
             LoRaMacFlags.Bits.MlmeReq = 1;
 
-            status = AddMacCommand( MOTE_MAC_ACK, 0, 0 );
+            status = AddMacCommand( MOTE_MAC_ACK, 1, 0 );
             break;
         }
 

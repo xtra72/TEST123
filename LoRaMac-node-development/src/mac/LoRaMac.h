@@ -402,7 +402,7 @@ typedef enum eLoRaMacMoteCmd
      */
     MOTE_MAC_DL_CHANNEL_ANS          = 0x0A,
 
-    MOTE_MAC_DEV_TIME_REQ            = 0x0B,
+    MOTE_MAC_DEV_TIME_REQ            = 0x0D,
 
 	MOTE_MAC_ACK					 = 0x80
 }LoRaMacMoteCmd_t;
@@ -451,7 +451,7 @@ typedef enum eLoRaMacSrvCmd
      */
     SRV_MAC_DL_CHANNEL_REQ           = 0x0A,
 
-	SRV_MAC_DEV_TIME_ANS			 = 0x0B
+	SRV_MAC_DEV_TIME_ANS			 = 0x0D
 }LoRaMacSrvCmd_t;
 
 /*!
@@ -1107,6 +1107,9 @@ typedef struct sMlmeConfirm
      * Provides the number of retransmissions
      */
     uint8_t NbRetries;
+
+    uint32_t 	Epoch;
+    uint16_t	FracSec;
 }MlmeConfirm_t;
 
 /*!

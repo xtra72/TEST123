@@ -9,6 +9,7 @@
 #include <stdarg.h>
 #include <ctype.h>
 #include <stdio.h>
+#include <time.h>
 #include "em_device.h"
 #include "em_chip.h"
 #include "em_cmu.h"
@@ -62,7 +63,8 @@ void SHELL_Init(void)
   CMU_ClockEnable(cmuClock_CORELE, true);
 
   /* Select LFXO for LEUARTs (and wait for it to stabilize) */
-  CMU_ClockSelectSet(cmuClock_LFB, cmuSelect_HFCLKLE);
+  //  CMU_ClockSelectSet(cmuClock_LFB, cmuSelect_HFCLKLE);
+  CMU_ClockSelectSet(cmuClock_LFB, cmuSelect_LFXO);
   CMU_ClockEnable(cmuClock_LEUART0, true);
 
   /* Do not prescale clock */
@@ -627,10 +629,22 @@ int AT_CMD_GetConfig(char *ppArgv[], int nArgc)
 	SHELL_Printf("- MaxDCycle : %d, AggregatedDCycle : %d\n", LoRaMacTestGetMaxDCycle(), LoRaMacTestGetAggreagtedDCycle());
 	SHELL_Printf("- Current Rx1 DR Offset : %d, Rx2 DataRate : %d\n", LoRaMacTestGetRx1DrOffset(), LoRaMacTestGetRx2Datarate());
 
+	for(uint32_t i = 0 ; i < 16 ; i++)
+	{
+		ChannelParams_t channel;
+
+		if (!LORAMAC_GetChannel(i, &channel))
+		{
+			break;
+		}
+		SHELL_Printf("- Channels[%d] : %d, Band : %d\n", i, channel.Frequency, channel.Band);
+	}
+#if 0
 	for(uint32_t i = 0 ; i <= LORAMAC_TX_CHANNEL_MAX - LORAMAC_TX_CHANNEL_MIN ; i++)
 	{
 		SHELL_Printf("- Channels[%d] : %d, Band : 0\n", i, 922100000 + i * 200000);
 	}
+#endif
 
 	SHELL_Printf("- Channels Mask : %04x\n", LORAMAC_GetChannelsMask());
 	SHELL_Printf("- Rx1 Delay : %d, Rx2 Delay : %d\n", LORAMAC_GetRx1Delay(), LORAMAC_GetRx2Delay());

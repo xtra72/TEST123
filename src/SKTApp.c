@@ -341,6 +341,27 @@ void SKTAPP_ParseMlme(MlmeConfirm_t *m)
 #if (INCLUDE_COMPLIANCE_TEST > 0)
 	if (Compliance_ParseMlme(m)) return;
 #endif
+
+	switch(m->MlmeRequest)
+	{
+	case	MLME_LINK_CHECK:
+		TRACE("Demod Margin : %d\n", m->DemodMargin);
+		TRACE("Gateways Number: %d\n", m->NbGateways);
+		break;
+
+	case	MLME_DEV_TIME:
+		TRACE("Epoch : %d\n", m->Epoch);
+		TRACE("Frac Seconds: %d\n", m->FracSec);
+
+		struct tm *newtime;
+		time_t aclock;
+
+		aclock = m->Epoch;
+		newtime = localtime( &aclock );
+
+		TRACE( "The current date and time are: %s", asctime( newtime ) );
+		break;
+	}
 }
 
 bool SKTAPP_GetPeriodicMode(void)

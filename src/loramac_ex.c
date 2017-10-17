@@ -244,6 +244,28 @@ uint16_t	LORAMAC_GetChannelsMask(void)
 	return	0;
 }
 
+bool	LORAMAC_GetChannel(uint32_t nIndex, ChannelParams_t* pChannel)
+{
+    GetPhyParams_t getPhy;
+    PhyParam_t phyParam;
+
+	// Reset to defaults
+	getPhy.Attribute = PHY_MAX_NB_CHANNELS;
+	phyParam = RegionGetPhyParam( UNIT_REGION, &getPhy );
+
+	if (nIndex >= phyParam.Value)
+	{
+		return	false;
+	}
+
+	getPhy.Attribute = PHY_CHANNELS;
+	phyParam = RegionGetPhyParam( UNIT_REGION, &getPhy );
+
+	memcpy(pChannel, &phyParam.Channels[nIndex], sizeof(ChannelParams_t));
+
+	return	true;
+}
+
 
 uint32_t	LORAMAC_GetRx1Delay(void)
 {

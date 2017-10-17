@@ -30,7 +30,7 @@ Maintainer: Miguel Luis ( Semtech ), Gregory Cristian ( Semtech ) and Daniel Jae
 #include "Region.h"
 #include "RegionCommon.h"
 #include "RegionKR920.h"
-
+#include "trace.h"
 #define	DEFAULT_JOIN_TRIALS 		8
 // Definitions
 #define CHANNELS_MASK_SIZE              1
@@ -774,16 +774,19 @@ uint8_t RegionKR920NewChannelReq( NewChannelReqParams_t* newChannelReq )
             }
             case LORAMAC_STATUS_FREQUENCY_INVALID:
             {
+            	TRACE("Frequency invalid!!!!!\n");
                 status &= 0xFE;
                 break;
             }
             case LORAMAC_STATUS_DATARATE_INVALID:
             {
+            	TRACE("Datarate invalid!!!!!\n");
                 status &= 0xFD;
                 break;
             }
             case LORAMAC_STATUS_FREQ_AND_DR_INVALID:
             {
+            	TRACE("Frequency & DR invalid!!!!!\n");
                 status &= 0xFC;
                 break;
             }
@@ -956,14 +959,17 @@ LoRaMacStatus_t RegionKR920ChannelAdd( ChannelAddParams_t* channelAdd )
     // Validate the datarate range
     if( RegionCommonValueInRange( channelAdd->NewChannel->DrRange.Fields.Min, KR920_TX_MIN_DATARATE, KR920_TX_MAX_DATARATE ) == false )
     {
+    	TRACE("Invalid DR Range Fields Min : %d\n", channelAdd->NewChannel->DrRange.Fields.Min);
         drInvalid = true;
     }
     if( RegionCommonValueInRange( channelAdd->NewChannel->DrRange.Fields.Max, KR920_TX_MIN_DATARATE, KR920_TX_MAX_DATARATE ) == false )
     {
+    	TRACE("Invalid DR Range Fields Max : %d\n", channelAdd->NewChannel->DrRange.Fields.Max);
         drInvalid = true;
     }
     if( channelAdd->NewChannel->DrRange.Fields.Min > channelAdd->NewChannel->DrRange.Fields.Max )
     {
+    	TRACE("Invalid DR Range Fields : %d ~ %d\n", channelAdd->NewChannel->DrRange.Fields.Min, channelAdd->NewChannel->DrRange.Fields.Max);
         drInvalid = true;
     }
 

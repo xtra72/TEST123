@@ -48,6 +48,7 @@ uint32_t	LORAMAC_GetChannelsNbRepeat(void);
 bool 	LORAMAC_SetChannelsNbRepeat(uint32_t ulCounter);
 
 uint16_t	LORAMAC_GetChannelsMask(void);
+bool	LORAMAC_GetChannel(uint32_t nIndex, ChannelParams_t* pChannel);
 
 uint32_t	LORAMAC_GetRx1Delay(void);
 uint32_t	LORAMAC_GetRx2Delay(void);
