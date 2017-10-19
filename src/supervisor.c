@@ -15,7 +15,7 @@
 #include "trace.h"
 
 #undef	__MODULE__
-#define	__MODULE__	"Supervisor"
+#define	__MODULE__	FLAG_TRACE_SUPERVISOR
 
 static xTaskHandle xCyclicHandle = 0;
 static uint32_t		RFPeriod = SUPERVISOR_CYCLIC_TASK_DEFAULT;

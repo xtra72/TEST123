@@ -125,11 +125,12 @@ unsigned short DataCRC;				//!< Data CRC16 checksum
  * @remark Using alternate messages, if the device type is > 16, the values transmitted are contained
  * in unsigned short values instead of unsigned long to save transmission time.
  */
-unsigned char DeviceType;
-unsigned char RunCyclicTask;
-unsigned long DefaultRFPeriod;		//!< Default RF periodic transmission (in sec.)
-unsigned long DeviceSerialNumber;	//!< Device Serial Number
-unsigned short DeviceFlags;			//!< Device permanent stored status flag
+unsigned char 	DeviceType;
+unsigned char 	RunCyclicTask;
+unsigned long 	DefaultRFPeriod;		//!< Default RF periodic transmission (in sec.)
+unsigned long 	DeviceSerialNumber;	//!< Device Serial Number
+unsigned short 	DeviceFlags;			//!< Device permanent stored status flag
+unsigned short 	TraceFlags;
 LORAWAN_INFO LoRaWAN;				//!< LoRaWAN information
 SKT_INFO	SKT;
 } USERDATA;
@@ -180,14 +181,16 @@ extern const FLASH_PAGE _USERPAGE_;
 /**
  * Permanently stored status flags
  */
-#define FLAG_INSTALLED		0x01	//!< Device is installed @hideinitializer
-#define FLAG_USE_OTAA		0x02	//!< Device uses OTAA to join LoRaWAN network @hideinitializer
-#define FLAG_DISALLOW_RESET	0x04	//!< Device cannot be reset by user using magnet when set @hideinitializer
-#define FLAG_USE_CTM		0x08	//!< Device is use to cyclic transmission mode.
-#define	FLAG_USE_RAK		0x10	//!< Device is use to real app key.
+#define FLAG_INSTALLED		0x0001	//!< Device is installed @hideinitializer
+#define FLAG_USE_OTAA		0x0002	//!< Device uses OTAA to join LoRaWAN network @hideinitializer
+#define FLAG_DISALLOW_RESET	0x0004	//!< Device cannot be reset by user using magnet when set @hideinitializer
+#define FLAG_USE_CTM		0x0008	//!< Device is use to cyclic transmission mode.
+#define	FLAG_USE_RAK		0x0010	//!< Device is use to real app key.
+
+#define	FLAG_
 /** @cond */
-#define FLAG_3				0x20	// to be defined
-#define FLAG_4				0x40	// to be defined
+#define FLAG_3				0x0020	// to be defined
+#define FLAG_4				0x0040	// to be defined
 /** @endcond */
 /*!
  * @brief Set this flag to use SKT/Daliworks LoRaWAN types of messages. If this flag is set
@@ -195,8 +198,8 @@ extern const FLASH_PAGE _USERPAGE_;
  * User Data Flash Region upon device reset
  * @remark This will probably be the version used in the rest of the world
  */
-#define FLAG_USE_SKT_APP	0x40
-#define FLAG_FACTORY_TEST	0x80	//!< Device runs factory test
+#define FLAG_USE_SKT_APP	0x0040
+#define FLAG_FACTORY_TEST	0x0080	//!< Device runs factory test
 
 //! @brief Macro to permanently set a flag value in the User Information block
 #define SET_USERFLAG(f)		DeviceUserDataSetFlag((f),(f))
@@ -205,6 +208,7 @@ extern const FLASH_PAGE _USERPAGE_;
 //! @brief Macro to permanently set a flag value in the User Information block depending on the boolean parameter
 #define UPDATE_USERFLAG(f,b)	DeviceUserDataSetFlag((f),(b) ? (f) : 0)
 
+
 #define UNIT_INSTALLED		((USERDATAPTR)->DeviceFlags & FLAG_INSTALLED)	//!< Device is installed @hideinitializer
 #define UNIT_USE_OTAA		((USERDATAPTR)->DeviceFlags & FLAG_USE_OTAA) 	//!< Device uses OTAA to join LoRaWAN network @hideinitializer
 #define UNIT_DISALLOW_RESET ((USERDATAPTR)->DeviceFlags & FLAG_DISALLOW_RESET) //!< Device cannot be reset by user @hideinitializer
@@ -212,6 +216,29 @@ extern const FLASH_PAGE _USERPAGE_;
 #define UNIT_FACTORY_TEST	((USERDATAPTR)->DeviceFlags & FLAG_FACTORY_TEST)//!< Device is in factory test mode @hideinitializer
 #define UNIT_CTM_ON			((USERDATAPTR)->DeviceFlags & FLAG_USE_CTM)//!< Device is use to cyclic transmission mode. @hideinitializer
 #define UNIT_USE_RAK		((USERDATAPTR)->DeviceFlags & FLAG_USE_RAK)//!< Device is use to real app key @hideinitializer
+
+#define	FLAG_TRACE_ENABLE		0x0001
+#define	FLAG_TRACE_DUMP			0x0002
+#define	FLAG_TRACE_LORAMAC		0x0010
+#define	FLAG_TRACE_LORAWAN		0x0020
+#define	FLAG_TRACE_DALIWORKS	0x0040
+#define	FLAG_TRACE_SKT			0x0080
+#define	FLAG_TRACE_SUPERVISOR	0x0100
+
+//! @brief Macro to permanently set a flag value in the User Information block
+#define SET_TRACE_FLAG(f)		DeviceUserDataSetTraceFlag((f),(f))
+//! @brief Macro to permanently clear a flag value in the User Information block
+#define CLR_RACE_FLAG(f)		DeviceUserDataSetTraceFlag((f),0)
+//! @brief Macro to permanently set a flag value in the User Information block depending on the boolean parameter
+#define UPDATE_TRACE_FLAG(f,b)	DeviceUserDataSetTraceFlag((f),(b) ? (f) : 0)
+
+#define UNIT_TRACE_ENABLE		((USERDATAPTR)->TraceFlags & FLAG_TRACE_ENABLE)	//!< Device is installed @hideinitializer
+#define	UNIT_TRACE_DUMP			((USERDATAPTR)->TraceFlags & FLAG_TRACE_DUMP)
+#define	UNIT_TRACE_LORAMAC		((USERDATAPTR)->TraceFlags & FLAG_TRACE_LORAMAC)
+#define	UNIT_TRACE_LORAWAN		((USERDATAPTR)->TraceFlags & FLAG_TRACE_LORAWAN)
+#define	UNIT_TRACE_DALIWORKS	((USERDATAPTR)->TraceFlags & FLAG_TRACE_DALIWORKS)
+#define	UNIT_TRACE_SKT			((USERDATAPTR)->TraceFlags & FLAG_TRACE_SKT)
+#define	UNIT_TRACE(f)			((f) && (((USERDATAPTR)->TraceFlags & (f)) == (f)))
 
 /*!
  * @brief Initializes Device Hardware Abstraction Layer
@@ -372,6 +399,8 @@ void DeviceUserDataSetRFPeriod(unsigned long Period);
 void DeviceUserDataSetAppKey(uint8_t *AppKey) ;
 void DeviceUserDataSetAppEUI(uint8_t *AppEUI) ;
 void DeviceUserDataSetDevEUI(uint8_t *DevEUI) ;
+
+void DeviceUserDataSetTraceFlag(unsigned char Mask, unsigned char Value);
 
 void DeviceUserDataSetSKTRealAppKey(uint8_t *RealAppKey) ;
 

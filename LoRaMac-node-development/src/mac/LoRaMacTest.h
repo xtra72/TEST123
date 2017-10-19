@@ -85,6 +85,9 @@ uint8_t LoRaMacTestGetRx2Datarate(void);
 int8_t	LoRaMacTestGetChannelsDatarate(void);
 int8_t	LoRaMacTestGetChannelsTxPower(void);
 
+void	LoRaMacSetTestMode( bool enable );
+bool	LoRaMacGetTestMode(void );
+
 
 /*! \} defgroup LORAMACTEST */
 

@@ -108,6 +108,7 @@ _USERPAGE_ = {
 #endif
 #endif
 		.DefaultRFPeriod = LORAMAC_DEFAULT_RF_PERIOD,
+		.TraceFlags = FLAG_TRACE_ENABLE | FLAG_TRACE_LORAMAC | FLAG_TRACE_LORAWAN | FLAG_TRACE_DALIWORKS | FLAG_TRACE_SKT | FLAG_TRACE_SUPERVISOR,
 		.LoRaWAN = {
 			.Region = LORAMAC_REGION_DEFAULT,
 			.NetID = LORAWAN_NETWORK_ID,
@@ -959,6 +960,16 @@ void DeviceUserDataSetAppKey(uint8_t *AppKey) {
 		FLASHOpen();
 		FLASHWriteUserData(0,(unsigned char*)&UData,sizeof(USERDATA));
 		FLASHClose();
+	}
+}
+
+void DeviceUserDataSetTraceFlag(unsigned char Mask, unsigned char Value) {
+	if ((USERDATAPTR->TraceFlags & Mask) != Value) {
+		USERDATA UData;
+		memcpy((unsigned char*)&UData,(unsigned char*)USERDATAPTR,sizeof(USERDATA));
+		UData.TraceFlags &= ~Mask;
+		UData.TraceFlags |= Value;
+		DeviceUserDataSave(&UData);
 	}
 }
 

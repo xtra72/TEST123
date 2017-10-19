@@ -18,7 +18,7 @@ License: Revised BSD License, see LICENSE.TXT file include in the project
 Maintainer: Miguel Luis ( Semtech ), Gregory Cristian ( Semtech ) and Daniel Jaeckle ( STACKFORCE )
 */
 #include "board.h"
-
+#include "device_def.h"
 #include "LoRaMac.h"
 #include "region/Region.h"
 #include "LoRaMacCrypto.h"
@@ -26,18 +26,7 @@ Maintainer: Miguel Luis ( Semtech ), Gregory Cristian ( Semtech ) and Daniel Jae
 #include "trace.h"
 
 #undef	__MODULE__
-#define	__MODULE__	"LoRaMAC"
-
-#if 1
-#undef	TRACE
-#define	TRACE(format, ...)
-#undef	TRACE_DUMP
-#define	TRACE_DUMP(pData, ulDataLen, format, ...)
-#endif
-#if 0
-#undef	ERROR
-#define	ERROR(format, ...)
-#endif
+#define	__MODULE__	FLAG_TRACE_LORAMAC
 
 /*!
  * Maximum PHY layer payload size
@@ -420,6 +409,7 @@ static uint8_t RxSlot = 0;
  */
 LoRaMacFlags_t LoRaMacFlags;
 
+static bool	bTestMode = false;
 /*!
  * \brief Function to be executed on Radio Tx Done event
  */
@@ -636,12 +626,12 @@ static void OnRadioTxDone( void )
     // Setup timers
     if( IsRxWindowsEnabled == true )
     {
-//    	TRACE("Timer1 Start after %d\n", RxWindow1Delay);
-//    	TRACE("Timer2 Start after %d\n", RxWindow2Delay);
+    	TRACE("%20s : %d\n", "RxWindow1Delay", RxWindow1Delay);
         TimerSetValue( &RxWindowTimer1, RxWindow1Delay );
         TimerStart( &RxWindowTimer1 );
         if( LoRaMacDeviceClass != CLASS_C )
         {
+        	TRACE("%20s : %d\n", "RxWindow2Delay", RxWindow2Delay);
             TimerSetValue( &RxWindowTimer2, RxWindow2Delay );
             TimerStart( &RxWindowTimer2 );
         }
@@ -1304,11 +1294,9 @@ static void OnMacStateCheckTimerEvent( void )
 
                         if( (IsUpLinkCounterFixed == false ) && (bIncreasedCount == false))
                         {
-#if  1 // XTRA - Why?
                             UpLinkCounter++;
                             bIncreasedCount = true;
                         	TRACE("UpLinkCount1 : %d\n", UpLinkCounter);
-#endif
                         }
 
                         LoRaMacState &= ~LORAMAC_TX_RUNNING;
@@ -1333,7 +1321,7 @@ static void OnMacStateCheckTimerEvent( void )
                 {
                     UpLinkCounter++;
                     bIncreasedCount = true;
-               	TRACE("UpLinkCount2 : %d\n", UpLinkCounter);
+                    TRACE("UpLinkCount2 : %d\n", UpLinkCounter);
                 }
                 McpsConfirm.NbRetries = AckTimeoutRetriesCounter;
 
@@ -1447,7 +1435,7 @@ static void OnTxDelayedTimerEvent( void )
     LoRaMacFrameCtrl_t fCtrl;
     AlternateDrParams_t altDr;
 
-//    TRACE("OnTxDelayedTimerEvent\n");
+    TRACE("OnTxDelayedTimerEvent\n");
 
     TimerStop( &TxDelayedTimer );
     LoRaMacState &= ~LORAMAC_TX_DELAYED;
@@ -1477,7 +1465,7 @@ static void OnTxDelayedTimerEvent( void )
 static void OnRxWindow1TimerEvent( void )
 {
     TimerStop( &RxWindowTimer1 );
-//    TRACE("OnRxWindow1TimerEvent!\n");
+    TRACE("OnRxWindow1TimerEvent\n");
 
     RxSlot = 0;
 
@@ -1502,7 +1490,7 @@ static void OnRxWindow2TimerEvent( void )
 {
     TimerStop( &RxWindowTimer2 );
 
-//    TRACE("OnRxWindow2TimerEvent(%d, %d)!\n", Channel, LoRaMacParams.Rx2Channel.Frequency);
+    TRACE("OnRxWindow2TimerEvent(%d, %d)!\n", Channel, LoRaMacParams.Rx2Channel.Frequency);
     RxWindow2Config.Channel = Channel;
     RxWindow2Config.Frequency = LoRaMacParams.Rx2Channel.Frequency;
     RxWindow2Config.DownlinkDwellTime = LoRaMacParams.DownlinkDwellTime;
@@ -1530,7 +1518,7 @@ static void OnAckTimeoutTimerEvent( void )
 {
     TimerStop( &AckTimeoutTimer );
 
-//    TRACE("OnAckTimeoutTimerEvent!\n");
+    TRACE("OnAckTimeoutTimerEvent!\n");
     if( NodeAckRequested == true )
     {
         AckTimeoutRetry = true;
@@ -1758,7 +1746,6 @@ static void ProcessMacCommands( uint8_t *payload, uint8_t macIndex, uint8_t comm
 {
     uint8_t status = 0;
 
-//    TRACE("ProcessMacCommands\n");
     while( macIndex < commandsSize )
     {
         // Decode Frame MAC commands
@@ -2014,15 +2001,18 @@ static LoRaMacStatus_t ScheduleTx( void )
     nextChan.LastAggrTx = AggregatedLastTxDoneTime;
 
     // Select channel
-    while( RegionNextChannel( LoRaMacRegion, &nextChan, &Channel, &dutyCycleTimeOff, &AggregatedTimeOff ) == false )
-    {
-        // Set the default datarate
-        LoRaMacParams.ChannelsDatarate = LoRaMacParamsDefaults.ChannelsDatarate;
-        // Update datarate in the function parameters
-        nextChan.Datarate = LoRaMacParams.ChannelsDatarate;
-    }
+	if (!bTestMode)
+	{
+		while( RegionNextChannel( LoRaMacRegion, &nextChan, &Channel, &dutyCycleTimeOff, &AggregatedTimeOff ) == false )
+		{
+			// Set the default datarate
+			LoRaMacParams.ChannelsDatarate = LoRaMacParamsDefaults.ChannelsDatarate;
+			// Update datarate in the function parameters
+			nextChan.Datarate = LoRaMacParams.ChannelsDatarate;
+		}
+	}
 
-    // Compute Rx1 windows parameters
+	// Compute Rx1 windows parameters
     RegionComputeRxWindowParameters( LoRaMacRegion,
                                      RegionApplyDrOffset( LoRaMacRegion, LoRaMacParams.DownlinkDwellTime, LoRaMacParams.ChannelsDatarate, LoRaMacParams.Rx1DrOffset ),
                                      LoRaMacParams.MinRxSymbols,
@@ -2039,7 +2029,10 @@ static LoRaMacStatus_t ScheduleTx( void )
     {
         RxWindow1Delay = LoRaMacParams.JoinAcceptDelay1 + RxWindow1Config.WindowOffset;
         RxWindow2Delay = LoRaMacParams.JoinAcceptDelay2 + RxWindow2Config.WindowOffset;
-
+        TRACE("%20s : %d\n", "Join Accept Delay 1", LoRaMacParams.JoinAcceptDelay1);
+        TRACE("%20s : %d\n", "RxW 1 Offset", RxWindow1Config.WindowOffset);
+        TRACE("%20s : %d\n", "Join Accept Delay 2", LoRaMacParams.JoinAcceptDelay2);
+        TRACE("%20s : %d\n", "RxW 2 Offset", RxWindow2Config.WindowOffset);
     }
     else
     {
@@ -2049,9 +2042,13 @@ static LoRaMacStatus_t ScheduleTx( void )
         }
         RxWindow1Delay = LoRaMacParams.ReceiveDelay1 + RxWindow1Config.WindowOffset;
         RxWindow2Delay = LoRaMacParams.ReceiveDelay2 + RxWindow2Config.WindowOffset;
-//        TRACE("RxWindow1Delay : %d\n", RxWindow1Delay);
-//        TRACE("RxWindow2Delay : %d\n", RxWindow2Delay);
+        TRACE("%20s : %d\n", "Receive Delay 1", LoRaMacParams.ReceiveDelay1);
+        TRACE("%20s : %d\n", "RxW 1 Offset", RxWindow1Config.WindowOffset);
+        TRACE("%20s : %d\n", "Receive Delay 2", LoRaMacParams.ReceiveDelay2);
+        TRACE("%20s : %d\n", "RxW 2 Offset", RxWindow2Config.WindowOffset);
     }
+    TRACE("%20s : %d\n", "RxWindow1Delay", RxWindow1Delay);
+    TRACE("%20s : %d\n", "RxWindow2Delay", RxWindow2Delay);
 
     // Schedule transmission of frame
     if( dutyCycleTimeOff == 0 )
@@ -2326,6 +2323,15 @@ LoRaMacStatus_t SendFrameOnChannel( uint8_t channel )
     McpsConfirm.TxTimeOnAir = TxTimeOnAir;
     MlmeConfirm.TxTimeOnAir = TxTimeOnAir;
 
+    TRACE("Tx Config : CH = %d, DR = %d, PWR = %d, EIRP = %d.%02d, GAIN = %d.%02d\n",
+    		txConfig.Channel,
+			txConfig.Datarate,
+			txConfig.TxPower,
+			(int32_t)txConfig.MaxEirp,
+			((int32_t)txConfig.MaxEirp * 100) % 100,
+			(int32_t)txConfig.AntennaGain,
+			((int32_t)txConfig.AntennaGain * 100) % 100);
+
     // Starts the MAC layer status check timer
     TimerSetValue( &MacStateCheckTimer, MAC_STATE_CHECK_TIMEOUT );
     TimerStart( &MacStateCheckTimer );
@@ -2343,19 +2349,8 @@ LoRaMacStatus_t SendFrameOnChannel( uint8_t channel )
     }
     else
     {
-#if 1
 		TRACE_DUMP(LoRaMacBuffer, LoRaMacBufferPktLen, "Send Frame[%d] - ", LoRaMacBufferPktLen);
-
-#endif
 	}
-#if 1
-    TRACE("Tx Config : CH = %d, DR = %d, PWR = %d, EIRP = %d.%02d, GAIN = %d.%02d\n",
-    		txConfig.Channel,
-			txConfig.Datarate,
-			txConfig.TxPower,
-			(int32_t)txConfig.MaxEirp, ((int32_t)txConfig.MaxEirp * 100) % 100,
-			(int32_t)txConfig.AntennaGain, ((int32_t)txConfig.AntennaGain * 100) % 100);
-#endif
 
     LoRaMacState |= LORAMAC_TX_RUNNING;
 
@@ -2476,7 +2471,6 @@ LoRaMacStatus_t LoRaMacInitialization( LoRaMacPrimitives_t *primitives, LoRaMacC
     getPhy.Attribute = PHY_DEF_RX2_FREQUENCY;
     phyParam = RegionGetPhyParam( LoRaMacRegion, &getPhy );
     LoRaMacParamsDefaults.Rx2Channel.Frequency = phyParam.Value;
-    TRACE("Rx2Channel.Frequency2 : %d\n", LoRaMacParamsDefaults.Rx2Channel.Frequency);
 
     getPhy.Attribute = PHY_DEF_RX2_DR;
     phyParam = RegionGetPhyParam( LoRaMacRegion, &getPhy );
@@ -2859,19 +2853,19 @@ LoRaMacStatus_t LoRaMacMibSetRequestConfirm( MibRequestConfirm_t *mibSet )
         case MIB_ADR:
         {
             AdrCtrlOn = mibSet->Param.AdrEnable;
-           	TRACE("Set ADR control = %s.\n", (AdrCtrlOn)?"ON":"OFF");
+           	TRACE("Set ADR control = %s\n", (AdrCtrlOn)?"ON":"OFF");
             break;
         }
         case MIB_NET_ID:
         {
             LoRaMacNetID = mibSet->Param.NetID;
-           	TRACE("Set NetID = %d.\n", LoRaMacNetID);
+           	TRACE("Set NetID = %d\n", LoRaMacNetID);
             break;
         }
         case MIB_DEV_ADDR:
         {
             LoRaMacDevAddr = mibSet->Param.DevAddr;
-           	TRACE("Set DevAddr = %d.\n", LoRaMacDevAddr);
+           	TRACE("Set DevAddr = %d\n", LoRaMacDevAddr);
             break;
         }
         case MIB_NWK_SKEY:
@@ -3544,6 +3538,16 @@ void LoRaMacTestSetDutyCycleOn( bool enable )
     {
         DutyCycleOn = enable;
     }
+}
+
+void	LoRaMacSetTestMode( bool enable )
+{
+	bTestMode = enable;
+}
+
+bool	LoRaMacGetTestMode(void )
+{
+	return	bTestMode;
 }
 
 uint8_t	LoRaMacTestGetChannel( void )

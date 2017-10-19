@@ -3,6 +3,7 @@
  *
  */
 #include "global.h"
+#include "device_def.h"
 #include "loramac_ex.h"
 #include "lorawan_task.h"
 #include "Commissioning.h"
@@ -12,13 +13,13 @@
  *  @{
  */
 #undef	__MODULE__
-#define	__MODULE__	"LoRaWAN"
+#define	__MODULE__	FLAG_TRACE_LORAWAN
 
 static LORA_PACKET messageIn;
 static xSemaphoreHandle LORAWANSemaphore;
 
-#define LORAWAN_TIMEOUT	(10 * configTICK_RATE_HZ)	//!< LORAWAN_SendMessage Timeout value
-
+#define LORAWAN_TIMEOUT			(50 * configTICK_RATE_HZ)	//!< LORAWAN_SendMessage Timeout value
+#define LORAWAN_JOIN_TIMEOUT	(60 * configTICK_RATE_HZ)	//!< LORAWAN_SendMessage Timeout value
 static struct
 {
 	MlmeConfirm_t		mlme;
@@ -61,7 +62,6 @@ static __attribute__((noreturn)) void LORAWAN_EventTask(void* pvParameter)
 		xTaskNotifyWait(0,-1,&ulNotificationValue,portMAX_DELAY);
 		if (ulNotificationValue &  MLME_EVENT)
 		{
-        	TRACE("MLME confirm\n");
 			// MlmeConfirm event
 			// Perform any specific action
 			// and Give Semaphore to unlock waiting task
@@ -92,12 +92,17 @@ static __attribute__((noreturn)) void LORAWAN_EventTask(void* pvParameter)
 						TRACE("Node has joined the network.\n");
 		                // Status is OK, node has joined the network
 		            }
+		            else
+		            {
+		            	TRACE("Join failed[%d].\n", LocalMcps.mlme.Status);
+		            }
 		            break;
 		        }
 		        case MLME_LINK_CHECK:
 		        {
 		            if( LocalMcps.mlme.Status == LORAMAC_EVENT_INFO_STATUS_OK )
 		            {
+		    			DevicePostEvent(RF_MLME);
 		                // Check DemodMargin
 		                // Check NbGateways
 		            }
@@ -106,7 +111,6 @@ static __attribute__((noreturn)) void LORAWAN_EventTask(void* pvParameter)
 		        default:
 		            break;
 		    }
-			DevicePostEvent(RF_MLME);
 		    if (LORAWANSemaphore) xSemaphoreGive( LORAWANSemaphore);
 		}
 		if (ulNotificationValue & CONFIRM_EVENT)
@@ -319,8 +323,7 @@ bool LORAWAN_JoinNetworkUseOTTA(uint8_t* pDevEUI, uint8_t* pAppEUI, uint8_t* pAp
 		return	false;
 	}
 
-	if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, LORAWAN_TIMEOUT );
-
+	if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, LORAWAN_JOIN_TIMEOUT );
 
 	// Did we join the network ?
 	mibReq.Type = MIB_NETWORK_JOINED;

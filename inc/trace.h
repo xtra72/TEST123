@@ -10,16 +10,17 @@
 
 #include "shell.h"
 #include "stdbool.h"
-#define	__MODULE__	"global"
+#define	__MODULE__	0
 
-uint32_t	TRACE_Dump(char *pModule, uint8_t *pData, uint32_t ulDataLen, const char *pFormat, ...);
-uint32_t	TRACE_Printf(const char* pModule, const char *pFormat, ...);
+uint32_t	TRACE_Dump(uint16_t xModule, uint8_t *pData, uint32_t ulDataLen, const char *pFormat, ...);
+uint32_t	TRACE_Printf(uint16_t xModule, const char *pFormat, ...);
 bool		TRACE_SetEnable(bool bEnable);
 bool		TRACE_GetEnable(void);
-bool		TRACE_SetDumpEnable(bool bEnable);
-bool		TRACE_GetDumpEnable(void);
-void		TRACE_SetModule(const char * pModule, bool bEnable);
-bool		TRACE_GetModule(const char * pModule);
+bool		TRACE_SetDump(bool bEnable);
+bool		TRACE_GetDump(void);
+void		TRACE_SetModule(uint16_t xModule, bool bEnable);
+bool		TRACE_GetModule(uint16_t xModule);
+const char*	TRACE_GetModuleName(unsigned short xModuleFlag);
 
 #define	TRACE(format, ...)				TRACE_Printf(__MODULE__, format, ## __VA_ARGS__)
 #define	ERROR(format, ...)				TRACE_Printf(__MODULE__, format, ## __VA_ARGS__)

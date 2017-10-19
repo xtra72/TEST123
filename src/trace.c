@@ -16,6 +16,7 @@
 #include <stdarg.h>
 #include <ctype.h>
 #include <stdio.h>
+#include "global.h"
 #include "em_device.h"
 #include "em_chip.h"
 #include "em_cmu.h"
@@ -31,14 +32,12 @@
 /*!
  * @brief Console output
  */
-static bool _bDumpEnable = false;
-static bool	_bEnable = false;
 
-uint32_t	TRACE_Dump(char *pModule, uint8_t *pData, uint32_t ulDataLen, const char *pFormat, ...)
+uint32_t	TRACE_Dump(uint16_t xModule, uint8_t *pData, uint32_t ulDataLen, const char *pFormat, ...)
 {
 	uint32_t	nOutputLength = 0;
 
-	if (_bDumpEnable)
+	if (UNIT_TRACE_DUMP && UNIT_TRACE_ENABLE && UNIT_TRACE(xModule))
 	{
 		if (pFormat != NULL)
 		{
@@ -46,7 +45,7 @@ uint32_t	TRACE_Dump(char *pModule, uint8_t *pData, uint32_t ulDataLen, const cha
 
 			va_start(xArgs, pFormat);
 
-			nOutputLength = SHELL_VPrintf(pModule, pFormat, xArgs);
+			nOutputLength = SHELL_VPrintf(xModule, pFormat, xArgs);
 
 			va_end(xArgs);
 		}
@@ -59,17 +58,17 @@ uint32_t	TRACE_Dump(char *pModule, uint8_t *pData, uint32_t ulDataLen, const cha
 /*!
  * @brief Console formatted output
  */
-uint32_t	TRACE_Printf(const char* pModule, const char *pFormat, ...)
+uint32_t	TRACE_Printf(uint16_t xModule, const char *pFormat, ...)
 {
 	uint32_t	nOutputLength = 0;
 
-	if (_bEnable)
+	if (UNIT_TRACE_ENABLE && UNIT_TRACE(xModule))
 	{
 		va_list	xArgs;
 
 		va_start(xArgs, pFormat);
 
-		nOutputLength = SHELL_VPrintf(pModule, pFormat, xArgs);
+		nOutputLength = SHELL_VPrintf(xModule, pFormat, xArgs);
 
 		va_end(xArgs);
 	}
@@ -79,34 +78,50 @@ uint32_t	TRACE_Printf(const char* pModule, const char *pFormat, ...)
 
 bool		TRACE_SetEnable(bool bEnable)
 {
-	_bEnable = bEnable;
+	UPDATE_TRACE_FLAG(FLAG_TRACE_ENABLE, bEnable);
 
 	return	true;
 }
 
 bool		TRACE_GetEnable(void)
 {
-	return	_bEnable;
+	return	UNIT_TRACE_ENABLE;
 }
 
-bool		TRACE_SetDumpEnable(bool bEnable)
+bool		TRACE_SetDump(bool bEnable)
 {
-	_bDumpEnable = bEnable;
+	UPDATE_TRACE_FLAG(FLAG_TRACE_DUMP, bEnable);
 
 	return	true;
 }
 
-bool		TRACE_GetDumpEnable(void)
+bool		TRACE_GetDump(void)
 {
-	return	_bDumpEnable;
+	return	UNIT_TRACE_DUMP;
 }
 
-void		TRACE_SetModule(const char * pModule, bool bEnable)
+void		TRACE_SetModule(unsigned short xModuleFlag, bool bEnable)
 {
+	UPDATE_TRACE_FLAG(xModuleFlag, bEnable);
 }
 
-bool		TRACE_GetModule(const char * pModule)
+bool		TRACE_GetModule(unsigned short xModuleFlag)
 {
-	return	_bEnable;
+	return	UNIT_TRACE(xModuleFlag);
+}
+
+const char*	TRACE_GetModuleName(unsigned short xModuleFlag)
+{
+	switch(xModuleFlag)
+	{
+	case	FLAG_TRACE_LORAMAC:		return	"LoRaMAC";
+	case	FLAG_TRACE_LORAWAN:		return	"LoRaWAN";
+	case	FLAG_TRACE_DALIWORKS:	return	"Daliworks";
+	case	FLAG_TRACE_SKT:			return	"SKT";
+	case	FLAG_TRACE_SUPERVISOR:	return	"Supervisor";
+
+	}
+
+	return	"S47";
 }
 

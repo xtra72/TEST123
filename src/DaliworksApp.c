@@ -13,7 +13,7 @@
 
 
 #undef	__MODULE__
-#define	__MODULE__	"DALIWORKS"
+#define	__MODULE__	FLAG_TRACE_DALIWORKS
 
  void SKTAPP_SendPeriodicDataExt(uint8_t messageType, bool retry);	// Forward definition
 

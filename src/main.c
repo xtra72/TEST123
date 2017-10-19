@@ -56,7 +56,7 @@ __attribute__((noreturn)) void vApplicationStackOverflowHook( xTaskHandle pxTask
  * Tasks static allocation
  */
 /** @cond */
-#define SUPER_STACK		1000
+#define SUPER_STACK		500
 /** @endcond */
 static StackType_t SuperStack[SUPER_STACK];
 static StaticTask_t SuperTask;
@@ -81,12 +81,11 @@ __attribute__((noreturn)) int main()
 {
 	// Initialize board GPIO and peripherals
 	DeviceInitHardware();
+
 	LORAWAN_Init();
 	SKTAPP_Init();
 
  	SHELL_Init();
-
-	TRACE_SetEnable(true);
 
 	/* Create the various tasks */
 	/* Create the task that Monitors the system */

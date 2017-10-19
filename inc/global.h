@@ -102,6 +102,8 @@
 
 #define	S47_SKT_CERT_ENABLED		1
 
+#define	SHELL_USED_POLLING_LEUART	0
+
 /* Hardware Init */
 #include "device_def.h"
 #include "board.h"

@@ -18,7 +18,7 @@
 #include "lorawan_task.h"
 
 #undef	__MODULE__
-#define	__MODULE__	"SKT"
+#define	__MODULE__	FLAG_TRACE_SKT
 
 static uint8_t AppNonce[3];
 static StaticSemaphore_t xSemaphoreBuffer;

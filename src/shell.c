@@ -28,31 +28,38 @@
 #include "loramac_ex.h"
 #include "utilities.h"
 #include "SKTApp.h"
+#include "event.h"
 #undef	__MODULE__
 #define	__MODULE__ "TRACE"
 
-static char pBuffer[512];
-xSemaphoreHandle	SHELLSemaphore;
-//static StaticSemaphore_t xSHELLSemaphoreBuffer;
+static char 		pBuffer[512];
+static	uint8_t 	pPacket[256];
+uint8_t				nPacketLen = 0;
+static char			pOutputBuffer[1024];
+static uint32_t		ulOutputStart = 0;
+static uint32_t		ulOutputLen = 0;
+static char*		pReadLine = 0;
+static uint32_t		ulReadLineLen = 0;
+static uint32_t		ulMaxLineLen = 0;
 extern SHELL_CMD	pShellCmds[];
 
-#define	SHELL_TIMEOUT	0 //(5 * configTICK_RATE_HZ)
+#define	SHELL_TIMEOUT	(1 * configTICK_RATE_HZ)
 /***************************************************************************//**
  * @brief  Setting up LEUART
  ******************************************************************************/
 void SHELL_Init(void)
 {
-  /* Enable peripheral clocks */
-  CMU_ClockEnable(cmuClock_HFPER, true);
-  /* Configure GPIO pins */
-  CMU_ClockEnable(cmuClock_GPIO, true);
-  /* To avoid false start, configure output as high */
-  GPIO_PinModeSet(RETARGET_TXPORT, RETARGET_TXPIN, gpioModePushPull, 1);
-  GPIO_PinModeSet(RETARGET_RXPORT, RETARGET_RXPIN, gpioModeInput, 0);
+	/* Enable peripheral clocks */
+	CMU_ClockEnable(cmuClock_HFPER, true);
+	/* Configure GPIO pins */
+	CMU_ClockEnable(cmuClock_GPIO, true);
+	/* To avoid false start, configure output as high */
+	GPIO_PinModeSet(RETARGET_TXPORT, RETARGET_TXPIN, gpioModePushPull, 1);
+	GPIO_PinModeSet(RETARGET_RXPORT, RETARGET_RXPIN, gpioModeInput, 0);
 
-  LEUART_Init_TypeDef init = {                                                                                         \
-	    leuartEnable,    /* Enable RX/TX when init completed. */                                \
-	    0,               /* Use current configured reference clock for configuring baudrate. */ \
+	LEUART_Init_TypeDef init = {                                                                                         \
+		leuartEnable,    /* Enable RX/TX when init completed. */                                \
+		0,               /* Use current configured reference clock for configuring baudrate. */ \
 		//S47_SHELL_BAUDRATE_DEFAULT,
 		9600,/* 9600 bits/s. */                                                     \
 		S47_SHELL_DATABITS_DEFAULT, /* 8 databits. */                                                      \
@@ -60,57 +67,56 @@ void SHELL_Init(void)
 		S47_SHELL_STOPBITS_DEFAULT  /* 1 stopbit. */                                                       \
 	  };
 
-  /* Enable CORE LE clock in order to access LE modules */
-  CMU_ClockEnable(cmuClock_CORELE, true);
+	/* Enable CORE LE clock in order to access LE modules */
+	CMU_ClockEnable(cmuClock_CORELE, true);
 
-  /* Select LFXO for LEUARTs (and wait for it to stabilize) */
-  //CMU_ClockSelectSet(cmuClock_LFB, cmuSelect_HFCLKLE);
-  CMU_ClockSelectSet(cmuClock_LFB, cmuSelect_LFXO);
-  CMU_ClockEnable(cmuClock_LEUART0, true);
+	/* Select LFXO for LEUARTs (and wait for it to stabilize) */
+	//CMU_ClockSelectSet(cmuClock_LFB, cmuSelect_HFCLKLE);
+	CMU_ClockSelectSet(cmuClock_LFB, cmuSelect_LFXO);
+	CMU_ClockEnable(cmuClock_LEUART0, true);
 
-  /* Do not prescale clock */
-  CMU_ClockDivSet(cmuClock_LEUART0, cmuClkDiv_1);
+	/* Do not prescale clock */
+	CMU_ClockDivSet(cmuClock_LEUART0, cmuClkDiv_1);
 
-  /* Configure LEUART */
-  init.enable = leuartDisable;
+	/* Configure LEUART */
+	init.enable = leuartDisable;
+	LEUART_Init(LEUART0, &init);
 
-  LEUART_Init(LEUART0, &init);
+#if SHELL_USED_POLLING_LEUART == 0
+	NVIC_EnableIRQ(LEUART0_IRQn);
+	EVENT_Init();
+#endif
 
-  /* Enable pins at default location */
-  LEUART0->ROUTELOC0 = (LEUART0->ROUTELOC0 & ~(_LEUART_ROUTELOC0_TXLOC_MASK
-                                               | _LEUART_ROUTELOC0_RXLOC_MASK))
-                       | (RETARGET_TX_LOCATION << _LEUART_ROUTELOC0_TXLOC_SHIFT)
-                       | (RETARGET_RX_LOCATION << _LEUART_ROUTELOC0_RXLOC_SHIFT);
+	/* Enable pins at default location */
+	LEUART0->ROUTELOC0 = (LEUART0->ROUTELOC0 & ~(_LEUART_ROUTELOC0_TXLOC_MASK
+											   | _LEUART_ROUTELOC0_RXLOC_MASK))
+					   | (RETARGET_TX_LOCATION << _LEUART_ROUTELOC0_TXLOC_SHIFT)
+					   | (RETARGET_RX_LOCATION << _LEUART_ROUTELOC0_RXLOC_SHIFT);
 
-  LEUART0->ROUTEPEN  = USART_ROUTEPEN_RXPEN | USART_ROUTEPEN_TXPEN;
+	LEUART0->ROUTEPEN  = USART_ROUTEPEN_RXPEN | USART_ROUTEPEN_TXPEN;
 
-  /* Finally enable it */
-  LEUART_Enable(LEUART0, leuartEnable);
+	//LEUART_TxDmaInEM2Enable(LEUART0, true);
+
+	/* Finally enable it */
+	LEUART_Enable(LEUART0, leuartEnable);
 }
 
 /*!
  * @brief Console formatted output
  */
+uint32_t	SHELL_Print(const char *pBuffer, uint32_t ulLen)
+{
+	for(uint32_t i = 0 ; i < ulLen ; i++)
+	{
+		LEUART_Tx(LEUART0, pBuffer[i]);
+	}
+
+	return	ulLen;
+}
+
 uint32_t	SHELL_PrintString(const char *pString)
 {
-	uint32_t	nOutputLength = 0;
-
-	if (SHELLSemaphore)
-	{
-		if (!xSemaphoreTake( SHELLSemaphore, SHELL_TIMEOUT ))
-		{
-			return	nOutputLength;
-		}
-	}
-
-	for(uint32_t i = 0 ; i < strlen(pString) ; i++)
-	{
-		LEUART_Tx(LEUART0, pString[i]);
-	}
-
-	if (SHELLSemaphore) xSemaphoreGive( SHELLSemaphore);
-
-	return	nOutputLength;
+	return	SHELL_Print(pString, strlen(pString));
 }
 
 /*!
@@ -119,75 +125,45 @@ uint32_t	SHELL_PrintString(const char *pString)
 uint32_t	SHELL_Dump(const uint8_t *pData, uint32_t ulDataLen)
 {
 	uint32_t	nOutputLength = 0;
-	int 		bBinary = 0;
-
-	for(uint32_t i = 0 ; i < ulDataLen ; i++)
-	{
-		if (!isprint(pData[i]))
-		{
-			bBinary = 1;
-			break;
-		}
-	}
-
 	char	pBuff[4];
 	memset(pBuff, 0, sizeof(pBuff));
 	pBuff[2] = ' ';
 
-	if (bBinary)
+	for(uint32_t i = 0 ; i < ulDataLen ; i++)
 	{
-		for(uint32_t i = 0 ; i < ulDataLen ; i++)
+		uint8_t	nValue;
+
+		nValue = pData[i] >> 4;
+		if (nValue < 10)
 		{
-			uint8_t	nValue;
-
-			nValue = pData[i] >> 4;
-			if (nValue < 10)
-			{
-				pBuff[0] = nValue + '0';
-			}
-			else
-			{
-				pBuff[0] = nValue + 'a' -  10;
-			}
-
-			nValue = pData[i] & 0x0F;
-			if (nValue < 10)
-			{
-				pBuff[1] = nValue + '0';
-			}
-			else
-			{
-				pBuff[1] = nValue + 'a' -  10;
-			}
-
-			nOutputLength += SHELL_PrintString(pBuff);
+			pBuff[0] = nValue + '0';
 		}
-		nOutputLength += SHELL_PrintString("\n");
+		else
+		{
+			pBuff[0] = nValue + 'a' -  10;
+		}
+
+		nValue = pData[i] & 0x0F;
+		if (nValue < 10)
+		{
+			pBuff[1] = nValue + '0';
+		}
+		else
+		{
+			pBuff[1] = nValue + 'a' -  10;
+		}
+
+		nOutputLength += SHELL_PrintString(pBuff);
 	}
-	else
-	{
-		if (SHELLSemaphore)
-		{
-			if (!xSemaphoreTake( SHELLSemaphore, SHELL_TIMEOUT ))
-			{
-				return	nOutputLength;
-			}
-		}
+	nOutputLength += SHELL_PrintString("\n");
 
-		for(uint32_t i = 0 ; i < ulDataLen ; i++)
-		{
-			LEUART_Tx(LEUART0, pData[i]);
-		}
-		LEUART_Tx(LEUART0, '\n');
-
-		if (SHELLSemaphore) xSemaphoreGive( SHELLSemaphore);
-	}
 	return	nOutputLength;
 }
 
 /*!
  * @brief Console formatted output
  */
+
 uint32_t	SHELL_Printf(const char *pFormat, ...)
 {
 	uint32_t	nOutputLength = 0;
@@ -200,63 +176,26 @@ uint32_t	SHELL_Printf(const char *pFormat, ...)
 
 	va_end(xArgs);
 
-	if (SHELLSemaphore)
-	{
-		if (!xSemaphoreTake( SHELLSemaphore, SHELL_TIMEOUT ))
-		{
-			return	nOutputLength;
-		}
-	}
-
-	for(uint32_t i = 0 ; i < nOutputLength ; i++)
-	{
-		LEUART_Tx(LEUART0, pBuffer[i]);
-	}
-
-	if (SHELLSemaphore) xSemaphoreGive( SHELLSemaphore);
-
-	return	nOutputLength;
+	return	SHELL_Print(pBuffer, nOutputLength);
 }
 
 /*!
  * @brief Console formatted output
  */
-uint32_t	SHELL_VPrintf(const char* pModule, const char *pFormat, va_list xArgs)
+uint32_t	SHELL_VPrintf(uint16_t xModule, const char *pFormat, va_list xArgs)
 {
 	uint32_t	nOutputLength = 0;
 	uint32_t	ulTime = xTaskGetTickCount();
 
-	if (pModule == 0)
-	{
-		nOutputLength = snprintf(pBuffer, sizeof(pBuffer) - 1, "[%8lu][%16s] ", ulTime, "global");
-	}
-	else
-	{
-		nOutputLength = snprintf(pBuffer, sizeof(pBuffer) - 1, "[%8lu][%16s] ", ulTime, pModule);
-	}
-
+	nOutputLength = snprintf(pBuffer, sizeof(pBuffer) - 1, "[%8lu][%16s] ", ulTime, TRACE_GetModuleName(xModule));
 	nOutputLength += vsnprintf(&pBuffer[nOutputLength], sizeof(pBuffer) - nOutputLength - 1, pFormat, xArgs);
 
-	if (SHELLSemaphore)
-	{
-		if (!xSemaphoreTake( SHELLSemaphore, SHELL_TIMEOUT ))
-		{
-			return	nOutputLength;
-		}
-	}
-
-	for(uint32_t i = 0 ; i < nOutputLength ; i++)
-	{
-		LEUART_Tx(LEUART0, pBuffer[i]);
-	}
-
-	if (SHELLSemaphore) xSemaphoreGive( SHELLSemaphore);
-
-	return	nOutputLength;
+	return	SHELL_Print(pBuffer, nOutputLength);
 }
 
-uint32_t	SHELL_GetLine(uint8_t* pBuffer, uint32_t ulBufferLen)
+uint32_t	SHELL_GetLine(char* pBuffer, uint32_t ulBufferLen)
 {
+#if SHELL_USED_POLLING_LEUART
 	uint32_t	ulLineLen = 0;
 
 	while(ulLineLen < ulBufferLen)
@@ -296,6 +235,20 @@ uint32_t	SHELL_GetLine(uint8_t* pBuffer, uint32_t ulBufferLen)
 	}
 
 	return	ulLineLen;
+#else
+	ulReadLineLen = 0;
+	pReadLine = pBuffer;
+	ulMaxLineLen  = ulBufferLen;
+	LEUART_IntEnable(LEUART0, LEUART_IF_RXDATAV);
+
+	while(EVENT_WaitForEvent(10) == 0)
+	{
+	}
+
+	LEUART_IntDisable(LEUART0, LEUART_IF_RXDATAV);
+
+	return	ulReadLineLen;
+#endif
 }
 
 int	SHELL_ParseLine(char* pLine, char* pArgv[], uint32_t nMaxArgs)
@@ -344,13 +297,12 @@ static char*	ppArgv[16];
 
 __attribute__((noreturn)) void SHELL_Task(void* pvParameters)
 {
-	int		nArgc;
+	int		nArgc = 0;
 
 	memset(pLine, 0, sizeof(pLine));
 	while(1)
 	{
-//		SHELL_Printf("S47> ");
-		uint32_t ulLineLen = SHELL_GetLine((uint8_t*)pLine, sizeof(pLine) - 1);
+		uint32_t ulLineLen = SHELL_GetLine(pLine, sizeof(pLine) - 1);
 		if (ulLineLen != 0)
 		{
 			nArgc = SHELL_ParseLine(pLine, ppArgv, 16);
@@ -560,12 +512,12 @@ int	AT_CMD_Trace(char *ppArgv[], int nArgc)
 		}
 		else if (strcmp(ppArgv[1], "dump") == 0)
 		{
-			TRACE_SetDumpEnable(true);
+			TRACE_SetDump(true);
 			nRet = 0;
 		}
 		else if (strcmp(ppArgv[1], "undump") == 0)
 		{
-			TRACE_SetDumpEnable(false);
+			TRACE_SetDump(false);
 			nRet = 0;
 		}
 	}
@@ -573,7 +525,7 @@ int	AT_CMD_Trace(char *ppArgv[], int nArgc)
 	if (nRet == 0)
 	{
 		SHELL_Printf("%16s : %s\n", "Mode", (TRACE_GetEnable())?"Enable":"Disabled");
-		SHELL_Printf("%16s : %s\n", "Dump", (TRACE_GetDumpEnable())?"Enable":"Disabled");
+		SHELL_Printf("%16s : %s\n", "Dump", (TRACE_GetDump())?"Enable":"Disabled");
 	}
 
 	return	nRet;
@@ -625,32 +577,34 @@ int AT_CMD_GetConfig(char *ppArgv[], int nArgc)
 {
 	SHELL_Printf("Get Configuration\n");
 
-	SHELL_Printf("- Current Channel : %d, Channel Tx Power : %d\n", 922100000 + 200000 * LoRaMacTestGetChannel(), LoRaMacTestGetChannelsTxPower());
+	ChannelParams_t channel;
+	LORAMAC_GetChannel(LoRaMacTestGetChannel(), &channel);
 
-	SHELL_Printf("- MaxDCycle : %d, AggregatedDCycle : %d\n", LoRaMacTestGetMaxDCycle(), LoRaMacTestGetAggreagtedDCycle());
-	SHELL_Printf("- Current Rx1 DR Offset : %d, Rx2 DataRate : %d\n", LoRaMacTestGetRx1DrOffset(), LoRaMacTestGetRx2Datarate());
+	SHELL_Printf("- %22s : %d\n", "Current Channel", channel.Frequency);
+    SHELL_Printf("- %22s : %d\n", "Channel Tx Power", LoRaMacTestGetChannelsTxPower());
+	SHELL_Printf("- %22s : %d\n", "Max Duty Cycle", LoRaMacTestGetMaxDCycle());
+	SHELL_Printf("- %22s : %d\n", "Aggregated Duty Cycle", LoRaMacTestGetAggreagtedDCycle());
+	SHELL_Printf("- %22s : %d\n", "Current Rx1 DR Offset", LoRaMacTestGetRx1DrOffset());
+	SHELL_Printf("- %22s : %d\n", "Rx2 DataRate", LoRaMacTestGetRx2Datarate());
+	SHELL_Printf("- %22s : %04x\n", "Channels Mask", LORAMAC_GetChannelsMask());
+	SHELL_Printf("- %22s : %d\n", "Rx1 Delay", LORAMAC_GetRx1Delay());
+	SHELL_Printf("- %22s : %d\n", "Rx2 Delay", LORAMAC_GetRx2Delay());
+	SHELL_Printf("- %22s : %d\n", "Join Delay1", LORAMAC_GetJoinDelay1());
+	SHELL_Printf("- %22s : %d\n", "Join Delay2", LORAMAC_GetJoinDelay2());
+	SHELL_Printf("- %22s : %d\n", "Retransmission Count", LORAMAC_GetRetries());
 
+	SHELL_Printf("- Channel Informations\n");
+	SHELL_Printf("  %5s %10s %4s\n", "Index", "Frequency", "Band");
 	for(uint32_t i = 0 ; i < 16 ; i++)
 	{
-		ChannelParams_t channel;
 
 		if (!LORAMAC_GetChannel(i, &channel))
 		{
 			break;
 		}
-		SHELL_Printf("- Channels[%d] : %d, Band : %d\n", i, channel.Frequency, channel.Band);
+		SHELL_Printf("  %5d %10d %4d\n", i, channel.Frequency, channel.Band);
 	}
-#if 0
-	for(uint32_t i = 0 ; i <= LORAMAC_TX_CHANNEL_MAX - LORAMAC_TX_CHANNEL_MIN ; i++)
-	{
-		SHELL_Printf("- Channels[%d] : %d, Band : 0\n", i, 922100000 + i * 200000);
-	}
-#endif
 
-	SHELL_Printf("- Channels Mask : %04x\n", LORAMAC_GetChannelsMask());
-	SHELL_Printf("- Rx1 Delay : %d, Rx2 Delay : %d\n", LORAMAC_GetRx1Delay(), LORAMAC_GetRx2Delay());
-	SHELL_Printf("- Join Delay1 : %d, Join Delay2 : %d\n", LORAMAC_GetJoinDelay1(), LORAMAC_GetJoinDelay2());
-	SHELL_Printf("- Retransmission Count : %d\n", LORAMAC_GetRetries());
 
 	return	0;
 }
@@ -1024,26 +978,24 @@ int AT_CMD_TxRetransmissionNumber(char *ppArgv[], int nArgc)
 
 int AT_CMD_Send(char *ppArgv[], int nArgc)
 {
-	static	uint8_t pData[256];
-	uint8_t			nDataLen = 0;
 
 	SHELL_Printf("SEND PACKET\n");
 	if (nArgc == 2)
 	{
 		uint32_t	ulLen = strlen(ppArgv[1]);
 
-		nDataLen = HexString2Array( ppArgv[1], pData, sizeof(pData));
-		if (ulLen > nDataLen * 2)
+		nPacketLen = HexString2Array( ppArgv[1], pPacket, sizeof(pPacket));
+		if (ulLen > nPacketLen * 2)
 		{
-			SHELL_Printf("- ERROR, Max Payload Size : %d Byte\n", sizeof(pData) - 1);
+			SHELL_Printf("- ERROR, Max Payload Size : %d Byte\n", sizeof(pPacket) - 1);
 		}
-		else if (nDataLen == 0)
+		else if (nPacketLen == 0)
 		{
 			SHELL_Printf("- ERROR, Invalid Arguments\n");
 		}
 		else
 		{
-			if (SKTAPP_Send(pData[0], 0, &pData[1], nDataLen - 1) == false)
+			if (SKTAPP_Send(pPacket[0], 0, &pPacket[1], nPacketLen - 1) == false)
 			{
 				SHELL_Printf("- ERROR, Failed to send packet!\n");
 			}
@@ -1309,6 +1261,66 @@ int AT_CMD_Sleep(char *ppArgv[], int nArgc)
 	return	0;
 }
 
+int AT_CMD_Test(char *ppArgv[], int nArgc)
+{
+	if (nArgc == 2)
+	{
+		if (strcmp(ppArgv[1], "enable") == 0)
+		{
+			LoRaMacSetTestMode(true);
+		}
+		else if (strcmp(ppArgv[1], "disable") == 0)
+		{
+			LoRaMacSetTestMode(false);
+		}
+	}
+
+	SHELL_Printf("Test Mode : %s\n", (LoRaMacGetTestMode()?"Enable":"Disable"));
+	return	0;
+}
+
+
+int AT_CMD_TestSend(char *ppArgv[], int nArgc)
+{
+	SHELL_Printf("TEST SEND PACKET\n");
+	if (nArgc == 4)
+	{
+		uint32_t	ulPort = atoi(ppArgv[1]);
+		uint32_t	ulCount = atoi(ppArgv[2]);
+		uint32_t	ulLen = atoi(ppArgv[3]);
+
+		if (ulLen > sizeof(pPacket) - 1)
+		{
+			SHELL_Printf("- ERROR, Max Payload Size : %d Byte\n", sizeof(pPacket) - 1);
+			return	0;
+		}
+
+		memset(pPacket, 0, sizeof(pPacket));
+		for(uint32_t i = 0 ; i < ulCount ; i++)
+		{
+			for(uint32_t j = 0 ; j < ulLen ; j++)
+			{
+				pPacket[j] = '0' + (i+j) % 10;
+			}
+
+			if (SKTAPP_Send(ulPort, 0, pPacket, ulLen) == false)
+			{
+				SHELL_Printf("[%3d] - %s - ERROR, Failed to send packet!\n", i, pPacket);
+			}
+			else
+			{
+				SHELL_Printf("[%3d] - %s - SUCCESS!\n", i, pPacket);
+			}
+		}
+	}
+	else
+	{
+		SHELL_Printf("- ERROR, Invalid Arguments\n");
+	}
+
+	return	0;
+}
+
 SHELL_CMD	pShellCmds[] =
 {
 		{	"AT",	  	"Checking the serial connection status", AT_CMD},
@@ -1330,6 +1342,8 @@ SHELL_CMD	pShellCmds[] =
 		{	"AT+SIG", 	"Latest RF Signal",	AT_CMD_LatestSignal},
 		{	"AT+RCNT", 	"Tx Retransmission Number",	AT_CMD_TxRetransmissionNumber},
 		{	"AT+SEND", 	"Sending the user defined packet",	AT_CMD_Send},
+		{	"AT+TSEND",	"Sending the user defined packet for test",	AT_CMD_TestSend},
+		{	"AT+TEST",	"Test Mode",	AT_CMD_Test},
 		{	"AT+ACK", 	"Sending ACK",	AT_CMD_SendAck},
 		{	"AT+DUTC", 	"Set/Get Duty Cycle Time",	AT_CMD_DutyCycleTime},
 		{	"AT+RUNT", 	"Tx Retransmission Number(Unconfirmed)",	AT_CMD_UnconfirmedRetransmissionNumber},
@@ -1340,7 +1354,7 @@ SHELL_CMD	pShellCmds[] =
 		{	"AT+FCNT", 	"changing the down link FCnt for testing",	AT_CMD_FCNT},
 		{	"AT+BATT", 	"Battery",	AT_CMD_BATT},
 		{	"AT+LCHK", 	"Link Check Request",	AT_CMD_LinkCheck},
-		{	"AT+DEVT", 	"Dev Time Request",	AT_CMD_DeviceTimeRequest},
+		{	"AT+DEVT", 	"Device Time Request",	AT_CMD_DeviceTimeRequest},
 		{	"AT+TASK",	"Get Task Information",	AT_CMD_Task},
 		{	"AT+STAT", 	"Get Status",	AT_CMD_Status},
 		{   "AT+TRCE", 	"Get/Set Trace", AT_CMD_Trace},
@@ -1349,3 +1363,44 @@ SHELL_CMD	pShellCmds[] =
 		{	"AT+HELP", 	"Help", AT_CMD_Help},
 		{	NULL, NULL, NULL}
 };
+
+void	LEUART0_IRQHandler(void)
+{
+	if ((pReadLine != NULL) && (ulReadLineLen < ulMaxLineLen))
+	{
+		char	ch = LEUART0->RXDATA;
+
+		switch(ch)
+		{
+		case	'\n':
+			{
+				pReadLine[ulReadLineLen] = '\0';
+				EVENT_Send(1);
+			}
+			break;
+
+		case	'\r':
+			{
+
+			}
+			break;
+
+		case	'\b':
+			{
+				if (ulReadLineLen > 0)
+				{
+					pReadLine[--ulReadLineLen] = '\0';
+				}
+			}
+			break;
+
+		default:
+			pReadLine[ulReadLineLen++] = ch;
+			if (ulReadLineLen == ulMaxLineLen)
+			{
+				pReadLine[--ulReadLineLen] = '\0';
+				EVENT_Send(1);
+			}
+		}
+	}
+}
