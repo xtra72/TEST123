@@ -42,6 +42,7 @@ static StackType_t RFEventStack[RF_EVENT_STACK];
 static StaticTask_t RFEventTask;
 static TaskHandle_t LORAWANEventTask;
 static uint8_t LoRaWAN_Retries = LORAWAN_RETRIES;
+static uint8_t	LoRaWAN_DefaultDR = LORAWAN_DEFAULT_DATARATE;
 static	LoRaWANStatus_t	LoRaWAN_Status = LORAWAN_STATUS_IDLE;
 
 static uint8_t		nSNR = 0;
@@ -430,7 +431,7 @@ LoRaMacStatus_t LORAWAN_SendMessage( LORA_PACKET* message )
         mcpsReq.Type = MCPS_UNCONFIRMED;
         mcpsReq.Req.Unconfirmed.fBuffer = NULL;
         mcpsReq.Req.Unconfirmed.fBufferSize = 0;
-        mcpsReq.Req.Unconfirmed.Datarate = LORAWAN_DEFAULT_DATARATE;
+        mcpsReq.Req.Unconfirmed.Datarate = LoRaWAN_DefaultDR;
     }
     else
     {
@@ -441,10 +442,9 @@ LoRaMacStatus_t LORAWAN_SendMessage( LORA_PACKET* message )
             mcpsReq.Req.Unconfirmed.fBuffer = &message->Buffer[0];
             mcpsReq.Req.Unconfirmed.fBufferSize = message->Size;
             message->NbTrials = 0;
-            mcpsReq.Req.Unconfirmed.Datarate = LORAWAN_DEFAULT_DATARATE;
-         	TRACE("Request unconfirmed : PORT = %02x, DR = %d, Size = %d\n",
+            mcpsReq.Req.Unconfirmed.Datarate = LoRaWAN_DefaultDR;
+         	TRACE("Request unconfirmed : PORT = %02x, Size = %d\n",
          			mcpsReq.Req.Unconfirmed.fPort,
-					mcpsReq.Req.Unconfirmed.Datarate,
 					mcpsReq.Req.Unconfirmed.fBufferSize);
         }
         else if( message->Request == MCPS_CONFIRMED )
@@ -454,11 +454,10 @@ LoRaMacStatus_t LORAWAN_SendMessage( LORA_PACKET* message )
             mcpsReq.Req.Confirmed.fBuffer = &message->Buffer[0];
             mcpsReq.Req.Confirmed.fBufferSize = message->Size;
             mcpsReq.Req.Confirmed.NbTrials = LoRaWAN_Retries;
-            mcpsReq.Req.Confirmed.Datarate = LORAWAN_DEFAULT_DATARATE;
-         	TRACE("Request confirmed : PORTR  = %02x, DR = %d, RETRIES = %d, Size = %d\n",
+            mcpsReq.Req.Confirmed.Datarate = LoRaWAN_DefaultDR;
+         	TRACE("Request confirmed : PORTR  = %02x, Size = %d\n",
          			mcpsReq.Req.Confirmed.fPort,
 					mcpsReq.Req.Confirmed.Datarate,
-					mcpsReq.Req.Confirmed.NbTrials,
 					mcpsReq.Req.Confirmed.fBufferSize);
        }
         else {
@@ -637,6 +636,23 @@ void LORAWAN_ResetDownLinkCounter(void) {
 	LoRaDownLinkCounter = 0;
 }
 
+bool LORAWAN_SetDefaultDR(uint8_t nDR)
+{
+	if (nDR <= LORAMAC_TX_DATARATE_MAX)
+	{
+		LoRaWAN_DefaultDR = nDR;
+		LORAMAC_SetDatarate(nDR);
+		return	true;
+	}
+
+	return	false;
+}
+
+uint8_t LORAWAN_GetDefaultDR(void)
+{
+	return	LoRaWAN_DefaultDR;
+}
+
 bool LORAWAN_SetMaxRetries(uint8_t retries) {
 	if (retries < 9)
 	{
@@ -681,11 +697,11 @@ void	LORAWAN_ShowErrorStatus(LoRaMacEventInfoStatus_t xStatus)
 	switch(xStatus)
 	{
 	case LORAMAC_EVENT_INFO_STATUS_ERROR:
-		ERROR("LORAMAC_EVENT_INFO_STATUS_ERROR");
+		ERROR("Error!\n");
 		DeviceFlashLed(10);
 		break;
 	case LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT:
-		ERROR("LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT");
+		ERROR("Tx Timeout!\n");
 		DeviceFlashLed(3);
 		break;
 	default:

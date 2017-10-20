@@ -63,20 +63,11 @@ static StaticTask_t SuperTask;
 TaskHandle_t hSuperTask = NULL;
 
 /*!
- * Tasks static allocation
- */
-/** @cond */
-#define SHELL_STACK		500
-/** @endcond */
-static StackType_t ShellStack[SHELL_STACK];
-static StaticTask_t ShellTask;
-TaskHandle_t hShellTask = NULL;
-
-/*!
  * @brief S40 Application starting point
  * Initializes the hardware, allocates tasks and starts FreeRTOS scheduler.
  * @return Never returns
  */
+
 __attribute__((noreturn)) int main()
 {
 	// Initialize board GPIO and peripherals
@@ -85,12 +76,11 @@ __attribute__((noreturn)) int main()
 	LORAWAN_Init();
 	SKTAPP_Init();
 
- 	SHELL_Init();
+ 	SHELL_Init(NULL);
 
 	/* Create the various tasks */
 	/* Create the task that Monitors the system */
 	hSuperTask = xTaskCreateStatic( SUPERVISOR_Task, (const char*)"SUPER", SUPER_STACK, NULL, tskIDLE_PRIORITY + 1, SuperStack, &SuperTask );
-	hShellTask = xTaskCreateStatic( SHELL_Task, (const char*)"SHELL", SHELL_STACK, NULL, tskIDLE_PRIORITY + 1, ShellStack, &ShellTask );
 
 	/* Start the scheduler. */
 	vEFMEnergyEnableLowPowerMode(false);	// Make sure FreeRTOS can go in deep sleep mode
@@ -104,15 +94,6 @@ __attribute__((noreturn)) int main()
 	{
 	}
 	__builtin_unreachable();
-}
-
-void	TaskGetInfo()
-{
-	TaskStatus_t	xStatus;
-
-	vTaskGetInfo( hShellTask, &xStatus, true, eInvalid);
-
-	SHELL_Printf("%16s : %d\n", "Water Mark", xStatus.usStackHighWaterMark);
 }
 
 /** @}*/

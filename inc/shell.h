@@ -9,6 +9,13 @@
 #define INC_SHELL_H_
 
 #include <stdarg.h>
+#include "em_leuart.h"
+
+typedef	struct
+{
+	bool				bPoll;
+	LEUART_Init_TypeDef	xUART;
+}	SHELL_CONFIG;
 
 typedef	struct
 {
@@ -17,7 +24,9 @@ typedef	struct
 	int	(*fCommand)(char *pArgv[], int nArgc);
 }	SHELL_CMD;
 
-void		SHELL_Init(void);
+void		SHELL_Init(SHELL_CONFIG* pConfig);
+void		SHELL_ShowInfo(void);
+
 uint32_t	SHELL_Printf(const char* pFormat, ...);
 uint32_t	SHELL_Dump(const uint8_t *pData, uint32_t ulDataLen);
 uint32_t	SHELL_VPrintf(uint16_t xModule, const char* pFormat, va_list	xArgs);

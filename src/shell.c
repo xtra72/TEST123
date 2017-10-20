@@ -32,12 +32,35 @@
 #undef	__MODULE__
 #define	__MODULE__ "TRACE"
 
+/*!
+ * Tasks static allocation
+ */
+/** @cond */
+#define SHELL_STACK		500
+/** @endcond */
+static StackType_t ShellStack[SHELL_STACK];
+static StaticTask_t ShellTask;
+TaskHandle_t hShellTask = NULL;
+
+
+static SHELL_CONFIG	xConfig =
+{
+		.bPoll = false,
+		.xUART =
+		{                                                                                         \
+			leuartDisable,    /* Enable RX/TX when init completed. */                                \
+			0,               /* Use current configured reference clock for configuring baudrate. */ \
+			//S47_SHELL_BAUDRATE_DEFAULT,
+			S47_SHELL_BAUDRATE_DEFAULT,/* 9600 bits/s. */                                                     \
+			S47_SHELL_DATABITS_DEFAULT, /* 8 databits. */                                                      \
+			S47_SHELL_PARITY_DEFAULT,  /* No parity. */                                                       \
+			S47_SHELL_STOPBITS_DEFAULT  /* 1 stopbit. */                                                       \
+		}
+};
+
 static char 		pBuffer[512];
-static	uint8_t 	pPacket[256];
+static uint8_t 		pPacket[256];
 uint8_t				nPacketLen = 0;
-static char			pOutputBuffer[1024];
-static uint32_t		ulOutputStart = 0;
-static uint32_t		ulOutputLen = 0;
 static char*		pReadLine = 0;
 static uint32_t		ulReadLineLen = 0;
 static uint32_t		ulMaxLineLen = 0;
@@ -47,8 +70,17 @@ extern SHELL_CMD	pShellCmds[];
 /***************************************************************************//**
  * @brief  Setting up LEUART
  ******************************************************************************/
-void SHELL_Init(void)
+void SHELL_Init(SHELL_CONFIG* pConfig)
 {
+	if (pConfig == NULL)
+	{
+		pConfig = &xConfig;
+	}
+	else
+	{
+		memcpy(&xConfig, pConfig, sizeof(SHELL_CONFIG));
+	}
+
 	/* Enable peripheral clocks */
 	CMU_ClockEnable(cmuClock_HFPER, true);
 	/* Configure GPIO pins */
@@ -57,35 +89,31 @@ void SHELL_Init(void)
 	GPIO_PinModeSet(RETARGET_TXPORT, RETARGET_TXPIN, gpioModePushPull, 1);
 	GPIO_PinModeSet(RETARGET_RXPORT, RETARGET_RXPIN, gpioModeInput, 0);
 
-	LEUART_Init_TypeDef init = {                                                                                         \
-		leuartEnable,    /* Enable RX/TX when init completed. */                                \
-		0,               /* Use current configured reference clock for configuring baudrate. */ \
-		//S47_SHELL_BAUDRATE_DEFAULT,
-		9600,/* 9600 bits/s. */                                                     \
-		S47_SHELL_DATABITS_DEFAULT, /* 8 databits. */                                                      \
-		S47_SHELL_PARITY_DEFAULT,  /* No parity. */                                                       \
-		S47_SHELL_STOPBITS_DEFAULT  /* 1 stopbit. */                                                       \
-	  };
-
 	/* Enable CORE LE clock in order to access LE modules */
 	CMU_ClockEnable(cmuClock_CORELE, true);
 
 	/* Select LFXO for LEUARTs (and wait for it to stabilize) */
-	//CMU_ClockSelectSet(cmuClock_LFB, cmuSelect_HFCLKLE);
-	CMU_ClockSelectSet(cmuClock_LFB, cmuSelect_LFXO);
+	if (xConfig.xUART.baudrate <= 9600)
+	{
+		CMU_ClockSelectSet(cmuClock_LFB, cmuSelect_LFXO);
+	}
+	else
+	{
+		CMU_ClockSelectSet(cmuClock_LFB, cmuSelect_HFCLKLE);
+	}
 	CMU_ClockEnable(cmuClock_LEUART0, true);
 
 	/* Do not prescale clock */
 	CMU_ClockDivSet(cmuClock_LEUART0, cmuClkDiv_1);
 
 	/* Configure LEUART */
-	init.enable = leuartDisable;
-	LEUART_Init(LEUART0, &init);
+	LEUART_Init(LEUART0, &xConfig.xUART);
 
-#if SHELL_USED_POLLING_LEUART == 0
-	NVIC_EnableIRQ(LEUART0_IRQn);
-	EVENT_Init();
-#endif
+	if (!xConfig.bPoll)
+	{
+		NVIC_EnableIRQ(LEUART0_IRQn);
+		EVENT_Init();
+	}
 
 	/* Enable pins at default location */
 	LEUART0->ROUTELOC0 = (LEUART0->ROUTELOC0 & ~(_LEUART_ROUTELOC0_TXLOC_MASK
@@ -99,7 +127,21 @@ void SHELL_Init(void)
 
 	/* Finally enable it */
 	LEUART_Enable(LEUART0, leuartEnable);
+
+	hShellTask = xTaskCreateStatic( SHELL_Task, (const char*)"SHELL", SHELL_STACK, NULL, tskIDLE_PRIORITY + 1, ShellStack, &ShellTask );
 }
+
+void	SHELL_ShowInfo(void)
+{
+	TaskStatus_t	xStatus;
+
+	vTaskGetInfo( hShellTask, &xStatus, true, eInvalid);
+
+	SHELL_Printf("[ Shell Task ]\n");
+	SHELL_Printf("%16s : %d\n", "Handle", hShellTask);
+	SHELL_Printf("%16s : %d\n", "Water Mark", xStatus.usStackHighWaterMark);
+}
+
 
 /*!
  * @brief Console formatted output
@@ -195,60 +237,63 @@ uint32_t	SHELL_VPrintf(uint16_t xModule, const char *pFormat, va_list xArgs)
 
 uint32_t	SHELL_GetLine(char* pBuffer, uint32_t ulBufferLen)
 {
-#if SHELL_USED_POLLING_LEUART
-	uint32_t	ulLineLen = 0;
-
-	while(ulLineLen < ulBufferLen)
+	if (xConfig.bPoll)
 	{
-		if (LEUART_StatusGet(LEUART0) & LEUART_STATUS_RXDATAV)
+		uint32_t	ulLineLen = 0;
+
+		while(ulLineLen < ulBufferLen)
 		{
-			uint8_t nData = LEUART_Rx(LEUART0);
-			if (nData == '\n')
+			if (LEUART_StatusGet(LEUART0) & LEUART_STATUS_RXDATAV)
 			{
-				break;
-			}
-			else if (nData == '\r')
-			{
-			}
-			else if (nData == '\b')
-			{
-				if (ulLineLen > 0)
+				uint8_t nData = LEUART_Rx(LEUART0);
+				if (nData == '\n')
 				{
-					pBuffer[--ulLineLen] = '\0';
+					break;
 				}
+				else if (nData == '\r')
+				{
+				}
+				else if (nData == '\b')
+				{
+					if (ulLineLen > 0)
+					{
+						pBuffer[--ulLineLen] = '\0';
+					}
+				}
+				else
+				{
+					pBuffer[ulLineLen++] = nData;
+				}
+				vTaskDelay(0);
 			}
 			else
 			{
-				pBuffer[ulLineLen++] = nData;
+				vTaskDelay(1);
 			}
-			vTaskDelay(0);
 		}
-		else
+
+		if (ulLineLen < ulBufferLen)
 		{
-			vTaskDelay(1);
+			pBuffer[ulLineLen] = '\0';
 		}
-	}
 
-	if (ulLineLen < ulBufferLen)
+		return	ulLineLen;
+	}
+	else
 	{
-		pBuffer[ulLineLen] = '\0';
+		ulReadLineLen = 0;
+		pReadLine = pBuffer;
+		ulMaxLineLen  = ulBufferLen;
+		LEUART_IntEnable(LEUART0, LEUART_IF_RXDATAV);
+
+		while(EVENT_WaitForEvent(10) == 0)
+		{
+		}
+
+		LEUART_IntDisable(LEUART0, LEUART_IF_RXDATAV);
+
+		return	ulReadLineLen;
 	}
-
-	return	ulLineLen;
-#else
-	ulReadLineLen = 0;
-	pReadLine = pBuffer;
-	ulMaxLineLen  = ulBufferLen;
-	LEUART_IntEnable(LEUART0, LEUART_IF_RXDATAV);
-
-	while(EVENT_WaitForEvent(10) == 0)
-	{
-	}
-
-	LEUART_IntDisable(LEUART0, LEUART_IF_RXDATAV);
-
-	return	ulReadLineLen;
-#endif
 }
 
 int	SHELL_ParseLine(char* pLine, char* pArgv[], uint32_t nMaxArgs)
@@ -292,12 +337,35 @@ int	SHELL_ParseLine(char* pLine, char* pArgv[], uint32_t nMaxArgs)
 	return	nArgc;
 }
 
-static	char pLine[256];
-static char*	ppArgv[16];
-
 __attribute__((noreturn)) void SHELL_Task(void* pvParameters)
 {
-	int		nArgc = 0;
+	static char 	pLine[256];
+	static char*	ppArgv[16];
+
+	strcpy(pLine, "AT+GCFG");
+	ppArgv[0] = pLine;
+
+	SHELL_Printf("S47 LoRaWAN Device\n");
+	SHELL_Printf("%20s : ", "Region");
+	switch(UNIT_REGION)
+	{
+	case    LORAMAC_REGION_AS923:	SHELL_Printf("AS band on 923MHz\n");	break;
+	case    LORAMAC_REGION_AU915:	SHELL_Printf("Australian band on 915MHz\n");	break;
+	case    LORAMAC_REGION_CN470:	SHELL_Printf("Chinese band on 470MHz\n");	break;
+	case    LORAMAC_REGION_CN779:	SHELL_Printf("Chinese band on 779MHz\n");	break;
+	case    LORAMAC_REGION_EU433:	SHELL_Printf("European band on 433MHz\n");	break;
+	case    LORAMAC_REGION_EU868:	SHELL_Printf("European band on 868MHz\n");	break;
+	case    LORAMAC_REGION_KR920:	SHELL_Printf("South korean band on 920MHz\n");	break;
+	case    LORAMAC_REGION_IN865:	SHELL_Printf("India band on 865MHz\n");	break;
+	case    LORAMAC_REGION_US915:	SHELL_Printf("North american band on 915MHz\n");	break;
+	case    LORAMAC_REGION_US915_HYBRID:	SHELL_Printf("North american band on 915MHz with a maximum of 16 channels\n");	break;
+	default:SHELL_Printf("Unknown[%d]\n", UNIT_REGION);
+	}
+
+	SHELL_Printf("%20s : %d\n", "Network ID", UNIT_NETWORKID);
+	SHELL_Printf("%20s : %s\n", "Application EUI", UNIT_APPEUID);
+	SHELL_Printf("%20s : %s\n", "Device EUI", UNIT_DEVEUID);
+	AT_CMD_GetConfig(ppArgv, 1);
 
 	memset(pLine, 0, sizeof(pLine));
 	while(1)
@@ -305,7 +373,7 @@ __attribute__((noreturn)) void SHELL_Task(void* pvParameters)
 		uint32_t ulLineLen = SHELL_GetLine(pLine, sizeof(pLine) - 1);
 		if (ulLineLen != 0)
 		{
-			nArgc = SHELL_ParseLine(pLine, ppArgv, 16);
+			int	nArgc = SHELL_ParseLine(pLine, ppArgv, 16);
 			if (nArgc != 0)
 			{
 				SHELL_CMD*	pCmd = pShellCmds;
@@ -593,8 +661,7 @@ int AT_CMD_GetConfig(char *ppArgv[], int nArgc)
 	SHELL_Printf("- %22s : %d\n", "Join Delay2", LORAMAC_GetJoinDelay2());
 	SHELL_Printf("- %22s : %d\n", "Retransmission Count", LORAMAC_GetRetries());
 
-	SHELL_Printf("- Channel Informations\n");
-	SHELL_Printf("  %5s %10s %4s\n", "Index", "Frequency", "Band");
+	SHELL_Printf("- %22s   %5s %10s %4s\n", "Channel Informations", "Index", "Frequency", "Band");
 	for(uint32_t i = 0 ; i < 16 ; i++)
 	{
 
@@ -602,7 +669,7 @@ int AT_CMD_GetConfig(char *ppArgv[], int nArgc)
 		{
 			break;
 		}
-		SHELL_Printf("  %5d %10d %4d\n", i, channel.Frequency, channel.Band);
+		SHELL_Printf("  %22s   %5d %3d.%02d MHz %4d\n", "", i, channel.Frequency/1000000, (channel.Frequency%1000000)/10000, channel.Band);
 	}
 
 
@@ -724,18 +791,27 @@ int AT_CMD_SetTxDR(char *ppArgv[], int nArgc)
 		SHELL_Printf("SET TX DATA RATE\n");
 		if (nArgc == 2)
 		{
-			int8_t	nDatarate = atoi(ppArgv[1]);
-			if ((LORAMAC_TX_DATARATE_MIN <= nDatarate) && (nDatarate <= LORAMAC_TX_DATARATE_MAX))
+			if (strcasecmp(ppArgv[1], "-h") == 0)
 			{
-				ret = LORAMAC_SetDatarate(nDatarate);
+				SHELL_Printf("- Min : %d\n", LORAMAC_TX_DATARATE_MIN);
+				SHELL_Printf("- Max : %d\n", LORAMAC_TX_DATARATE_MAX);
+				ret = true;
+			}
+			else
+			{
+				int8_t	nDatarate = atoi(ppArgv[1]);
+				if ((LORAMAC_TX_DATARATE_MIN <= nDatarate) && (nDatarate <= LORAMAC_TX_DATARATE_MAX))
+				{
+					ret = LORAWAN_SetDefaultDR(nDatarate);
+					if (ret)
+					{
+						SHELL_Printf("- Data Rate : %d\n", LORAMAC_GetDatarate());
+					}
+				}
 			}
 		}
 
-		if (ret)
-		{
-			SHELL_Printf("- Data Rate : %d\n", LORAMAC_GetDatarate());
-		}
-		else
+		if (!ret)
 		{
 			SHELL_Printf("- ERROR, Invalid Arguments\n");
 		}
@@ -1261,6 +1337,21 @@ int AT_CMD_Sleep(char *ppArgv[], int nArgc)
 	return	0;
 }
 
+int AT_CMD_GetTaskInfo(char* ppArgv[], int nArgc)
+{
+	if (nArgc == 1)
+	{
+		SHELL_Printf("GET TASK INFORMATION\n");
+		SHELL_ShowInfo();
+	}
+	else
+	{
+		SHELL_Printf("- ERROR, Invalid Arguments\n");
+	}
+
+	return	0;
+}
+
 int AT_CMD_Test(char *ppArgv[], int nArgc)
 {
 	if (nArgc == 2)
@@ -1295,22 +1386,29 @@ int AT_CMD_TestSend(char *ppArgv[], int nArgc)
 			return	0;
 		}
 
-		memset(pPacket, 0, sizeof(pPacket));
-		for(uint32_t i = 0 ; i < ulCount ; i++)
+		if (LORAWAN_IsNetworkJoined())
 		{
-			for(uint32_t j = 0 ; j < ulLen ; j++)
+			memset(pPacket, 0, sizeof(pPacket));
+			for(uint32_t i = 0 ; i < ulCount ; i++)
 			{
-				pPacket[j] = '0' + (i+j) % 10;
-			}
+				for(uint32_t j = 0 ; j < ulLen ; j++)
+				{
+					pPacket[j] = '0' + (i+j) % 10;
+				}
 
-			if (SKTAPP_Send(ulPort, 0, pPacket, ulLen) == false)
-			{
-				SHELL_Printf("[%3d] - %s - ERROR, Failed to send packet!\n", i, pPacket);
+				if (SKTAPP_Send(ulPort, 0, pPacket, ulLen) == false)
+				{
+					SHELL_Printf("ERROR, Failed to send packet[%d] - s!\n", i, pPacket);
+				}
+				else
+				{
+					SHELL_Printf("[%3d] - %s - SUCCESS!\n", i, pPacket);
+				}
 			}
-			else
-			{
-				SHELL_Printf("[%3d] - %s - SUCCESS!\n", i, pPacket);
-			}
+		}
+		else
+		{
+			SHELL_Printf("- ERROR, The device is not joined to the network.\n");
 		}
 	}
 	else
@@ -1357,6 +1455,7 @@ SHELL_CMD	pShellCmds[] =
 		{	"AT+DEVT", 	"Device Time Request",	AT_CMD_DeviceTimeRequest},
 		{	"AT+TASK",	"Get Task Information",	AT_CMD_Task},
 		{	"AT+STAT", 	"Get Status",	AT_CMD_Status},
+		{	"AT+TASK",	"Show Task Informations", AT_CMD_GetTaskInfo},
 		{   "AT+TRCE", 	"Get/Set Trace", AT_CMD_Trace},
 		{	"AT+SLP",	"Sleep",	AT_CMD_Sleep},
 		{	"AT+MAC",	"Get/Set MAC",	AT_CMD_Mac},

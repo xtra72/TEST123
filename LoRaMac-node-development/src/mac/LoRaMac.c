@@ -2011,6 +2011,10 @@ static LoRaMacStatus_t ScheduleTx( void )
 			nextChan.Datarate = LoRaMacParams.ChannelsDatarate;
 		}
 	}
+	else
+	{
+		Channel = LoRaMacParams.ChannelsDatarate;
+	}
 
 	// Compute Rx1 windows parameters
     RegionComputeRxWindowParameters( LoRaMacRegion,
@@ -3497,7 +3501,7 @@ LoRaMacStatus_t LoRaMacMcpsRequest( McpsReq_t *mcpsRequest )
             }
             else
             {
-               	TRACE("LORAMAC : LORAMAC_STATUS_PARAMETER_INVALID\n");
+               	ERROR("Invalid Parameter!\n");
                 return LORAMAC_STATUS_PARAMETER_INVALID;
             }
         }

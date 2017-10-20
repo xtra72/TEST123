@@ -231,6 +231,9 @@ int16_t	LORAWAN_GetRSSI(void);
 bool	LORAWAN_GetPeriodicMode(void);
 bool	LORAWAN_SetPeriodicMode(bool bEnable);
 
+bool 	LORAWAN_SetDefaultDR(uint8_t nDR);
+uint8_t LORAWAN_GetDefaultDR(void);
+
 uint32_t	LORAWAN_SetMessage(LORA_MESSAGE* pMessage, uint32_t ulMaxSize, uint8_t nType, uint8_t* pPayload, uint8_t nPayloadLen);
 void		LORAWAN_ShowErrorStatus(LoRaMacEventInfoStatus_t xStatus);
 
