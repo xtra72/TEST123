@@ -90,12 +90,12 @@ static __attribute__((noreturn)) void LORAWAN_EventTask(void* pvParameter)
 												memcpy(UData.LoRaWAN.AppSKey,mibReq.Param.AppSKey,sizeof(UData.LoRaWAN.AppSKey));
 												DeviceUserDataSave(&UData);
 						*/
-						TRACE("Node has joined the network.\n");
+						TRACE(5, "Node has joined the network.\n");
 		                // Status is OK, node has joined the network
 		            }
 		            else
 		            {
-		            	TRACE("Join failed[%d].\n", LocalMcps.mlme.Status);
+		            	TRACE(5, "Join failed[%d].\n", LocalMcps.mlme.Status);
 		            }
 		            break;
 		        }
@@ -116,7 +116,7 @@ static __attribute__((noreturn)) void LORAWAN_EventTask(void* pvParameter)
 		}
 		if (ulNotificationValue & CONFIRM_EVENT)
 		{
-        	TRACE("Confirm event.\n");
+        	TRACE(5, "Confirm event.\n");
 			// Confirm event
 			// Perform any specific action
 			// and Give Semaphore to unlock waiting task
@@ -133,7 +133,7 @@ static __attribute__((noreturn)) void LORAWAN_EventTask(void* pvParameter)
 					}
 					case MCPS_CONFIRMED:
 					{
-						TRACE("MCPS_CONFIRMED confirmed.\n");
+						TRACE(5, "MCPS_CONFIRMED confirmed.\n");
 						// Check Datarate
 						// Check TxPower
 						// Check AckReceived
@@ -142,7 +142,7 @@ static __attribute__((noreturn)) void LORAWAN_EventTask(void* pvParameter)
 					}
 					case MCPS_PROPRIETARY:
 					{
-						TRACE("MCPS_PROPRIETARY confirmed.\n");
+						TRACE(5, "MCPS_PROPRIETARY confirmed.\n");
 						break;
 					}
 					default:
@@ -160,7 +160,7 @@ static __attribute__((noreturn)) void LORAWAN_EventTask(void* pvParameter)
 		{
 			nRSSI = LocalMcps.indication.Rssi;
 			nSNR  = LocalMcps.indication.Snr;
-	       	TRACE("Indication event.\n");
+	       	TRACE(5, "Indication event.\n");
 			// Indication event
 			// Perform any specific action
 			// and post event to let other tasks know
@@ -304,7 +304,7 @@ char*			LORAWAN_GetStatusString(void)
 bool LORAWAN_JoinNetworkUseOTTA(uint8_t* pDevEUI, uint8_t* pAppEUI, uint8_t* pAppKey)
 {
 	MlmeReq_t mlmeReq;
-	TRACE("Use OTTA\n");
+	TRACE(5, "Use OTTA\n");
 
 	mlmeReq.Type = MLME_JOIN;
 
@@ -312,9 +312,9 @@ bool LORAWAN_JoinNetworkUseOTTA(uint8_t* pDevEUI, uint8_t* pAppEUI, uint8_t* pAp
 	mlmeReq.Req.Join.AppEui = pAppEUI;
 	mlmeReq.Req.Join.AppKey = pAppKey;
 	mlmeReq.Req.Join.NbTrials = 3;
-	TRACE_DUMP(pDevEUI, 8, "%16s - ", "Dev EUI");
-	TRACE_DUMP(pAppEUI, 8, "%16s - ", "App EUI");
-	TRACE_DUMP(pAppKey, 16, "%16s - ", "App Key");
+	DUMP(5, pDevEUI, 8, "%16s - ", "Dev EUI");
+	DUMP(5, pAppEUI, 8, "%16s - ", "App EUI");
+	DUMP(5, pAppKey, 16, "%16s - ", "App Key");
 
 	if (LORAWANSemaphore) xSemaphoreTake( LORAWANSemaphore, 0 );
 
@@ -337,7 +337,7 @@ bool LORAWAN_JoinNetworkUseOTTA(uint8_t* pDevEUI, uint8_t* pAppEUI, uint8_t* pAp
 
 bool LORAWAN_JoinNetworkUseABP(void)
 {
-	TRACE("Use ABP\n");
+	TRACE(5, "Use ABP\n");
 
 	// Choose a random device address if not already defined in Commissioning.h
 	if( UNIT_SERIALNUMBER == 0 )
@@ -373,7 +373,7 @@ bool LORAWAN_JoinNetworkUseABP(void)
 
 bool LORAWAN_JoinNetwork(void)
 {
-	TRACE("Start Join Network.\n");
+	TRACE(5, "Start Join Network.\n");
 	if( UNIT_USE_OTAA)
 	{
 		if (UNIT_USE_SKT_APP && UNIT_USE_RAK)
@@ -400,7 +400,7 @@ bool LORAWAN_CancelJoinNetwork(void)
 
 	MlmeReq_t mlmeReq;
 
-	TRACE("Cancel Join N/W\n");
+	TRACE(5, "Cancel Join N/W\n");
 
 	mlmeReq.Type = MLME_CANCEL;
 
@@ -443,7 +443,7 @@ LoRaMacStatus_t LORAWAN_SendMessage( LORA_PACKET* message )
             mcpsReq.Req.Unconfirmed.fBufferSize = message->Size;
             message->NbTrials = 0;
             mcpsReq.Req.Unconfirmed.Datarate = LoRaWAN_DefaultDR;
-         	TRACE("Request unconfirmed : PORT = %02x, Size = %d\n",
+         	TRACE(5, "Request unconfirmed : PORT = %02x, Size = %d\n",
          			mcpsReq.Req.Unconfirmed.fPort,
 					mcpsReq.Req.Unconfirmed.fBufferSize);
         }
@@ -455,7 +455,7 @@ LoRaMacStatus_t LORAWAN_SendMessage( LORA_PACKET* message )
             mcpsReq.Req.Confirmed.fBufferSize = message->Size;
             mcpsReq.Req.Confirmed.NbTrials = LoRaWAN_Retries;
             mcpsReq.Req.Confirmed.Datarate = LoRaWAN_DefaultDR;
-         	TRACE("Request confirmed : PORTR  = %02x, Size = %d\n",
+         	TRACE(5, "Request confirmed : PORTR  = %02x, Size = %d\n",
          			mcpsReq.Req.Confirmed.fPort,
 					mcpsReq.Req.Confirmed.Datarate,
 					mcpsReq.Req.Confirmed.fBufferSize);
@@ -472,7 +472,7 @@ LoRaMacStatus_t LORAWAN_SendMessage( LORA_PACKET* message )
     result = LoRaMacMcpsRequest( &mcpsReq );
     if (result == LORAMAC_STATUS_OK)
     {
-      	TRACE("Request OK\n");
+      	TRACE(5, "Request OK\n");
 	    if (LORAWANSemaphore)
 	    {
 	    	if (xSemaphoreTake( LORAWANSemaphore, ((message->NbTrials) ? 2 : 1 ) * LORAWAN_TIMEOUT ) == pdFALSE)
@@ -482,7 +482,7 @@ LoRaMacStatus_t LORAWAN_SendMessage( LORA_PACKET* message )
 	    	}
 	    	else
 	    	{
-	         	TRACE("Request Done\n");
+	         	TRACE(5, "Request Done\n");
 	    		message->Status = LocalMcps.confirm.Status;
 	    		message->NbTrials = LocalMcps.confirm.NbRetries;
 	    	}
@@ -517,7 +517,7 @@ McpsIndication_t *ind = LORAWAN_GetIndication();
 
 bool	LORAWAN_SendAck(void)
 {
-	TRACE("Send Ack\n");
+	TRACE(5, "Send Ack\n");
 
 //	LORAMAC_SetADR(false);
 	LORAMAC_AddACK();
@@ -553,7 +553,7 @@ bool	LORAWAN_SendAck(void)
 
 bool	LORAWAN_SendDevTimeReq(void)
 {
-	TRACE("Send DevTimeReq\n");
+	TRACE(5, "Send DevTimeReq\n");
 
 	MlmeReq_t mlmeReq;
 
@@ -583,7 +583,7 @@ bool	LORAWAN_SendDevTimeReq(void)
 
 bool	LORAWAN_SendLinkCheckRequest(void)
 {
-	TRACE("Send Link Check\n");
+	TRACE(5, "Send Link Check\n");
 
 	MlmeReq_t mlmeReq;
 	mlmeReq.Type = MLME_LINK_CHECK;

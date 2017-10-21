@@ -1222,9 +1222,17 @@ int AT_CMD_Log(char *ppArgv[], int nArgc)
 				ret = TRACE_SetEnable(true);
 			}
 		}
+		else if (nArgc == 3)
+		{
+			if (strcmp(ppArgv[1], "level") == 0)
+			{
+				ret = TRACE_SetLevel(ppArgv[2]);
+			}
+		}
 
 		if (ret)
 		{
+			SHELL_Printf("- LOG Message %s.\n", (TRACE_GetEnable()?"Enabled":"Disabled"));
 			SHELL_Printf("- LOG Message %s.\n", (TRACE_GetEnable()?"Enabled":"Disabled"));
 		}
 		else

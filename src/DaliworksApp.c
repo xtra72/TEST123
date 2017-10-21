@@ -20,11 +20,11 @@
 bool DEVICEAPP_ExecDaliworks(LORA_MESSAGE* msg) {
 bool rc = false;
 	if (msg->Version > LORA_MESSAGE_VERSION) return rc; 	// Ignore malformed message
-	TRACE("Exec Daliworks : %02x\n", msg->MessageType);
+	INFO("Exec Daliworks : %02x\n", msg->MessageType);
 	switch(msg->MessageType) {
 	case 01:
 
-		TRACE("%16s : %02x %02x %02x\n", "App Nonce", msg->Payload[0], msg->Payload[1], msg->Payload[2]);
+		INFO("%16s : %02x %02x %02x\n", "App Nonce", msg->Payload[0], msg->Payload[1], msg->Payload[2]);
 		break;
 
 	case MSG_DALIWORKS_RESET:

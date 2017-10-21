@@ -31,7 +31,6 @@ Maintainer: Miguel Luis ( Semtech ), Gregory Cristian ( Semtech ) and Daniel Jae
 #include "RegionCommon.h"
 #include "RegionKR920.h"
 #include "trace.h"
-#define	DEFAULT_JOIN_TRIALS 		8
 // Definitions
 #define CHANNELS_MASK_SIZE              1
 
@@ -313,7 +312,7 @@ PhyParam_t RegionKR920GetPhyParam( GetPhyParams_t* getPhy )
         case PHY_NB_JOIN_TRIALS:
         case PHY_DEF_NB_JOIN_TRIALS:
         {
-            phyParam.Value = DEFAULT_JOIN_TRIALS;
+            phyParam.Value = 48;
             break;
         }
         default:
@@ -388,7 +387,7 @@ bool RegionKR920Verify( VerifyParams_t* verify, PhyAttribute_t phyAttribute )
         }
         case PHY_NB_JOIN_TRIALS:
         {
-            if( verify->NbJoinTrials < DEFAULT_JOIN_TRIALS )
+            if( verify->NbJoinTrials < 48 )
             {
                 return false;
             }
@@ -774,19 +773,19 @@ uint8_t RegionKR920NewChannelReq( NewChannelReqParams_t* newChannelReq )
             }
             case LORAMAC_STATUS_FREQUENCY_INVALID:
             {
-            	TRACE("Frequency invalid!!!!!\n");
+            	ERROR("Frequency invalid!!!!!\n");
                 status &= 0xFE;
                 break;
             }
             case LORAMAC_STATUS_DATARATE_INVALID:
             {
-            	TRACE("Datarate invalid!!!!!\n");
+            	ERROR("Datarate invalid!!!!!\n");
                 status &= 0xFD;
                 break;
             }
             case LORAMAC_STATUS_FREQ_AND_DR_INVALID:
             {
-            	TRACE("Frequency & DR invalid!!!!!\n");
+            	ERROR("Frequency & DR invalid!!!!!\n");
                 status &= 0xFC;
                 break;
             }
@@ -833,6 +832,7 @@ uint8_t RegionKR920DlChannelReq( DlChannelReqParams_t* dlChannelReq )
 
 int8_t RegionKR920AlternateDr( AlternateDrParams_t* alternateDr )
 {
+#if (USE_SKT_FORMAT > 0)
     int8_t datarate = 0;
 
     if( ( alternateDr->NbTrials % 48 ) == 0 )
@@ -860,6 +860,9 @@ int8_t RegionKR920AlternateDr( AlternateDrParams_t* alternateDr )
         datarate = DR_5;
     }
     return datarate;
+#else
+    return	DR_0;
+#endif
 }
 
 void RegionKR920CalcBackOff( CalcBackOffParams_t* calcBackOff )
@@ -959,17 +962,17 @@ LoRaMacStatus_t RegionKR920ChannelAdd( ChannelAddParams_t* channelAdd )
     // Validate the datarate range
     if( RegionCommonValueInRange( channelAdd->NewChannel->DrRange.Fields.Min, KR920_TX_MIN_DATARATE, KR920_TX_MAX_DATARATE ) == false )
     {
-    	TRACE("Invalid DR Range Fields Min : %d\n", channelAdd->NewChannel->DrRange.Fields.Min);
+    	ERROR("Invalid DR Range Fields Min : %d\n", channelAdd->NewChannel->DrRange.Fields.Min);
         drInvalid = true;
     }
     if( RegionCommonValueInRange( channelAdd->NewChannel->DrRange.Fields.Max, KR920_TX_MIN_DATARATE, KR920_TX_MAX_DATARATE ) == false )
     {
-    	TRACE("Invalid DR Range Fields Max : %d\n", channelAdd->NewChannel->DrRange.Fields.Max);
+    	ERROR("Invalid DR Range Fields Max : %d\n", channelAdd->NewChannel->DrRange.Fields.Max);
         drInvalid = true;
     }
     if( channelAdd->NewChannel->DrRange.Fields.Min > channelAdd->NewChannel->DrRange.Fields.Max )
     {
-    	TRACE("Invalid DR Range Fields : %d ~ %d\n", channelAdd->NewChannel->DrRange.Fields.Min, channelAdd->NewChannel->DrRange.Fields.Max);
+    	ERROR("Invalid DR Range Fields : %d ~ %d\n", channelAdd->NewChannel->DrRange.Fields.Min, channelAdd->NewChannel->DrRange.Fields.Max);
         drInvalid = true;
     }
 

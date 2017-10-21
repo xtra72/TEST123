@@ -41,7 +41,7 @@ static bool DEVICEAPP_ExecSKTNetwork(LORA_MESSAGE* msg)
 		if (msg->PayloadLen == sizeof(AppNonce))
 		{
 			memcpy(AppNonce, msg->Payload, 3);
-			TRACE_DUMP(AppNonce, sizeof(AppNonce), "%16s - ", "App Nonce");
+			DUMP(0, AppNonce, sizeof(AppNonce), "%16s - ", "App Nonce");
 
 			if(SKTAppSemaphore) xSemaphoreGive(SKTAppSemaphore);
 		}
@@ -53,9 +53,9 @@ static bool DEVICEAPP_ExecSKTNetwork(LORA_MESSAGE* msg)
 
 			LoRaMacJoinComputeRealAppKey( UNIT_APPKEY, AppNonce, UNIT_NETWORKID, RealAppKey );
 
-			TRACE_DUMP(AppNonce, sizeof(AppNonce), "%16s : ", "App Nonce");
-			TRACE("%16s : %06x\n", "Net ID", UNIT_NETWORKID);
-			TRACE_DUMP(RealAppKey, sizeof(RealAppKey), "%16s : ", "Real App Key");
+			DUMP(5, AppNonce, sizeof(AppNonce), "%16s : ", "App Nonce");
+			TRACE(5, "%16s : %06x\n", "Net ID", UNIT_NETWORKID);
+			DUMP(5, RealAppKey, sizeof(RealAppKey), "%16s : ", "Real App Key");
 
 			DeviceUserDataSetSKTRealAppKey(RealAppKey);
 
@@ -80,7 +80,7 @@ static bool DEVICEAPP_ExecSKTDevice(LORA_MESSAGE* msg)
 {
 	bool rc = false;
 	if (msg->Version > LORA_MESSAGE_VERSION) return rc; 	// Ignore malformed message
-	TRACE("Exec STK : %02x\n", msg->MessageType);
+	TRACE(5, "Exec STK : %02x\n", msg->MessageType);
 	switch(msg->MessageType)
 	{
 	case MSG_SKT_DEV_EXT_DEVICE_MANAGEMENT:
@@ -237,7 +237,7 @@ void SKTAPP_SendPeriodicDataExt(uint8_t messageType, bool retry)
 		LocalMessage.Message->PayloadLen += sprintf((char*)&(LocalMessage.Message->Payload[LocalMessage.Message->PayloadLen]),
 				",%ld",(retry) ? SUPERVISOR_GetHistoricalValue(0,1) : DeviceGetPulseInValue(1));
 	LocalMessage.Size = LORA_MESSAGE_HEADER_SIZE + LocalMessage.Message->PayloadLen;
-	TRACE_DUMP(LocalMessage.Message->Payload, LocalMessage.Message->PayloadLen, "SendPeriodicData : ");
+	DUMP(0, LocalMessage.Message->Payload, LocalMessage.Message->PayloadLen, "SendPeriodicData : ");
 	if (LORAWAN_SendMessage(&LocalMessage)  != LORAMAC_STATUS_OK)
 	{
 		 LORAWAN_ShowErrorStatus(LocalMessage.Status);
@@ -264,7 +264,7 @@ bool SKTAPP_Send(uint8_t port, uint8_t messageType, uint8_t *pFrame, uint32_t ul
 	}
 
 	LocalMessage.Size = LORAWAN_SetMessage(LocalMessage.Message, sizeof(LocalBuffer), messageType, pFrame, ulFrameLen);
-	TRACE_DUMP(LocalMessage.Message->Payload, LocalMessage.Message->PayloadLen, "SendPeriodicData : ");
+	DUMP(0, LocalMessage.Message->Payload, LocalMessage.Message->PayloadLen, "SendPeriodicData : ");
 
 	if (LORAWAN_SendMessage(&LocalMessage)  != LORAMAC_STATUS_OK)
 	{
@@ -298,19 +298,19 @@ bool SKTAPP_ParseMessage(McpsIndication_t* ind)
 					switch(msg->Port)
 					{
 					case SKT_DEVICE_SERVICE_PORT:
-						TRACE("SKT Device Service Port received.\n");
+						TRACE(5, "SKT Device Service Port received.\n");
 						if (msg->Size > 0) {
 							rc = DEVICEAPP_ExecSKTDevice(msg->Message);
 						}
 						break;
 					case SKT_NETWORK_SERVICE_PORT:
-						TRACE("SKT Network Service Port received.\n");
+						TRACE(5, "SKT Network Service Port received.\n");
 						if (msg->Size > 0) {
 							rc = DEVICEAPP_ExecSKTNetwork(msg->Message);
 						}
 						break;
 					case DALIWORKS_SERVICE_PORT:
-						TRACE("Daliworks Service Port received.\n");
+						TRACE(5, "Daliworks Service Port received.\n");
 						if (msg->Size > 0) {
 							rc = DEVICEAPP_ExecDaliworks(msg->Message);
 						}
@@ -321,7 +321,7 @@ bool SKTAPP_ParseMessage(McpsIndication_t* ind)
 						break;
 #endif
 					default:
-						TRACE("Unknown Port : %d\n", msg->Port);
+						TRACE(5, "Unknown Port : %d\n", msg->Port);
 						break;
 					}
 				}
@@ -346,13 +346,13 @@ void SKTAPP_ParseMlme(MlmeConfirm_t *m)
 	switch(m->MlmeRequest)
 	{
 	case	MLME_LINK_CHECK:
-		TRACE("Demod Margin : %d\n", m->DemodMargin);
-		TRACE("Gateways Number: %d\n", m->NbGateways);
+		TRACE(5, "Demod Margin : %d\n", m->DemodMargin);
+		TRACE(5, "Gateways Number: %d\n", m->NbGateways);
 		break;
 
 	case	MLME_DEV_TIME:
-		TRACE("Epoch : %d\n", m->Epoch);
-		TRACE("Frac Seconds: %d\n", m->FracSec);
+		TRACE(5, "Epoch : %d\n", m->Epoch);
+		TRACE(5, "Frac Seconds: %d\n", m->FracSec);
 
 		struct tm *newtime;
 		time_t aclock;
@@ -360,7 +360,7 @@ void SKTAPP_ParseMlme(MlmeConfirm_t *m)
 		aclock = m->Epoch;
 		newtime = localtime( &aclock );
 
-		TRACE( "The current date and time are: %s", asctime( newtime ) );
+		TRACE(5,  "The current date and time are: %s", asctime( newtime ) );
 		break;
 	default:
 		break;

@@ -130,9 +130,9 @@ unsigned char 	RunCyclicTask;
 unsigned long 	DefaultRFPeriod;		//!< Default RF periodic transmission (in sec.)
 unsigned long 	DeviceSerialNumber;	//!< Device Serial Number
 unsigned short 	DeviceFlags;			//!< Device permanent stored status flag
+LORAWAN_INFO 	LoRaWAN;				//!< LoRaWAN information
+SKT_INFO		SKT;
 unsigned short 	TraceFlags;
-LORAWAN_INFO LoRaWAN;				//!< LoRaWAN information
-SKT_INFO	SKT;
 } USERDATA;
 
 /** @cond */

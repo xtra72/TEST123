@@ -33,11 +33,13 @@
  * @brief Console output
  */
 
-uint32_t	TRACE_Dump(uint16_t xModule, uint8_t *pData, uint32_t ulDataLen, const char *pFormat, ...)
+static TRACE_LEVEL	xOutputLevel = TRACE_LEVEL_DEBUG_3;
+
+uint32_t	TRACE_Dump(TRACE_LEVEL xLevel, uint16_t xModule, uint8_t *pData, uint32_t ulDataLen, const char *pFormat, ...)
 {
 	uint32_t	nOutputLength = 0;
 
-	if (UNIT_TRACE_DUMP && UNIT_TRACE_ENABLE && UNIT_TRACE(xModule))
+	if ((xLevel >= xOutputLevel) && UNIT_TRACE_DUMP && UNIT_TRACE_ENABLE && UNIT_TRACE(xModule))
 	{
 		if (pFormat != NULL)
 		{
@@ -58,19 +60,22 @@ uint32_t	TRACE_Dump(uint16_t xModule, uint8_t *pData, uint32_t ulDataLen, const 
 /*!
  * @brief Console formatted output
  */
-uint32_t	TRACE_Printf(uint16_t xModule, const char *pFormat, ...)
+uint32_t	TRACE_Printf(TRACE_LEVEL xLevel, uint16_t xModule, const char *pFormat, ...)
 {
 	uint32_t	nOutputLength = 0;
 
-	if (UNIT_TRACE_ENABLE && UNIT_TRACE(xModule))
+	if (xLevel >= xOutputLevel)
 	{
-		va_list	xArgs;
+		if (UNIT_TRACE_ENABLE && UNIT_TRACE(xModule))
+		{
+			va_list	xArgs;
 
-		va_start(xArgs, pFormat);
+			va_start(xArgs, pFormat);
 
-		nOutputLength = SHELL_VPrintf(xModule, pFormat, xArgs);
+			nOutputLength = SHELL_VPrintf(xModule, pFormat, xArgs);
 
-		va_end(xArgs);
+			va_end(xArgs);
+		}
 	}
 
 	return	nOutputLength;
@@ -125,3 +130,77 @@ const char*	TRACE_GetModuleName(unsigned short xModuleFlag)
 	return	"S47";
 }
 
+bool	TRACE_SetLevel(char* pLevel)
+{
+	if (strcasecmp(pLevel, "debug0") == 0)
+	{
+		xOutputLevel = TRACE_LEVEL_DEBUG_0;
+	}
+	else if (strcasecmp(pLevel, "debug1") == 0)
+	{
+		xOutputLevel = TRACE_LEVEL_DEBUG_1;
+	}
+	else if (strcasecmp(pLevel, "debug2") == 0)
+	{
+		xOutputLevel = TRACE_LEVEL_DEBUG_2;
+	}
+	else if (strcasecmp(pLevel, "debug3") == 0)
+	{
+		xOutputLevel = TRACE_LEVEL_DEBUG_3;
+	}
+	else if (strcasecmp(pLevel, "debug4") == 0)
+	{
+		xOutputLevel = TRACE_LEVEL_DEBUG_4;
+	}
+	else if (strcasecmp(pLevel, "debug5") == 0)
+	{
+		xOutputLevel = TRACE_LEVEL_DEBUG_5;
+	}
+	else if (strcasecmp(pLevel, "info") == 0)
+	{
+		xOutputLevel = TRACE_LEVEL_INFO;
+	}
+	else if (strcasecmp(pLevel, "warn") == 0)
+	{
+		xOutputLevel = TRACE_LEVEL_WRANING;
+	}
+	else if (strcasecmp(pLevel, "error") == 0)
+	{
+		xOutputLevel = TRACE_LEVEL_ERROR;
+	}
+	else if (strcasecmp(pLevel, "FATAL") == 0)
+	{
+		xOutputLevel = TRACE_LEVEL_FATAL;
+	}
+	else
+	{
+		return	false;
+	}
+
+	return	true;
+}
+
+TRACE_LEVEL	TRACE_GetLevel(void)
+{
+	return	xOutputLevel;
+}
+
+const char*	TRACE_GetLevelName(TRACE_LEVEL xLevel)
+{
+	switch(xLevel)
+	{
+	case	TRACE_LEVEL_DEBUG_0:	return	"DEBUG0";
+	case	TRACE_LEVEL_DEBUG_1:	return	"DEBUG1";
+	case	TRACE_LEVEL_DEBUG_2:	return	"DEBUG2";
+	case	TRACE_LEVEL_DEBUG_3:	return	"DEBUG3";
+	case	TRACE_LEVEL_DEBUG_4:	return	"DEBUG4";
+	case	TRACE_LEVEL_DEBUG_5:	return	"DEBUG5";
+	case	TRACE_LEVEL_INFO:		return	"INFO";
+	case	TRACE_LEVEL_WRANING:	return	"WARNING";
+	case	TRACE_LEVEL_ERROR:		return	"ERROR";
+	case	TRACE_LEVEL_FATAL:		return	"FATAL";
+
+	}
+
+	return	"UNKNOWN";
+}

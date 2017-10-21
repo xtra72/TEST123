@@ -108,16 +108,16 @@ _USERPAGE_ = {
 #endif
 #endif
 		.DefaultRFPeriod = LORAMAC_DEFAULT_RF_PERIOD,
-		.TraceFlags = FLAG_TRACE_ENABLE | FLAG_TRACE_LORAMAC | FLAG_TRACE_LORAWAN | FLAG_TRACE_DALIWORKS | FLAG_TRACE_SKT | FLAG_TRACE_SUPERVISOR,
 		.LoRaWAN = {
 			.Region = LORAMAC_REGION_DEFAULT,
-			.NetID = LORAWAN_NETWORK_ID,
+			.NetID 	= LORAWAN_NETWORK_ID,
 			.DevEui = LORAWAN_DEVICE_EUI,
 			.AppEui = LORAWAN_APPLICATION_EUI,
 			.AppKey = LORAWAN_APPLICATION_KEY,
-			.NwkSKey = LORAWAN_NWKSKEY,
-			.AppSKey = LORAWAN_APPSKEY
-		}
+			.NwkSKey= LORAWAN_NWKSKEY,
+			.AppSKey= LORAWAN_APPSKEY
+		},
+		.TraceFlags = FLAG_TRACE_ENABLE | FLAG_TRACE_LORAMAC | FLAG_TRACE_LORAWAN | FLAG_TRACE_DALIWORKS | FLAG_TRACE_SKT | FLAG_TRACE_SUPERVISOR,
 	}
 };
 /** @endcond */
@@ -326,10 +326,10 @@ static inline BOOL DeviceWaitForAlternateButton(LIST_INDEX button, unsigned shor
 BOOL DevicePerformKeypressTasks(LIST_INDEX button,const BUTTON_TASKLIST* tasks) {
 #if HAL_NB_BUTTON > 0
 	int tasknb = 0;
-	TRACE("Button pressed.\n");
+	INFO("Button pressed.\n");
 	while (tasks[tasknb].KeypressDuration) {
 		if (!DeviceWaitForAlternateButton(button,tasks[tasknb].KeypressDuration,tasks[tasknb].LedFlashCycle)){
-			TRACE("Button released.\n");
+			INFO("Button released.\n");
 			break; //Button released
 		}
 		tasknb++;
@@ -341,7 +341,7 @@ BOOL DevicePerformKeypressTasks(LIST_INDEX button,const BUTTON_TASKLIST* tasks) 
 	}
 #endif
 
-	TRACE("Button canceled.\n");
+	INFO("Button canceled.\n");
     DeviceFlashLed(LED_FLASH_OFF);
 	return 0;
 }

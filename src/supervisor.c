@@ -111,14 +111,14 @@ static void SUPERVISORRunAttach()
 }
 
 static void SUPERVISORResetUnit(void) {
-	TRACE("Reset Unit\n");
+	INFO("Reset Unit\n");
 	if (!UNIT_DISALLOW_RESET) {
 		DeviceUserDataSetFlag(FLAG_INSTALLED, 0);
 		DeviceFlashLed(20);
 		SystemReboot();
 	}
 
-	TRACE("Reset disallowed.\n");
+	INFO("Reset disallowed.\n");
 	DeviceFlashLed(LED_FLASH_OFF);
 }
 
@@ -337,7 +337,7 @@ __attribute__((noreturn)) void SUPERVISOR_Task(void* pvParameters)
          * A pulse occurred
          */
 	case PULSE_EVENT:
-		TRACE("A pulse occurred.\n");
+		INFO("A pulse occurred.\n");
 		// Show Pulse LED if not installed or button was activated for less than 5 minutes
 		if (GET_FLAG(DEVICE_UNINSTALLED) || ((DeviceRTCGetSeconds() - lastButton) < (5*60))) {
 			DeviceFlashOneLedExt(0,1,LED_FLASH_SHORTER);
@@ -379,7 +379,7 @@ __attribute__((noreturn)) void SUPERVISOR_Task(void* pvParameters)
 		 */
 	case RF_INDICATION:
 		{
-			TRACE("Received an indication event from the network.\n");
+			INFO("Received an indication event from the network.\n");
 			if (UNIT_USE_SKT_APP)
 				SKTAPP_ParseMessage(LORAWAN_GetIndication());
 			else
@@ -390,7 +390,7 @@ __attribute__((noreturn)) void SUPERVISOR_Task(void* pvParameters)
 		 * Received a Mlme confirm event from the network
 		 */
 	case RF_MLME:
-		TRACE("Received a Mlme confirm event from the network.\n");
+		INFO("Received a Mlme confirm event from the network.\n");
 		if (UNIT_USE_SKT_APP)
 			SKTAPP_ParseMlme(LORAWAN_GetMlmeConfirm());
 		else
@@ -401,7 +401,7 @@ __attribute__((noreturn)) void SUPERVISOR_Task(void* pvParameters)
 		 */
 
 	case	RUN_ATTACH:
-		TRACE("Run Attach.\n");
+		INFO("Run Attach.\n");
 		if( UNIT_USE_SKT_APP)
 		{
 			if (UNIT_USE_RAK)
@@ -430,11 +430,11 @@ __attribute__((noreturn)) void SUPERVISOR_Task(void* pvParameters)
 			CLEAR_FLAG(DEVICE_UNINSTALLED);
 			DeviceUserDataSetFlag(FLAG_INSTALLED,FLAG_INSTALLED);
 			DevicePostEvent(PERIODIC_EVENT);		// Force immediate communication
-			TRACE("Request to join has been completed.\n");
+			INFO("Request to join has been completed.\n");
 		}
 		else
 		{
-			TRACE("Request to join failed.\n");
+			INFO("Request to join failed.\n");
 		}
 
 		CLEAR_FLAG(DEVICE_COMM_ERROR | DEVICE_TEMPORARY_ERROR | DEVICE_LOW_BATTERY);	/* Reset Communication Status and Low battery indicator */
@@ -444,10 +444,12 @@ __attribute__((noreturn)) void SUPERVISOR_Task(void* pvParameters)
 
 	case	RUN_ATTACH_USE_ABP:
 		DeviceFlashLed(1);
+
+		INFO("Request to join with ABP!\n");
 		SUPERVISORUpdatePulseValue();
 		if (LORAWAN_JoinNetworkUseABP())
 		{
-			TRACE("Request to join with ABP has been completed.\n");
+			INFO("Request to join with ABP has been completed.\n");
 			DeviceFlashLed(5);
 			CLEAR_FLAG(DEVICE_UNINSTALLED);
 			DeviceUserDataSetFlag(FLAG_INSTALLED,FLAG_INSTALLED);
@@ -455,7 +457,7 @@ __attribute__((noreturn)) void SUPERVISOR_Task(void* pvParameters)
 		}
 		else
 		{
-			TRACE("Request to join with ABP failed.\n");
+			INFO("Request to join with ABP failed.\n");
 		}
 		CLEAR_FLAG(DEVICE_COMM_ERROR | DEVICE_TEMPORARY_ERROR | DEVICE_LOW_BATTERY);	/* Reset Communication Status and Low battery indicator */
 		DeviceFlashLed(LED_FLASH_OFF);
@@ -463,11 +465,11 @@ __attribute__((noreturn)) void SUPERVISOR_Task(void* pvParameters)
 
 	case	PSEUDO_JOIN_NETWORK:
 		DeviceFlashLed(1);
-
+		INFO("Request to sudo join!\n");
 		if (LORAWAN_JoinNetworkUseOTTA((uint8_t*)UNIT_DEVEUID, (uint8_t*)UNIT_APPEUID, (uint8_t*)UNIT_APPKEY))
 		{
 			DeviceFlashLed(5);
-			TRACE("Request to pseudo join has been completed.\n");
+			INFO("Request to pseudo join has been completed.\n");
 			if (!bStepByStep)
 			{
 				DevicePostEvent(REQ_REAL_APP_KEY_ALLOC);
@@ -475,7 +477,7 @@ __attribute__((noreturn)) void SUPERVISOR_Task(void* pvParameters)
 		}
 		else
 		{
-			TRACE("Request to pseudo join failed.\n");
+			INFO("Request to pseudo join failed.\n");
 		}
 
 		CLEAR_FLAG(DEVICE_COMM_ERROR | DEVICE_TEMPORARY_ERROR | DEVICE_LOW_BATTERY);	/* Reset Communication Status and Low battery indicator */
@@ -485,7 +487,7 @@ __attribute__((noreturn)) void SUPERVISOR_Task(void* pvParameters)
 	case	REQ_REAL_APP_KEY_ALLOC:
 		DeviceFlashLed(1);
 
-		TRACE("Request to real app alloc!\n");
+		INFO("Request to real app alloc!\n");
 		if (SKTAPP_SendRealAppKeyAllocReq())
 		{
 			DeviceFlashLed(5);
@@ -493,11 +495,11 @@ __attribute__((noreturn)) void SUPERVISOR_Task(void* pvParameters)
 			{
 				DevicePostEvent(REQ_REAL_APP_KEY_RX_REPORT);
 			}
-			TRACE("Request to real app key alloc has been completed.\n");
+			INFO("Request to real app key alloc has been completed.\n");
 		}
 		else
 		{
-			TRACE("Request to real app key alloc failed.\n");
+			INFO("Request to real app key alloc failed.\n");
 			if (!bStepByStep)
 			{
 				DevicePostEvent(REQ_REAL_APP_KEY_ALLOC);
@@ -511,7 +513,7 @@ __attribute__((noreturn)) void SUPERVISOR_Task(void* pvParameters)
 	case	REQ_REAL_APP_KEY_RX_REPORT:
 		DeviceFlashLed(1);
 
-		TRACE("Request to real app key rx report!\n");
+		INFO("Request to real app key rx report!\n");
 		if (SKTAPP_SendRealAppKeyRxReportReq())
 		{
 			DeviceFlashLed(5);
@@ -519,11 +521,11 @@ __attribute__((noreturn)) void SUPERVISOR_Task(void* pvParameters)
 			{
 				DevicePostEvent(REAL_JOIN_NETWORK);
 			}
-			TRACE("Request to real app key rx report has been completed.\n");
+			INFO("Request to real app key rx report has been completed.\n");
 		}
 		else
 		{
-			TRACE("Request to real app key rx report failed.\n");
+			INFO("Request to real app key rx report failed.\n");
 			if (!bStepByStep)
 			{
 				DevicePostEvent(REQ_REAL_APP_KEY_RX_REPORT);
@@ -535,18 +537,18 @@ __attribute__((noreturn)) void SUPERVISOR_Task(void* pvParameters)
 		break;
 
 	case	REAL_JOIN_NETWORK:
-		TRACE("Real join\n");
+		INFO("Real join\n");
 
 		DeviceFlashLed(1);
 		if (LORAWAN_JoinNetworkUseOTTA((uint8_t*)UNIT_DEVEUID, (uint8_t*)UNIT_APPEUID, (uint8_t*)UNIT_REALAPPKEY))
 		{
 			DeviceFlashLed(5);
-			TRACE("Request to real join has been completed.\n");
+			INFO("Request to real join has been completed.\n");
 			DevicePostEvent(REAL_JOIN_NETWORK_COMPLETED);
 		}
 		else
 		{
-			TRACE("Request to real join failed.\n");
+			INFO("Request to real join failed.\n");
 		}
 
 		CLEAR_FLAG(DEVICE_COMM_ERROR | DEVICE_TEMPORARY_ERROR | DEVICE_LOW_BATTERY);	/* Reset Communication Status and Low battery indicator */
