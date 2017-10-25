@@ -2350,11 +2350,11 @@ LoRaMacStatus_t SendFrameOnChannel( uint8_t channel )
     Radio.Send( LoRaMacBuffer, LoRaMacBufferPktLen );
     if( IsLoRaMacNetworkJoined == false )
     {
-		TRACE(0, LoRaMacBuffer, LoRaMacBufferPktLen, "Send Join[%d][%d] - ", JoinRequestTrials, LoRaMacBufferPktLen);
+		DUMP(0, LoRaMacBuffer, LoRaMacBufferPktLen, "Send Join[%d][%d] - ", JoinRequestTrials, LoRaMacBufferPktLen);
     }
     else
     {
-		TRACE(0, LoRaMacBuffer, LoRaMacBufferPktLen, "Send Frame[%d] - ", LoRaMacBufferPktLen);
+    	DUMP(0, LoRaMacBuffer, LoRaMacBufferPktLen, "Send Frame[%d] - ", LoRaMacBufferPktLen);
 	}
 
     LoRaMacState |= LORAMAC_TX_RUNNING;
@@ -2372,6 +2372,14 @@ LoRaMacStatus_t SetTxContinuousWave( uint16_t timeout )
     continuousWave.MaxEirp = LoRaMacParams.MaxEirp;
     continuousWave.AntennaGain = LoRaMacParams.AntennaGain;
     continuousWave.Timeout = timeout;
+
+    TRACE(0, "Tx Continuous Wave\n");
+    TRACE(0, "%16s : %d\n", "Channel", continuousWave.Channel);
+    TRACE(0, "%16s : %d\n", "DR", continuousWave.Datarate);
+    TRACE(0, "%16s : %d\n", "Tx Power", continuousWave.TxPower);
+    TRACE(0, "%16s : %.2f\n", "Max EIRP", continuousWave.MaxEirp);
+    TRACE(0, "%16s : %.2f\n", "Antenna Gain", continuousWave.AntennaGain);
+    TRACE(0, "%16s : %d\n", "Timeout", continuousWave.Timeout);
 
     RegionSetContinuousWave( LoRaMacRegion, &continuousWave );
 

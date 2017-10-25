@@ -903,7 +903,7 @@ void DeviceUserDateSetSerialNumber(unsigned long serial) {
 		FLASHClose();
 	}
 }
-void DeviceUserDataSetFlag(unsigned char Mask, unsigned char Value) {
+void DeviceUserDataSetFlag(unsigned short Mask, unsigned short Value) {
 	if ((USERDATAPTR->DeviceFlags & Mask) != Value) {
 		USERDATA UData;
 		memcpy((unsigned char*)&UData,(unsigned char*)USERDATAPTR,sizeof(USERDATA));
@@ -963,7 +963,7 @@ void DeviceUserDataSetAppKey(uint8_t *AppKey) {
 	}
 }
 
-void DeviceUserDataSetTraceFlag(unsigned char Mask, unsigned char Value) {
+void DeviceUserDataSetTraceFlag(unsigned short Mask, unsigned short Value) {
 	if ((USERDATAPTR->TraceFlags & Mask) != Value) {
 		USERDATA UData;
 		memcpy((unsigned char*)&UData,(unsigned char*)USERDATAPTR,sizeof(USERDATA));

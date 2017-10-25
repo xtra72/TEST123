@@ -32,24 +32,59 @@
 /*!
  * @brief Console output
  */
+typedef	struct
+{
+	TRACE_LEVEL	xLevel;
+	char*		pName;
+} TRACE_LEVEL_CONFIG;
 
-static TRACE_LEVEL	xOutputLevel = TRACE_LEVEL_DEBUG_3;
+const static TRACE_LEVEL_CONFIG pTraceLevelInfo[] =
+{
+	{	TRACE_LEVEL_DEBUG_0,	"DEBUG0"},
+	{	TRACE_LEVEL_DEBUG_1,	"DEBUG1"},
+	{	TRACE_LEVEL_DEBUG_2,	"DEBUG2"},
+	{	TRACE_LEVEL_DEBUG_3,	"DEBUG3"},
+	{	TRACE_LEVEL_DEBUG_4,	"DEBUG4"},
+	{	TRACE_LEVEL_DEBUG_5,	"DEBUG5"},
+	{	TRACE_LEVEL_INFO,		"INFO"},
+	{	TRACE_LEVEL_WRANING,	"WARNING"},
+	{	TRACE_LEVEL_ERROR,		"ERROR"},
+	{	TRACE_LEVEL_FATAL,		"FATAL"}
+};
+
+static TRACE_LEVEL	xTraceLevel = TRACE_LEVEL_DEBUG_3;
+static char			pTraceBuffer[256];
+
+void		TRACE_ShowConfig(void)
+{
+	SHELL_Printf("%16s : %s\n", "Mode", (TRACE_GetEnable())?"Enable":"Disabled");
+	SHELL_Printf("%16s : %s\n", "Dump", (TRACE_GetDump())?"Enable":"Disabled");
+	SHELL_Printf("%16s : %s\n", "Level", TRACE_GetLevelName(TRACE_GetLevel()));
+	SHELL_Printf("%16s : %s\n", TRACE_GetModuleName(FLAG_TRACE_LORAMAC), (TRACE_GetModule(FLAG_TRACE_LORAMAC)?"Enable":"Disable"));
+	SHELL_Printf("%16s : %s\n", TRACE_GetModuleName(FLAG_TRACE_LORAWAN), (TRACE_GetModule(FLAG_TRACE_LORAWAN)?"Enable":"Disable"));
+	SHELL_Printf("%16s : %s\n", TRACE_GetModuleName(FLAG_TRACE_SKT), (TRACE_GetModule(FLAG_TRACE_SKT)?"Enable":"Disable"));
+}
 
 uint32_t	TRACE_Dump(TRACE_LEVEL xLevel, uint16_t xModule, uint8_t *pData, uint32_t ulDataLen, const char *pFormat, ...)
 {
 	uint32_t	nOutputLength = 0;
 
-	if ((xLevel >= xOutputLevel) && UNIT_TRACE_DUMP && UNIT_TRACE_ENABLE && UNIT_TRACE(xModule))
+	if ((xLevel >= xTraceLevel) && UNIT_TRACE_DUMP && UNIT_TRACE_ENABLE && UNIT_TRACE(xModule))
 	{
 		if (pFormat != NULL)
 		{
-			va_list	xArgs;
+			uint32_t	ulTime = xTaskGetTickCount();
+			uint32_t	ulLen = 0;
+			va_list		xArgs;
 
 			va_start(xArgs, pFormat);
 
-			nOutputLength = SHELL_VPrintf(xModule, pFormat, xArgs);
+			ulLen = snprintf(pTraceBuffer, sizeof(pTraceBuffer), "[%8lu][%16s] ", ulTime, TRACE_GetModuleName(xModule));
+			ulLen +=vsnprintf(&pTraceBuffer[ulLen], sizeof(pTraceBuffer) - ulLen, pFormat, xArgs);
 
 			va_end(xArgs);
+
+			nOutputLength = SHELL_Print(pTraceBuffer, ulLen);
 		}
 
 		nOutputLength += SHELL_Dump(pData, ulDataLen);
@@ -64,18 +99,20 @@ uint32_t	TRACE_Printf(TRACE_LEVEL xLevel, uint16_t xModule, const char *pFormat,
 {
 	uint32_t	nOutputLength = 0;
 
-	if (xLevel >= xOutputLevel)
+	if ((xLevel >= xTraceLevel) && UNIT_TRACE_ENABLE && UNIT_TRACE(xModule))
 	{
-		if (UNIT_TRACE_ENABLE && UNIT_TRACE(xModule))
-		{
-			va_list	xArgs;
+		uint32_t	ulTime = xTaskGetTickCount();
+		uint32_t	ulLen = 0;
+		va_list		xArgs;
 
-			va_start(xArgs, pFormat);
+		va_start(xArgs, pFormat);
 
-			nOutputLength = SHELL_VPrintf(xModule, pFormat, xArgs);
+		ulLen = snprintf(pTraceBuffer, sizeof(pTraceBuffer), "[%8lu][%16s] ", ulTime, TRACE_GetModuleName(xModule));
+		ulLen +=vsnprintf(&pTraceBuffer[ulLen], sizeof(pTraceBuffer) - ulLen, pFormat, xArgs);
 
-			va_end(xArgs);
-		}
+		va_end(xArgs);
+
+		nOutputLength = SHELL_Print(pTraceBuffer, ulLen);
 	}
 
 	return	nOutputLength;
@@ -132,74 +169,31 @@ const char*	TRACE_GetModuleName(unsigned short xModuleFlag)
 
 bool	TRACE_SetLevel(char* pLevel)
 {
-	if (strcasecmp(pLevel, "debug0") == 0)
+	for(uint32_t i = 0 ; i < sizeof(pTraceLevelInfo) / sizeof(TRACE_LEVEL_INFO) ; i++)
 	{
-		xOutputLevel = TRACE_LEVEL_DEBUG_0;
-	}
-	else if (strcasecmp(pLevel, "debug1") == 0)
-	{
-		xOutputLevel = TRACE_LEVEL_DEBUG_1;
-	}
-	else if (strcasecmp(pLevel, "debug2") == 0)
-	{
-		xOutputLevel = TRACE_LEVEL_DEBUG_2;
-	}
-	else if (strcasecmp(pLevel, "debug3") == 0)
-	{
-		xOutputLevel = TRACE_LEVEL_DEBUG_3;
-	}
-	else if (strcasecmp(pLevel, "debug4") == 0)
-	{
-		xOutputLevel = TRACE_LEVEL_DEBUG_4;
-	}
-	else if (strcasecmp(pLevel, "debug5") == 0)
-	{
-		xOutputLevel = TRACE_LEVEL_DEBUG_5;
-	}
-	else if (strcasecmp(pLevel, "info") == 0)
-	{
-		xOutputLevel = TRACE_LEVEL_INFO;
-	}
-	else if (strcasecmp(pLevel, "warn") == 0)
-	{
-		xOutputLevel = TRACE_LEVEL_WRANING;
-	}
-	else if (strcasecmp(pLevel, "error") == 0)
-	{
-		xOutputLevel = TRACE_LEVEL_ERROR;
-	}
-	else if (strcasecmp(pLevel, "FATAL") == 0)
-	{
-		xOutputLevel = TRACE_LEVEL_FATAL;
-	}
-	else
-	{
-		return	false;
+		if (strcasecmp(pLevel, pTraceLevelInfo[i].pName) == 0)
+		{
+			xTraceLevel = pTraceLevelInfo[i].xLevel;
+			return	true;
+		}
 	}
 
-	return	true;
+	return	false;
 }
 
 TRACE_LEVEL	TRACE_GetLevel(void)
 {
-	return	xOutputLevel;
+	return	xTraceLevel;
 }
 
 const char*	TRACE_GetLevelName(TRACE_LEVEL xLevel)
 {
-	switch(xLevel)
+	for(uint32_t i = 0 ; i < sizeof(pTraceLevelInfo) / sizeof(TRACE_LEVEL_INFO) ; i++)
 	{
-	case	TRACE_LEVEL_DEBUG_0:	return	"DEBUG0";
-	case	TRACE_LEVEL_DEBUG_1:	return	"DEBUG1";
-	case	TRACE_LEVEL_DEBUG_2:	return	"DEBUG2";
-	case	TRACE_LEVEL_DEBUG_3:	return	"DEBUG3";
-	case	TRACE_LEVEL_DEBUG_4:	return	"DEBUG4";
-	case	TRACE_LEVEL_DEBUG_5:	return	"DEBUG5";
-	case	TRACE_LEVEL_INFO:		return	"INFO";
-	case	TRACE_LEVEL_WRANING:	return	"WARNING";
-	case	TRACE_LEVEL_ERROR:		return	"ERROR";
-	case	TRACE_LEVEL_FATAL:		return	"FATAL";
-
+		if (pTraceLevelInfo[i].xLevel == xLevel)
+		{
+			return	pTraceLevelInfo[i].pName;
+		}
 	}
 
 	return	"UNKNOWN";

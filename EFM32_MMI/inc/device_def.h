@@ -181,25 +181,21 @@ extern const FLASH_PAGE _USERPAGE_;
 /**
  * Permanently stored status flags
  */
-#define FLAG_INSTALLED		0x0001	//!< Device is installed @hideinitializer
-#define FLAG_USE_OTAA		0x0002	//!< Device uses OTAA to join LoRaWAN network @hideinitializer
-#define FLAG_DISALLOW_RESET	0x0004	//!< Device cannot be reset by user using magnet when set @hideinitializer
-#define FLAG_USE_CTM		0x0008	//!< Device is use to cyclic transmission mode.
-#define	FLAG_USE_RAK		0x0010	//!< Device is use to real app key.
+#define FLAG_INSTALLED			0x0001	//!< Device is installed @hideinitializer
+#define FLAG_USE_OTAA			0x0002	//!< Device uses OTAA to join LoRaWAN network @hideinitializer
+#define FLAG_DISALLOW_RESET		0x0004	//!< Device cannot be reset by user using magnet when set @hideinitializer
+#define FLAG_FACTORY_TEST		0x0008	//!< Device runs factory test
+#define FLAG_USE_CTM			0x0010	//!< Device is use to cyclic transmission mode.
+#define	FLAG_AUTO_ATTACH		0x0020  //!< Device is attach to network automatically.
 
-#define	FLAG_
-/** @cond */
-#define FLAG_3				0x0020	// to be defined
-#define FLAG_4				0x0040	// to be defined
-/** @endcond */
 /*!
  * @brief Set this flag to use SKT/Daliworks LoRaWAN types of messages. If this flag is set
  * to zero, a default set of messages/commands will be used. this value is copied from the
  * User Data Flash Region upon device reset
  * @remark This will probably be the version used in the rest of the world
  */
-#define FLAG_USE_SKT_APP	0x0040
-#define FLAG_FACTORY_TEST	0x0080	//!< Device runs factory test
+#define FLAG_USE_SKT_APP		0x0100
+#define	FLAG_USE_RAK			0x0200	//!< Device is use to real app key.
 
 //! @brief Macro to permanently set a flag value in the User Information block
 #define SET_USERFLAG(f)		DeviceUserDataSetFlag((f),(f))
@@ -212,10 +208,11 @@ extern const FLASH_PAGE _USERPAGE_;
 #define UNIT_INSTALLED		((USERDATAPTR)->DeviceFlags & FLAG_INSTALLED)	//!< Device is installed @hideinitializer
 #define UNIT_USE_OTAA		((USERDATAPTR)->DeviceFlags & FLAG_USE_OTAA) 	//!< Device uses OTAA to join LoRaWAN network @hideinitializer
 #define UNIT_DISALLOW_RESET ((USERDATAPTR)->DeviceFlags & FLAG_DISALLOW_RESET) //!< Device cannot be reset by user @hideinitializer
-#define UNIT_USE_SKT_APP	((USERDATAPTR)->DeviceFlags & FLAG_USE_SKT_APP)	//!< Device is using SKT/Daliworks LoRaWAN Application @hideinitializer
 #define UNIT_FACTORY_TEST	((USERDATAPTR)->DeviceFlags & FLAG_FACTORY_TEST)//!< Device is in factory test mode @hideinitializer
 #define UNIT_CTM_ON			((USERDATAPTR)->DeviceFlags & FLAG_USE_CTM)//!< Device is use to cyclic transmission mode. @hideinitializer
+#define UNIT_USE_SKT_APP	((USERDATAPTR)->DeviceFlags & FLAG_USE_SKT_APP)	//!< Device is using SKT/Daliworks LoRaWAN Application @hideinitializer
 #define UNIT_USE_RAK		((USERDATAPTR)->DeviceFlags & FLAG_USE_RAK)//!< Device is use to real app key @hideinitializer
+#define UNIT_AUTO_ATTACH	((USERDATAPTR)->DeviceFlags & FLAG_AUTO_ATTACH)//!< Device is attach to network automatically
 
 #define	FLAG_TRACE_ENABLE		0x0001
 #define	FLAG_TRACE_DUMP			0x0002
@@ -238,7 +235,7 @@ extern const FLASH_PAGE _USERPAGE_;
 #define	UNIT_TRACE_LORAWAN		((USERDATAPTR)->TraceFlags & FLAG_TRACE_LORAWAN)
 #define	UNIT_TRACE_DALIWORKS	((USERDATAPTR)->TraceFlags & FLAG_TRACE_DALIWORKS)
 #define	UNIT_TRACE_SKT			((USERDATAPTR)->TraceFlags & FLAG_TRACE_SKT)
-#define	UNIT_TRACE(f)			((f) && (((USERDATAPTR)->TraceFlags & (f)) == (f)))
+#define	UNIT_TRACE(f)			((f) && (((USERDATAPTR)->TraceFlags & (f)) != 0))
 
 /*!
  * @brief Initializes Device Hardware Abstraction Layer
@@ -389,7 +386,7 @@ void DeviceUserDateSetSerialNumber(unsigned long serial);
  * @param[in] Mask	Mask to apply to the flag value
  * @param[in] Value	Value to set in the flag value
  */
-void DeviceUserDataSetFlag(unsigned char Mask, unsigned char Value);
+void DeviceUserDataSetFlag(unsigned short Mask, unsigned short Value);
 /*!
  * @brief Permanently save default RF period to the flash memory
  * @param Period New default period in minutes
@@ -400,7 +397,7 @@ void DeviceUserDataSetAppKey(uint8_t *AppKey) ;
 void DeviceUserDataSetAppEUI(uint8_t *AppEUI) ;
 void DeviceUserDataSetDevEUI(uint8_t *DevEUI) ;
 
-void DeviceUserDataSetTraceFlag(unsigned char Mask, unsigned char Value);
+void DeviceUserDataSetTraceFlag(unsigned short Mask, unsigned short Value);
 
 void DeviceUserDataSetSKTRealAppKey(uint8_t *RealAppKey) ;
 

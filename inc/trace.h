@@ -27,6 +27,8 @@ typedef	enum
 }	TRACE_LEVEL;
 
 
+void		TRACE_ShowConfig(void);
+
 uint32_t	TRACE_Printf(TRACE_LEVEL xLevel, uint16_t xModule, const char *pFormat, ...);
 uint32_t	TRACE_Dump(TRACE_LEVEL xLevel, uint16_t xModule, uint8_t *pData, uint32_t ulDataLen, const char *pFormat, ...);
 

@@ -1393,6 +1393,7 @@ void SX1276OnTimeoutIrq( void )
         {
             RadioEvents->TxTimeout( );
         }
+
         break;
     default:
         break;

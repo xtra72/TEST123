@@ -32,6 +32,8 @@
 #undef	__MODULE__
 #define	__MODULE__ "TRACE"
 
+int AT_CMD_GetConfig(char *ppArgv[], int nArgc);
+
 /*!
  * Tasks static allocation
  */
@@ -64,7 +66,9 @@ uint8_t				nPacketLen = 0;
 static char*		pReadLine = 0;
 static uint32_t		ulReadLineLen = 0;
 static uint32_t		ulMaxLineLen = 0;
-extern SHELL_CMD	pShellCmds[];
+extern SHELL_CMD	pShellCommonCmds[];
+extern SHELL_CMD	pShellLoRaWANCmds[];
+extern SHELL_CMD	pShellTestCmds[];
 
 #define	SHELL_TIMEOUT	(1 * configTICK_RATE_HZ)
 /***************************************************************************//**
@@ -224,13 +228,11 @@ uint32_t	SHELL_Printf(const char *pFormat, ...)
 /*!
  * @brief Console formatted output
  */
-uint32_t	SHELL_VPrintf(uint16_t xModule, const char *pFormat, va_list xArgs)
+uint32_t	SHELL_VPrintf(const char *pFormat, va_list xArgs)
 {
 	uint32_t	nOutputLength = 0;
-	uint32_t	ulTime = xTaskGetTickCount();
 
-	nOutputLength = snprintf(pBuffer, sizeof(pBuffer) - 1, "[%8lu][%16s] ", ulTime, TRACE_GetModuleName(xModule));
-	nOutputLength += vsnprintf(&pBuffer[nOutputLength], sizeof(pBuffer) - nOutputLength - 1, pFormat, xArgs);
+	nOutputLength = vsnprintf(pBuffer, sizeof(pBuffer) - 1, pFormat, xArgs);
 
 	return	SHELL_Print(pBuffer, nOutputLength);
 }
@@ -337,6 +339,36 @@ int	SHELL_ParseLine(char* pLine, char* pArgv[], uint32_t nMaxArgs)
 	return	nArgc;
 }
 
+bool	SHELL_GetBool(char* pArgv, bool bDefault)
+{
+	if (strcasecmp(pArgv, "enable") == 0)
+	{
+		return	true;
+	}
+	else if (strcasecmp(pArgv, "disable") == 0)
+	{
+		return	false;
+	}
+	else if (strcasecmp(pArgv, "1") == 0)
+	{
+		return	true;
+	}
+	else if (strcasecmp(pArgv, "0") == 0)
+	{
+		return	false;
+	}
+	else if (strcasecmp(pArgv, "true") == 0)
+	{
+		return	true;
+	}
+	else if (strcasecmp(pArgv, "false") == 0)
+	{
+		return	false;
+	}
+
+	return	bDefault;
+}
+
 __attribute__((noreturn)) void SHELL_Task(void* pvParameters)
 {
 	static char 	pLine[256];
@@ -345,7 +377,7 @@ __attribute__((noreturn)) void SHELL_Task(void* pvParameters)
 	strcpy(pLine, "AT+GCFG");
 	ppArgv[0] = pLine;
 
-	SHELL_Printf("S47 LoRaWAN Device\n");
+	SHELL_Printf("%20s : S47\n", "Model");
 	SHELL_Printf("%20s : ", "Region");
 	switch(UNIT_REGION)
 	{
@@ -365,7 +397,8 @@ __attribute__((noreturn)) void SHELL_Task(void* pvParameters)
 	SHELL_Printf("%20s : %d\n", "Network ID", UNIT_NETWORKID);
 	SHELL_Printf("%20s : %s\n", "Application EUI", UNIT_APPEUID);
 	SHELL_Printf("%20s : %s\n", "Device EUI", UNIT_DEVEUID);
-	AT_CMD_GetConfig(ppArgv, 1);
+
+	AT_CMD_GetConfig(NULL, 0);
 
 	memset(pLine, 0, sizeof(pLine));
 	while(1)
@@ -376,18 +409,47 @@ __attribute__((noreturn)) void SHELL_Task(void* pvParameters)
 			int	nArgc = SHELL_ParseLine(pLine, ppArgv, 16);
 			if (nArgc != 0)
 			{
-				SHELL_CMD*	pCmd = pShellCmds;
+				SHELL_CMD*	pCmd = pShellCommonCmds;
 				while(pCmd->pName != NULL)
 				{
-					if (strcmp(pCmd->pName, ppArgv[0]) == 0 )
+					if (strcasecmp(pCmd->pName, ppArgv[0]) == 0 )
 					{
-						pCmd->fCommand(ppArgv, nArgc);
 						break;
 					}
 					pCmd++;
 				}
 
 				if (pCmd->pName == NULL)
+				{
+					pCmd = pShellLoRaWANCmds;
+					while(pCmd->pName != NULL)
+					{
+						if (strcasecmp(pCmd->pName, ppArgv[0]) == 0 )
+						{
+							break;
+						}
+						pCmd++;
+					}
+				}
+
+				if (pCmd->pName == NULL)
+				{
+					pCmd = pShellTestCmds;
+					while(pCmd->pName != NULL)
+					{
+						if (strcasecmp(pCmd->pName, ppArgv[0]) == 0 )
+						{
+							break;
+						}
+						pCmd++;
+					}
+				}
+
+				if (pCmd->pName != NULL)
+				{
+					pCmd->fCommand(ppArgv, nArgc);
+				}
+				else
 				{
 					SHELL_Printf("Unknown command : %s\n", ppArgv[0]);
 				}
@@ -568,32 +630,39 @@ int	AT_CMD_Trace(char *ppArgv[], int nArgc)
 	}
 	else if (nArgc == 2)
 	{
-		if (strcmp(ppArgv[1], "enable") == 0)
+		if (strcasecmp(ppArgv[1], "enable") == 0)
 		{
 			TRACE_SetEnable(true);
 			nRet = 0;
 		}
-		else if (strcmp(ppArgv[1], "disable") == 0)
+		else if (strcasecmp(ppArgv[1], "disable") == 0)
 		{
 			TRACE_SetEnable(false);
 			nRet = 0;
 		}
-		else if (strcmp(ppArgv[1], "dump") == 0)
+		else if (strcasecmp(ppArgv[1], "dump") == 0)
 		{
 			TRACE_SetDump(true);
 			nRet = 0;
 		}
-		else if (strcmp(ppArgv[1], "undump") == 0)
+		else if (strcasecmp(ppArgv[1], "undump") == 0)
 		{
 			TRACE_SetDump(false);
 			nRet = 0;
 		}
 	}
+	else if (nArgc == 3)
+	{
+		if (TRACE_SetLevel(ppArgv[2]))
+		{
+			nRet = 0;
+		}
+
+	}
 
 	if (nRet == 0)
 	{
-		SHELL_Printf("%16s : %s\n", "Mode", (TRACE_GetEnable())?"Enable":"Disabled");
-		SHELL_Printf("%16s : %s\n", "Dump", (TRACE_GetDump())?"Enable":"Disabled");
+		TRACE_ShowConfig();
 	}
 
 	return	nRet;
@@ -601,7 +670,7 @@ int	AT_CMD_Trace(char *ppArgv[], int nArgc)
 
 int	AT_CMD_Help(char *ppArgv[], int nArgc)
 {
-	SHELL_CMD	*pCmd = pShellCmds;
+	SHELL_CMD	*pCmd = pShellCommonCmds;
 
 	while(pCmd->pName)
 	{
@@ -609,12 +678,33 @@ int	AT_CMD_Help(char *ppArgv[], int nArgc)
 		pCmd++;
 	}
 
+	if (!UNIT_FACTORY_TEST)
+	{
+		pCmd = pShellLoRaWANCmds;
+
+		while(pCmd->pName)
+		{
+			SHELL_Printf("%16s %s\n", pCmd->pName, pCmd->pHelp);
+			pCmd++;
+		}
+	}
+	else
+	{
+		pCmd = pShellTestCmds;
+
+		while(pCmd->pName)
+		{
+			SHELL_Printf("%16s %s\n", pCmd->pName, pCmd->pHelp);
+			pCmd++;
+		}
+	}
+
 	return	0;
 }
 
 int AT_CMD(char *ppArgv[], int nArgc)
 {
-	SHELL_CMD*	pCmd = pShellCmds;
+	SHELL_CMD*	pCmd = pShellCommonCmds;
 
 	while(pCmd->pName != NULL)
 	{
@@ -623,6 +713,33 @@ int AT_CMD(char *ppArgv[], int nArgc)
 			SHELL_Printf("%-16s : %s\n", &pCmd->pName[3], pCmd->pHelp);
 		}
 		pCmd++;
+	}
+
+	if (!UNIT_FACTORY_TEST)
+	{
+		pCmd = pShellLoRaWANCmds;
+
+		while(pCmd->pName != NULL)
+		{
+			if ((pCmd->pName[0] == 'A') && (pCmd->pName[1] == 'T') && (pCmd->pName[2] == '+'))
+			{
+				SHELL_Printf("%-16s : %s\n", &pCmd->pName[3], pCmd->pHelp);
+			}
+			pCmd++;
+		}
+	}
+	else
+	{
+		pCmd = pShellTestCmds;
+
+		while(pCmd->pName != NULL)
+		{
+			if ((pCmd->pName[0] == 'A') && (pCmd->pName[1] == 'T') && (pCmd->pName[2] == '+'))
+			{
+				SHELL_Printf("%-16s : %s\n", &pCmd->pName[3], pCmd->pHelp);
+			}
+			pCmd++;
+		}
 	}
 
 	return	0;
@@ -641,6 +758,32 @@ int AT_CMD_PS(char *ppArgv[], int nArgc)
 	return	0;
 }
 
+int AT_CMD_SetConfig(char *ppArgv[], int nArgc)
+{
+	int	nRet = -1;
+	SHELL_Printf("Set Configuration\n");
+
+	if(nArgc == 3)
+	{
+		if (strcasecmp(ppArgv[1], "auto_attach") == 0)
+		{
+			bool bEnable = SHELL_GetBool(ppArgv[2], UNIT_AUTO_ATTACH);
+
+			UPDATE_USERFLAG(FLAG_AUTO_ATTACH, bEnable);
+
+			nRet = 0;
+		}
+
+	}
+
+	if (nRet != 0)
+	{
+
+
+	}
+	return	0;
+}
+
 int AT_CMD_GetConfig(char *ppArgv[], int nArgc)
 {
 	SHELL_Printf("Get Configuration\n");
@@ -648,6 +791,10 @@ int AT_CMD_GetConfig(char *ppArgv[], int nArgc)
 	ChannelParams_t channel;
 	LORAMAC_GetChannel(LoRaMacTestGetChannel(), &channel);
 
+	SHELL_Printf("[ System ]\n");
+	SHELL_Printf("- %22s : %s\n", "Auto Attach", (UNIT_AUTO_ATTACH?"Enable":"Disable"));
+	SHELL_Printf("\n");
+	SHELL_Printf("[ LoRaWAN ]\n");
 	SHELL_Printf("- %22s : %d\n", "Current Channel", channel.Frequency);
     SHELL_Printf("- %22s : %d\n", "Channel Tx Power", LoRaMacTestGetChannelsTxPower());
 	SHELL_Printf("- %22s : %d\n", "Max Duty Cycle", LoRaMacTestGetMaxDCycle());
@@ -1167,11 +1314,11 @@ int AT_CMD_Confirmed(char *ppArgv[], int nArgc)
 		SHELL_Printf("SET MSG TYPE\n");
 		if (nArgc == 2)
 		{
-			if (strcmp(ppArgv[1], "1") == 0)
+			if (strcasecmp(ppArgv[1], "1") == 0)
 			{
 				ret = SKTAPP_SetConfirmedMsgType(true);
 			}
-			else if (strcmp(ppArgv[1], "0") == 0)
+			else if (strcasecmp(ppArgv[1], "0") == 0)
 			{
 				ret = SKTAPP_SetConfirmedMsgType(false);
 			}
@@ -1213,18 +1360,18 @@ int AT_CMD_Log(char *ppArgv[], int nArgc)
 
 		if (nArgc == 2)
 		{
-			if (strcmp(ppArgv[1], "0") == 0)
+			if (strcasecmp(ppArgv[1], "0") == 0)
 			{
 				ret = TRACE_SetEnable(false);
 			}
-			if (strcmp(ppArgv[1], "1") == 0)
+			if (strcasecmp(ppArgv[1], "1") == 0)
 			{
 				ret = TRACE_SetEnable(true);
 			}
 		}
 		else if (nArgc == 3)
 		{
-			if (strcmp(ppArgv[1], "level") == 0)
+			if (strcasecmp(ppArgv[1], "level") == 0)
 			{
 				ret = TRACE_SetLevel(ppArgv[2]);
 			}
@@ -1259,11 +1406,11 @@ int AT_CMD_PRF(char *ppArgv[], int nArgc)
 
 		if (nArgc == 2)
 		{
-			if (strcmp(ppArgv[1], "0") == 0)
+			if (strcasecmp(ppArgv[1], "0") == 0)
 			{
 				ret = SKTAPP_SetPeriodicMode(false);
 			}
-			if (strcmp(ppArgv[1], "1") == 0)
+			if (strcasecmp(ppArgv[1], "1") == 0)
 			{
 				ret = SKTAPP_SetPeriodicMode(true);
 			}
@@ -1364,11 +1511,11 @@ int AT_CMD_Test(char *ppArgv[], int nArgc)
 {
 	if (nArgc == 2)
 	{
-		if (strcmp(ppArgv[1], "enable") == 0)
+		if (strcasecmp(ppArgv[1], "enable") == 0)
 		{
 			LoRaMacSetTestMode(true);
 		}
-		else if (strcmp(ppArgv[1], "disable") == 0)
+		else if (strcasecmp(ppArgv[1], "disable") == 0)
 		{
 			LoRaMacSetTestMode(false);
 		}
@@ -1427,13 +1574,90 @@ int AT_CMD_TestSend(char *ppArgv[], int nArgc)
 	return	0;
 }
 
-SHELL_CMD	pShellCmds[] =
+int AT_CMD_SetFactoryMode(char *ppArgv[], int nArgc)
+{
+	SET_USERFLAG(FLAG_FACTORY_TEST);
+	SHELL_Printf("- Operation mode changed to factory mode.\n");
+
+	return	0;
+}
+
+int AT_CMD_SetLoRaWANMode(char *ppArgv[], int nArgc)
+{
+	CLEAR_USERFLAG(FLAG_FACTORY_TEST);
+	SHELL_Printf("- Operation mode changed to LoRaWAN mode.\n");
+
+	return	0;
+}
+
+int AT_CMD_TxCW(char *ppArgv[], int nArgc)
+{
+	SHELL_Printf("Tx Continuous\n");
+	if (!UNIT_FACTORY_TEST)
+	{
+		if (nArgc == 5)
+		{
+			uint32_t	ulChannel = atoi(ppArgv[1]);
+			uint32_t	ulDatarate = atoi(ppArgv[2]);
+			uint32_t	ulPower = atoi(ppArgv[3]);
+			uint32_t	ulTimeout = atoi(ppArgv[4]);
+
+			LoRaMacTestSetChannel(ulChannel);
+			LORAMAC_SetDatarate(ulDatarate);
+			LORAMAC_SetTxPower(ulPower);
+
+			LORAMAC_TxCW(ulTimeout);
+		}
+		else
+		{
+			SHELL_Printf("- ERROR, Invalid Arguments\n");
+		}
+	}
+	else
+	{
+		if (nArgc == 1)
+		{
+			SHELL_Printf("Usage : %s <Frequency> <Power> <Time>\n", ppArgv[0]);
+		}
+		else if (nArgc == 4)
+		{
+		   	uint32_t	ulFrequency = atoi(ppArgv[1]);
+			uint32_t	ulPower = atoi(ppArgv[2]);
+			uint32_t	ulTimeout = atoi(ppArgv[3]);
+			uint32_t	ulTime = 0;
+			SX1276SetTxContinuousWave(ulFrequency, ulPower, ulTimeout);
+
+			while(SX1276GetStatus( ) == RF_TX_RUNNING)
+			{
+				vTaskDelay(1000);
+				ulTime++;
+				SHELL_Printf("- Progress : %3d%%(%d/%d)\n", ulTime*100/ulTimeout, ulTime, ulTimeout);
+			}
+			SHELL_Printf("- Done.\n");
+		}
+		else
+		{
+			SHELL_Printf("- ERROR, Invalid Arguments\n");
+		}
+	}
+
+	return	0;
+}
+
+SHELL_CMD	pShellCommonCmds[] =
 {
 		{	"AT",	  	"Checking the serial connection status", AT_CMD},
 		{	"AT+RST", 	"Reset",	AT_CMD_Reset},
+		{	"AT+HELP", 	"Help", AT_CMD_Help},
+		{	NULL, NULL, NULL}
+};
+
+SHELL_CMD	pShellLoRaWANCmds[] =
+{
 		{	"AT+PS",	"Pseudo Join",	AT_CMD_PS},
 		{	"AT+JOIN",	"Join",	AT_CMD_Join},
 		{	"AT+GCFG", 	"Get Configuration",	AT_CMD_GetConfig},
+		{	"AT+SCFG", 	"Set Configuration",	AT_CMD_SetConfig},
 		{	"AT+FWI", 	"Firmware Information",	AT_CMD_FirmwareInfo},
 		{	"AT+DEUI", 	"Get Device EUI",	AT_CMD_DevEUI},
 		{	"AT+AK", 	"Set/Get Application Key",	AT_CMD_AppKey},
@@ -1467,8 +1691,16 @@ SHELL_CMD	pShellCmds[] =
 		{   "AT+TRCE", 	"Get/Set Trace", AT_CMD_Trace},
 		{	"AT+SLP",	"Sleep",	AT_CMD_Sleep},
 		{	"AT+MAC",	"Get/Set MAC",	AT_CMD_Mac},
-		{	"AT+HELP", 	"Help", AT_CMD_Help},
+		{	"AT+FACTORY","Set Factory Test Mode",	AT_CMD_SetFactoryMode},
 		{	NULL, NULL, NULL}
+};
+
+SHELL_CMD	pShellTestCmds[] =
+{
+		{	"AT+LORAWAN","Set LoRaWAN Mode Enable",	AT_CMD_SetLoRaWANMode},
+		{	"AT+TXCW",	"Tx Continuous", AT_CMD_TxCW},
+		{	NULL, NULL, NULL}
+
 };
 
 void	LEUART0_IRQHandler(void)

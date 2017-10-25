@@ -9,7 +9,7 @@
 #include "utilities.h"
 #include "Region.h"
 #include "global.h"
-
+#include "trace.h"
 static MibRequestConfirm_t mibReq;
 
 bool	LORAMAC_GetAppSKey(uint8_t* pAppSKey)
@@ -326,4 +326,38 @@ bool	LORAMAC_SetADR(bool bADR)
 	mibReq.Param.AdrEnable = bADR;
 
 	return	(LoRaMacMibSetRequestConfirm( &mibReq )  == LORAMAC_STATUS_OK);
+}
+
+bool	LORAMAC_TxCW(uint32_t xTimeout)
+{
+	MlmeReq_t mlmeReq;
+
+	mlmeReq.Type = MLME_TXCW;
+	mlmeReq.Req.TxCw.Timeout = xTimeout;
+
+	if (LoRaMacMlmeRequest( &mlmeReq ) != LORAMAC_STATUS_OK)
+	{
+		ERROR("LoRaMacMlmeRequest failed.\n");
+		return	false;
+	}
+
+	return true;
+}
+
+bool	LORAMAC_TxCW1(uint32_t xFrequency, uint32_t xPower, uint32_t xTimeout)
+{
+	MlmeReq_t mlmeReq;
+
+	mlmeReq.Type = MLME_TXCW_1;
+	mlmeReq.Req.TxCw.Frequency = xFrequency;
+	mlmeReq.Req.TxCw.Power = xPower;
+	mlmeReq.Req.TxCw.Timeout = xTimeout;
+
+	if (LoRaMacMlmeRequest( &mlmeReq ) != LORAMAC_STATUS_OK)
+	{
+		ERROR("LoRaMacMlmeRequest failed.\n");
+		return	false;
+	}
+
+	return true;
 }

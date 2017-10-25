@@ -278,22 +278,25 @@ __attribute__((noreturn)) void SUPERVISOR_Task(void* pvParameters)
 	DeviceStatus |= (UNIT_INSTALLED) ? DEVICE_COMM_ERROR:  (DEVICE_COMM_ERROR | DEVICE_UNINSTALLED);
 	SUPERVISOR_StartCyclicTask(0,SUPERVISOR_ReadRFPeriod());
 
+	if (UNIT_AUTO_ATTACH)
+	{
 #if 0
-  if (UNIT_INSTALLED)
-  {
-	  CLEAR_FLAG(DEVICE_UNINSTALLED);
-	  DeviceFlashLed(LED_FLASH_ON);
+		if (UNIT_INSTALLED)
+		{
+			CLEAR_FLAG(DEVICE_UNINSTALLED);
+			DeviceFlashLed(LED_FLASH_ON);
 
-	  if (LORAWAN_JoinNetwork())
-	  {
-		  DeviceFlashLed(5);
-	  }
+			if (LORAWAN_JoinNetwork())
+			{
+				DeviceFlashLed(5);
+			}
 
-	  DeviceFlashLed(LED_FLASH_OFF);
-  }
+			DeviceFlashLed(LED_FLASH_OFF);
+		}
 #else
-  DevicePostEvent(RUN_ATTACH);
+		DevicePostEvent(RUN_ATTACH);
 #endif
+	}
 
 #if (NODE_TEMP > 0)
   DeviceFlashLed(LED_FLASH_ON);
