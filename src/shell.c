@@ -369,36 +369,71 @@ bool	SHELL_GetBool(char* pArgv, bool bDefault)
 	return	bDefault;
 }
 
+void	SHELL_PrintSystemInfo()
+{
+	ChannelParams_t channel;
+	LORAMAC_GetChannel(LoRaMacTestGetChannel(), &channel);
+
+	SHELL_Printf("[ System ]\n");
+	SHELL_Printf("- %22s : S47\n", "Model");
+	SHELL_Printf("- %22s : %s\n", "Auto Attach", (UNIT_AUTO_ATTACH?"Enable":"Disable"));
+	SHELL_Printf("\n");
+	SHELL_Printf("[ LoRaWAC ]\n");
+	SHELL_Printf("- %22s : %4d.%02d MHz\n", "Current Channel", channel.Frequency/1000000, (channel.Frequency%1000000)/10000);
+	SHELL_Printf("- %22s : %d\n", "Channel Tx Power", LoRaMacTestGetChannelsTxPower());
+	SHELL_Printf("- %22s : %d\n", "Max Duty Cycle", LoRaMacTestGetMaxDCycle());
+	SHELL_Printf("- %22s : %d\n", "Aggregated Duty Cycle", LoRaMacTestGetAggreagtedDCycle());
+	SHELL_Printf("- %22s : %d\n", "Current Rx1 DR Offset", LoRaMacTestGetRx1DrOffset());
+	SHELL_Printf("- %22s : %d\n", "Rx2 DataRate", LoRaMacTestGetRx2Datarate());
+	SHELL_Printf("- %22s : %d\n", "Rx1 Delay", LORAMAC_GetRx1Delay());
+	SHELL_Printf("- %22s : %d\n", "Rx2 Delay", LORAMAC_GetRx2Delay());
+	SHELL_Printf("- %22s : %d\n", "Join Delay1", LORAMAC_GetJoinDelay1());
+	SHELL_Printf("- %22s : %d\n", "Join Delay2", LORAMAC_GetJoinDelay2());
+	SHELL_Printf("- %22s : %d\n", "Retransmission Count", LORAMAC_GetRetries());
+	SHELL_Printf("- %22s : %04x\n", "Channels Mask", LORAMAC_GetChannelsMask());
+
+	SHELL_Printf("- %22s   %5s %10s %4s\n", "Channel Informations", "Index", "Frequency", "Band");
+	for(uint32_t i = 0 ; i < 16 ; i++)
+	{
+
+		if (!LORAMAC_GetChannel(i, &channel))
+		{
+			break;
+		}
+		SHELL_Printf("  %22s   %5d %3d.%02d MHz %4d\n", "", i, channel.Frequency/1000000, (channel.Frequency%1000000)/10000, channel.Band);
+	}
+}
 __attribute__((noreturn)) void SHELL_Task(void* pvParameters)
 {
 	static char 	pLine[256];
 	static char*	ppArgv[16];
 
-	strcpy(pLine, "AT+GCFG");
-	ppArgv[0] = pLine;
+	SHELL_PrintSystemInfo();
 
-	SHELL_Printf("%20s : S47\n", "Model");
-	SHELL_Printf("%20s : ", "Region");
-	switch(UNIT_REGION)
+	if (!UNIT_FACTORY_TEST)
 	{
-	case    LORAMAC_REGION_AS923:	SHELL_Printf("AS band on 923MHz\n");	break;
-	case    LORAMAC_REGION_AU915:	SHELL_Printf("Australian band on 915MHz\n");	break;
-	case    LORAMAC_REGION_CN470:	SHELL_Printf("Chinese band on 470MHz\n");	break;
-	case    LORAMAC_REGION_CN779:	SHELL_Printf("Chinese band on 779MHz\n");	break;
-	case    LORAMAC_REGION_EU433:	SHELL_Printf("European band on 433MHz\n");	break;
-	case    LORAMAC_REGION_EU868:	SHELL_Printf("European band on 868MHz\n");	break;
-	case    LORAMAC_REGION_KR920:	SHELL_Printf("South korean band on 920MHz\n");	break;
-	case    LORAMAC_REGION_IN865:	SHELL_Printf("India band on 865MHz\n");	break;
-	case    LORAMAC_REGION_US915:	SHELL_Printf("North american band on 915MHz\n");	break;
-	case    LORAMAC_REGION_US915_HYBRID:	SHELL_Printf("North american band on 915MHz with a maximum of 16 channels\n");	break;
-	default:SHELL_Printf("Unknown[%d]\n", UNIT_REGION);
+		SHELL_Printf("\n[ LoRaWAN ]\n");
+		SHELL_Printf("- %22s : ", "Region");
+		switch(UNIT_REGION)
+		{
+		case    LORAMAC_REGION_AS923:	SHELL_Printf("AS band on 923MHz\n");	break;
+		case    LORAMAC_REGION_AU915:	SHELL_Printf("Australian band on 915MHz\n");	break;
+		case    LORAMAC_REGION_CN470:	SHELL_Printf("Chinese band on 470MHz\n");	break;
+		case    LORAMAC_REGION_CN779:	SHELL_Printf("Chinese band on 779MHz\n");	break;
+		case    LORAMAC_REGION_EU433:	SHELL_Printf("European band on 433MHz\n");	break;
+		case    LORAMAC_REGION_EU868:	SHELL_Printf("European band on 868MHz\n");	break;
+		case    LORAMAC_REGION_KR920:	SHELL_Printf("South korean band on 920MHz\n");	break;
+		case    LORAMAC_REGION_IN865:	SHELL_Printf("India band on 865MHz\n");	break;
+		case    LORAMAC_REGION_US915:	SHELL_Printf("North american band on 915MHz\n");	break;
+		case    LORAMAC_REGION_US915_HYBRID:	SHELL_Printf("North american band on 915MHz with a maximum of 16 channels\n");	break;
+		default:SHELL_Printf("Unknown[%d]\n", UNIT_REGION);
+		}
+
+		SHELL_Printf("- %22s : %d\n", "Network ID", UNIT_NETWORKID);
+		SHELL_Printf("- %22s : %s\n", "Application EUI", UNIT_APPEUID);
+		SHELL_Printf("- %22s : %s\n", "Device EUI", UNIT_DEVEUID);
+
 	}
-
-	SHELL_Printf("%20s : %d\n", "Network ID", UNIT_NETWORKID);
-	SHELL_Printf("%20s : %s\n", "Application EUI", UNIT_APPEUID);
-	SHELL_Printf("%20s : %s\n", "Device EUI", UNIT_DEVEUID);
-
-	AT_CMD_GetConfig(NULL, 0);
 
 	memset(pLine, 0, sizeof(pLine));
 	while(1)
@@ -787,38 +822,7 @@ int AT_CMD_SetConfig(char *ppArgv[], int nArgc)
 int AT_CMD_GetConfig(char *ppArgv[], int nArgc)
 {
 	SHELL_Printf("Get Configuration\n");
-
-	ChannelParams_t channel;
-	LORAMAC_GetChannel(LoRaMacTestGetChannel(), &channel);
-
-	SHELL_Printf("[ System ]\n");
-	SHELL_Printf("- %22s : %s\n", "Auto Attach", (UNIT_AUTO_ATTACH?"Enable":"Disable"));
-	SHELL_Printf("\n");
-	SHELL_Printf("[ LoRaWAN ]\n");
-	SHELL_Printf("- %22s : %d\n", "Current Channel", channel.Frequency);
-    SHELL_Printf("- %22s : %d\n", "Channel Tx Power", LoRaMacTestGetChannelsTxPower());
-	SHELL_Printf("- %22s : %d\n", "Max Duty Cycle", LoRaMacTestGetMaxDCycle());
-	SHELL_Printf("- %22s : %d\n", "Aggregated Duty Cycle", LoRaMacTestGetAggreagtedDCycle());
-	SHELL_Printf("- %22s : %d\n", "Current Rx1 DR Offset", LoRaMacTestGetRx1DrOffset());
-	SHELL_Printf("- %22s : %d\n", "Rx2 DataRate", LoRaMacTestGetRx2Datarate());
-	SHELL_Printf("- %22s : %04x\n", "Channels Mask", LORAMAC_GetChannelsMask());
-	SHELL_Printf("- %22s : %d\n", "Rx1 Delay", LORAMAC_GetRx1Delay());
-	SHELL_Printf("- %22s : %d\n", "Rx2 Delay", LORAMAC_GetRx2Delay());
-	SHELL_Printf("- %22s : %d\n", "Join Delay1", LORAMAC_GetJoinDelay1());
-	SHELL_Printf("- %22s : %d\n", "Join Delay2", LORAMAC_GetJoinDelay2());
-	SHELL_Printf("- %22s : %d\n", "Retransmission Count", LORAMAC_GetRetries());
-
-	SHELL_Printf("- %22s   %5s %10s %4s\n", "Channel Informations", "Index", "Frequency", "Band");
-	for(uint32_t i = 0 ; i < 16 ; i++)
-	{
-
-		if (!LORAMAC_GetChannel(i, &channel))
-		{
-			break;
-		}
-		SHELL_Printf("  %22s   %5d %3d.%02d MHz %4d\n", "", i, channel.Frequency/1000000, (channel.Frequency%1000000)/10000, channel.Band);
-	}
-
+	SHELL_PrintSystemInfo();
 
 	return	0;
 }
@@ -1644,11 +1648,40 @@ int AT_CMD_TxCW(char *ppArgv[], int nArgc)
 	return	0;
 }
 
+int AT_CMD_TestRx(char *ppArgv[], int nArgc)
+{
+	SHELL_Printf("Test Rx\n");
+	if (nArgc == 1)
+	{
+	}
+	else if (nArgc == 2)
+	{
+		if ((strcasecmp(ppArgv[1], "0") == 0) || (strcasecmp(ppArgv[1], "disable") == 0))
+		{
+			LoRaMacTestRx( false );
+		}
+		else if ((strcasecmp(ppArgv[1], "1") == 0) || (strcasecmp(ppArgv[1], "enable") == 0))
+		{
+			LoRaMacTestRx( true );
+		}
+		else
+		{
+			SHELL_Printf("- ERROR\n");
+		}
+	}
+
+	return	0;
+}
+
 SHELL_CMD	pShellCommonCmds[] =
 {
 		{	"AT",	  	"Checking the serial connection status", AT_CMD},
-		{	"AT+RST", 	"Reset",	AT_CMD_Reset},
 		{	"AT+HELP", 	"Help", AT_CMD_Help},
+		{	"AT+RST", 	"Reset",	AT_CMD_Reset},
+		{   "AT+TRCE", 	"Get/Set Trace", AT_CMD_Trace},
+		{	"AT+DR", 	"Set Tx Data Rate",	AT_CMD_SetTxDR},
+		{	"AT+CH", 	"Set/Get Channel",	AT_CMD_Channel},
+		{	"AT+POW", 	"Set Tx Power",	AT_CMD_TxPower},
 		{	NULL, NULL, NULL}
 };
 
@@ -1663,10 +1696,7 @@ SHELL_CMD	pShellLoRaWANCmds[] =
 		{	"AT+AK", 	"Set/Get Application Key",	AT_CMD_AppKey},
 		{	"AT+RAK", 	"Get Real Application Key",	AT_CMD_RealAppKey},
 		{	"AT+AEUI", 	"Set/Get Application EUI",	AT_CMD_AppEUI},
-		{	"AT+DR", 	"Set Tx Data Rate",	AT_CMD_SetTxDR},
-		{	"AT+POW", 	"Set Tx Power",	AT_CMD_TxPower},
 		{	"AT+CHTX", 	"Set Channel and Tx Power",	AT_CMD_SetChannelAndTxPower},
-		{	"AT+CH", 	"Set/Get Channel",	AT_CMD_Channel},
 		{	"AT+ADR", 	"Set/Get ADR Flag",	AT_CMD_ADR},
 		{	"AT+CLS", 	"Set/Get Class",	AT_CMD_CLS},
 		{	"AT+SIG", 	"Latest RF Signal",	AT_CMD_LatestSignal},
@@ -1688,7 +1718,6 @@ SHELL_CMD	pShellLoRaWANCmds[] =
 		{	"AT+TASK",	"Get Task Information",	AT_CMD_Task},
 		{	"AT+STAT", 	"Get Status",	AT_CMD_Status},
 		{	"AT+TASK",	"Show Task Informations", AT_CMD_GetTaskInfo},
-		{   "AT+TRCE", 	"Get/Set Trace", AT_CMD_Trace},
 		{	"AT+SLP",	"Sleep",	AT_CMD_Sleep},
 		{	"AT+MAC",	"Get/Set MAC",	AT_CMD_Mac},
 		{	"AT+FACTORY","Set Factory Test Mode",	AT_CMD_SetFactoryMode},
@@ -1699,6 +1728,7 @@ SHELL_CMD	pShellTestCmds[] =
 {
 		{	"AT+LORAWAN","Set LoRaWAN Mode Enable",	AT_CMD_SetLoRaWANMode},
 		{	"AT+TXCW",	"Tx Continuous", AT_CMD_TxCW},
+		{	"AT+TRX",	"Rx Continuous", AT_CMD_TestRx},
 		{	NULL, NULL, NULL}
 
 };
@@ -1730,16 +1760,29 @@ void	LEUART0_IRQHandler(void)
 				{
 					pReadLine[--ulReadLineLen] = '\0';
 				}
+				else
+				{
+					ch = 0;
+				}
 			}
 			break;
 
 		default:
-			pReadLine[ulReadLineLen++] = ch;
-			if (ulReadLineLen == ulMaxLineLen)
 			{
-				pReadLine[--ulReadLineLen] = '\0';
-				EVENT_Send(1);
+				if (ulReadLineLen < ulMaxLineLen)
+				{
+					pReadLine[ulReadLineLen++] = ch;
+				}
+				else
+				{
+					ch = 0;
+				}
 			}
+		}
+
+		if (ch != 0)
+		{
+			LEUART_Tx(LEUART0, ch);
 		}
 	}
 }

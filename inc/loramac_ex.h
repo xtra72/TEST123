@@ -61,4 +61,7 @@ bool	LORAMAC_SetADR(bool bADR);
 
 bool	LORAMAC_AddACK(void);
 
+bool	LORAMAC_TxCW(uint32_t xTimeout);
+
+
 #endif

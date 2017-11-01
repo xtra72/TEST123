@@ -613,7 +613,7 @@ static void OnRadioTxDone( void )
     SetBandTxDoneParams_t txDone;
     TimerTime_t curTime = TimerGetCurrentTime( );
 
-    TRACE(0,"OnRadioTxDone\n");
+//    TRACE(0,"OnRadioTxDone\n");
     if( LoRaMacDeviceClass != CLASS_C )
     {
         Radio.Sleep( );
@@ -626,12 +626,12 @@ static void OnRadioTxDone( void )
     // Setup timers
     if( IsRxWindowsEnabled == true )
     {
-    	TRACE(0,"%20s : %d\n", "RxWindow1Delay", RxWindow1Delay);
+ //    	TRACE(0,"%20s : %d\n", "RxWindow1Delay", RxWindow1Delay);
         TimerSetValue( &RxWindowTimer1, RxWindow1Delay );
         TimerStart( &RxWindowTimer1 );
         if( LoRaMacDeviceClass != CLASS_C )
         {
-        	TRACE(0,"%20s : %d\n", "RxWindow2Delay", RxWindow2Delay);
+ //        	TRACE(0,"%20s : %d\n", "RxWindow2Delay", RxWindow2Delay);
             TimerSetValue( &RxWindowTimer2, RxWindow2Delay );
             TimerStart( &RxWindowTimer2 );
         }
@@ -2011,10 +2011,6 @@ static LoRaMacStatus_t ScheduleTx( void )
 			// Update datarate in the function parameters
 			nextChan.Datarate = LoRaMacParams.ChannelsDatarate;
 		}
-	}
-	else
-	{
-		Channel = LoRaMacParams.ChannelsDatarate;
 	}
 
 	// Compute Rx1 windows parameters
@@ -3604,3 +3600,36 @@ int8_t	LoRaMacTestGetChannelsTxPower(void)
 {
 	return	LoRaMacParams.ChannelsTxPower;
 }
+
+void LoRaMacTestRx( bool bEnable )
+{
+    TRACE(0,"OnRxWindow1TimerEvent\n");
+
+    if (bEnable)
+    {
+		static RxConfigParams_t RxConfig;
+
+		RxConfig.Channel = Channel;
+		RxConfig.DrOffset = 0;
+		RxConfig.DownlinkDwellTime = LoRaMacParams.DownlinkDwellTime;
+		RxConfig.RepeaterSupport = RepeaterSupport;
+		RxConfig.RxContinuous = true;
+		RxConfig.Window = 0;
+
+		TRACE(0, "Test Rx\n");
+		TRACE(0, "%16s : %d\n", "Channel",  RxConfig.Channel);
+		TRACE(0, "%16s : %d\n", "DR", McpsIndication.RxDatarate);
+		TRACE(0, "%16s : %d\n", "DR Offset", RxConfig.DrOffset);
+		TRACE(0, "%16s : %d\n", "DL Dwell Time", RxConfig.DownlinkDwellTime);
+		TRACE(0, "%16s : %d\n", "Rx Continuous", Channel);
+
+		RegionRxConfig( LoRaMacRegion, &RxConfig, ( int8_t* )&McpsIndication.RxDatarate );
+		RxWindowSetup( RxConfig.RxContinuous, LoRaMacParams.MaxRxWindow );
+    }
+    else
+    {
+        Radio.Sleep( );
+
+    }
+}
+
